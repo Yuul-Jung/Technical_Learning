@@ -24,6 +24,7 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 18. Shift Register · Serial/Parallel 변환 RTL 실습
 19. Counter Step 1 · Tick · BCD · FND RTL 실습
 20. Counter Step 2 · Multi-Digit BCD · FND Multiplexing
+21. Stopwatch Step 3 · 4자리 구조화 RTL 실습
 
 ## 기본 구조
 
@@ -52,7 +53,8 @@ Technical_Learning/
 │       ├── 17_register_enable_load_reset.html
 │       ├── 18_shift_register_serial_parallel.html
 │       ├── 19_counter_step1_tick_bcd_fnd.html
-│       └── 20_counter_step2_multidigit_fnd.html
+│       ├── 20_counter_step2_multidigit_fnd.html
+│       └── 21_stopwatch_structured_rtl.html
 ├── images/
 ├── code/
 │   └── fpga/
@@ -70,7 +72,8 @@ Technical_Learning/
 │       ├── ch17_register/
 │       ├── ch18_shift_register/
 │       ├── ch19_counter_step1/
-│       └── ch20_counter_step2/
+│       ├── ch20_counter_step2/
+│       └── ch21_stopwatch_step3/
 ├── css/
 │   └── style.css
 └── README.md
