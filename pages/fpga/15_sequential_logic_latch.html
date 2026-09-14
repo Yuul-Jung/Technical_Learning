@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="조합회로와 순차회로의 차이, SR Latch의 기억 기능, Level Sensitive 특성, Inferred Latch 문제를 Verilog Simulation으로 확인하는 학습자료" name="description"/>
+<title>순차회로와 Latch 기초</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>Digital / FPGA</span><span class="sep">/</span><strong>순차회로와 Latch</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div aria-hidden="true" class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">Digital / FPGA · Chapter 15</p>
+<h1>순차회로와 Latch 기초</h1>
+<p class="hero-desc">조합회로의 한계를 확인하고, 이전 상태를 기억하는 순차회로와 SR Latch의 기본 동작을 이해합니다. 이어서 Level Sensitive 특성과 의도치 않은 Inferred Latch가 왜 FPGA RTL에서 문제가 되는지 Simulation으로 확인합니다.</p>
+<div class="hero-meta"><span class="chip">Sequential Logic</span><span class="chip">SR Latch</span><span class="chip">Feedback</span><span class="chip">Inferred Latch</span><span class="chip">Vivado Simulation</span></div>
+<div class="hero-brief">
+<article><h2>조합회로</h2><p>출력이 현재 입력에만 의존하며 기억 기능이 없습니다.</p></article>
+<article><h2>순차회로</h2><p>현재 입력과 이전 상태를 함께 사용하며 상태를 저장합니다.</p></article>
+<article><h2>핵심 주의점</h2><p>Latch는 Enable이 활성화된 구간 전체에서 입력 변화에 반응합니다.</p></article>
+</div>
+</div></header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">SEQUENTIAL FLOW</p><p class="nav-help">STEP 01 → 08</p>
+<p class="phase">A. 개념 전환</p>
+<ol class="timeline">
+<li><a href="#step01"><span class="n">01</span><span>조합회로 한계</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>순차회로</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>SR Latch</span></a></li>
+</ol>
+<p class="phase">B. 기억 동작 검증</p>
+<ol class="timeline">
+<li><a href="#step04"><span class="n">04</span><span>비교 회로</span></a></li>
+<li><a href="#step05"><span class="n">05</span><span>Testbench</span></a></li>
+</ol>
+<p class="phase">C. Latch 문제점</p>
+<ol class="timeline">
+<li><a href="#step06"><span class="n">06</span><span>Level Sensitive</span></a></li>
+<li><a href="#step07"><span class="n">07</span><span>Inferred Latch</span></a></li>
+<li><a href="#step08"><span class="n">08</span><span>검증 포인트</span></a></li>
+</ol>
+</aside>
+
+<main>
+<div class="overview-card"><h2>조합회로에서 순차회로로</h2>
+<div class="stage-flow"><span class="stage">현재 입력</span><span class="arrow">→</span><span class="stage">조합회로</span><span class="arrow">→</span><span class="stage">기억 기능 필요</span><span class="arrow">→</span><span class="stage">Latch / Flip-Flop</span></div>
+</div>
+
+<section class="step-card" id="step01"><span class="step">STEP 01</span><h2>1. 조합회로의 한계</h2>
+<p>조합회로는 출력이 현재 입력값에만 의존합니다.</p>
+<div class="flow"><strong>출력 → 현재 입력의 함수</strong></div>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>조합회로</th></tr></thead><tbody>
+<tr><td>기억 기능</td><td>없음</td></tr><tr><td>상태</td><td>없음</td></tr><tr><td>Clock</td><td>사용하지 않음</td></tr><tr><td>출력 변화</td><td>입력 변화가 바로 반영됨</td></tr>
+</tbody></table></div>
+<p>AND, OR, XOR, MUX, Decoder, Adder처럼 지금까지 학습한 회로는 모두 이 범주에 속합니다.</p>
+<div class="note">디지털 시계의 현재 시간, UART의 현재 비트 위치, 자판기의 투입 금액, CPU의 현재 명령 상태처럼 과거 정보를 유지해야 하는 시스템은 조합회로만으로 구현할 수 없습니다.</div>
+</section>
+
+<section class="step-card" id="step02"><span class="step">STEP 02</span><h2>2. 순차회로와 State</h2>
+<p>순차회로는 현재 입력뿐 아니라 이전 상태를 함께 사용합니다.</p>
+<div class="flow"><strong>출력 → 현재 입력 + 이전 상태</strong></div>
+<div class="table-wrap"><table><thead><tr><th>용어</th><th>의미</th></tr></thead><tbody>
+<tr><td>State</td><td>회로가 기억하고 있는 값</td></tr><tr><td>Memory</td><td>이전 상태를 저장하는 기능</td></tr><tr><td>Storage</td><td>상태를 저장하는 회로 요소</td></tr>
+</tbody></table></div>
+<p>대표적인 저장 요소는 Latch와 Flip-Flop입니다. 이번 장에서는 먼저 가장 기본적인 Latch의 기억 원리를 확인합니다.</p>
+</section>
+
+<section class="step-card" id="step03"><span class="step">STEP 03</span><h2>3. SR Latch 기본 동작</h2>
+<p>SR Latch는 Set과 Reset 입력을 이용하여 1비트 상태를 저장하는 가장 기본적인 기억 구조입니다.</p>
+<div class="table-wrap"><table><thead><tr><th>S</th><th>R</th><th>Q</th></tr></thead><tbody>
+<tr><td>0</td><td>0</td><td>이전 상태 유지</td></tr>
+<tr><td>1</td><td>0</td><td>1 저장</td></tr>
+<tr><td>0</td><td>1</td><td>0 저장</td></tr>
+<tr><td>1</td><td>1</td><td>금지 상태</td></tr>
+</tbody></table></div>
+<h3>기억이 가능한 이유</h3>
+<div class="stage-flow"><span class="stage">출력 Q</span><span class="arrow">→</span><span class="stage">Feedback</span><span class="arrow">→</span><span class="stage">내부 입력</span><span class="arrow">→</span><span class="stage">상태 유지</span></div>
+<p>출력이 내부 입력으로 다시 연결되는 Feedback 구조 때문에 입력이 사라진 뒤에도 이전 상태를 유지할 수 있습니다.</p>
+<div class="warn"><strong>검증 메모:</strong> 아래 교육용 Behavioral 코드에서는 <code>if (s) ... else if (r)</code> 우선순위를 사용하므로 <code>S=1, R=1</code>일 때 이론적인 SR Latch의 금지 상태를 그대로 모델링하지 않습니다. 진리표의 금지 상태 개념과 교육용 비교 코드는 구분해서 봐야 합니다.</div>
+</section>
+
+<section class="step-card" id="step04"><span class="step">STEP 04</span><h2>4. 조합회로와 기억회로 비교</h2>
+<p>원본 실습은 하나의 모듈에서 조합 출력 <code>y</code>와 상태 저장 출력 <code>q</code>를 함께 관찰합니다.</p>
+<pre class="codeblock-pre"><code>module compare_memory(
+    input a,
+    input s,
+    input r,
+    output y,
+    output reg q
+);
+
+assign y = a;
+
+always @(*) begin
+    if (s)
+        q = 1'b1;
+    else if (r)
+        q = 1'b0;
+    // s=0, r=0이면 이전 q 유지
+end
+
+endmodule</code></pre>
+<div class="table-wrap"><table><thead><tr><th>출력</th><th>동작</th></tr></thead><tbody>
+<tr><td><code>y</code></td><td><code>a</code>가 변하면 즉시 함께 변함</td></tr><tr><td><code>q</code></td><td>Set/Reset으로 저장한 값을 입력이 사라진 뒤에도 유지</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="step-card" id="step05"><span class="step">STEP 05</span><h2>5. Testbench로 상태 유지 확인</h2>
+<pre class="codeblock-pre"><code>initial begin
+    a = 1'b0;
+    s = 1'b0;
+    r = 1'b0;
+    #10;
+
+    a = 1'b1; #10;
+    a = 1'b0; #10;
+
+    s = 1'b1;
+    r = 1'b0;
+    #10;            // q = 1 저장
+
+    s = 1'b0;
+    r = 1'b0;
+    #10;            // q = 1 유지
+
+    s = 1'b0;
+    r = 1'b1;
+    #10;            // q = 0 저장
+
+    s = 1'b0;
+    r = 1'b0;
+    #10;            // q = 0 유지
+
+    $finish;
+end</code></pre>
+<div class="note">초기 <code>s=0, r=0</code>에서는 저장된 이전 상태가 아직 없으므로 Simulation의 <code>q</code>가 <code>X</code>로 보일 수 있습니다. Set 또는 Reset을 수행한 뒤부터 상태 유지가 명확해집니다.</div>
+</section>
+
+<section class="step-card" id="step06"><span class="step">STEP 06</span><h2>6. Latch의 Level Sensitive 특성</h2>
+<p>Latch는 특정 순간만 입력을 보는 것이 아니라 Enable이 활성화된 구간 전체에서 입력 변화에 반응합니다.</p>
+<div class="flow">Enable = 1 → 입력 변화가 출력에 계속 반영<br/>Enable = 0 → 이전 상태 유지</div>
+<h3>문제점</h3>
+<ul>
+<li>Enable 구간 중 입력이 흔들리면 출력도 계속 변할 수 있음</li>
+<li>짧은 Glitch가 들어오면 원하지 않는 값이 저장될 수 있음</li>
+<li>입력 변경 시점, Enable 종료 시점, 회로 지연시간의 영향이 커짐</li>
+</ul>
+<p>이 때문에 현대 FPGA RTL에서는 의도하지 않은 Latch가 생성되지 않도록 주의합니다.</p>
+</section>
+
+<section class="step-card" id="step07"><span class="step">STEP 07</span><h2>7. Inferred Latch — 교육용 나쁜 예제</h2>
+<p>조합논리를 작성하려고 했지만 모든 조건에서 출력값을 대입하지 않으면 합성기가 이전 값을 유지해야 한다고 판단하여 Latch를 만들 수 있습니다.</p>
+<pre class="codeblock-pre"><code>module bad_latch(
+    input en,
+    input d,
+    output reg q
+);
+
+always @(*) begin
+    if (en)
+        q = d;
+    // else가 없으므로 en=0일 때 q 유지
+end
+
+endmodule</code></pre>
+<div class="flow">else 없음 → en=0일 때 q의 새 값 정의 없음 → 이전 q 유지 필요 → Latch 추론 가능</div>
+<div class="warn"><strong>주의:</strong> 이 코드는 Latch가 어떻게 의도치 않게 생성되는지 확인하기 위한 교육용 예제입니다. 정상적인 조합회로 코딩에서는 모든 조건에서 출력이 결정되도록 작성해야 합니다.</div>
+</section>
+
+<section class="step-card" id="step08"><span class="step">STEP 08</span><h2>8. Simulation · RTL Schematic 확인</h2>
+<p><code>bad_latch</code> Testbench에서는 Enable이 1인 동안 <code>d</code>를 여러 번 변경하고, Enable을 0으로 내린 뒤에는 <code>d</code>가 변해도 <code>q</code>가 유지되는지 확인합니다.</p>
+<pre class="codeblock-pre"><code>en = 1'b1;
+d = 1'b0; #10;
+d = 1'b1; #10;
+d = 1'b0; #10;
+d = 1'b1; #10;
+
+en = 1'b0;
+#10;            // q 유지
+
+d = 1'b0; #10;
+d = 1'b1; #10;  // en=0이므로 q 유지</code></pre>
+<div class="table-wrap"><table><thead><tr><th>확인 항목</th><th>관찰 내용</th></tr></thead><tbody>
+<tr><td>Waveform</td><td>Enable=1 동안 q가 d를 따라가는지 확인</td></tr>
+<tr><td>상태 유지</td><td>Enable=0에서 d가 변해도 q가 유지되는지 확인</td></tr>
+<tr><td>Elaborated Design</td><td>Latch가 실제로 추론되었는지 확인</td></tr>
+<tr><td>RTL Schematic</td><td>기억 요소가 생성된 구조 확인</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="step-card summary"><h2>핵심 정리</h2><ul>
+<li>조합회로는 현재 입력만 사용하지만 순차회로는 이전 상태를 기억합니다.</li>
+<li>SR Latch는 Feedback 구조를 이용하여 1비트 상태를 저장합니다.</li>
+<li><code>S=0, R=0</code>에서는 이전 상태를 유지합니다.</li>
+<li>Latch는 Level Sensitive 회로이므로 Enable이 활성화된 동안 입력 변화에 계속 반응합니다.</li>
+<li>조합논리 <code>always @(*)</code>에서 모든 조건에 출력값을 대입하지 않으면 Inferred Latch가 생길 수 있습니다.</li>
+<li>FPGA RTL에서는 의도치 않은 Latch 생성을 피하고, 다음 단계에서 Edge Triggered Flip-Flop 구조로 확장합니다.</li>
+</ul></section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+<a href="14_tristate_shared_bus.html">← 이전: Tri-State Shared Bus</a>
+<a class="home" href="../../index.html">🏠 홈</a>
+<span class="disabled next">다음 챕터 준비 중 →</span>
+</nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+<script>
+(() => { const links=[...document.querySelectorAll('.timeline a')]; const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean); if(!links.length||!targets.length||!('IntersectionObserver' in window))return; const activate=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id)); const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top)); if(visible.length)activate(visible[0].target.id);},{rootMargin:'-12% 0px -78% 0px',threshold:[0,1]}); targets.forEach(t=>observer.observe(t)); activate(targets[0].id); })();
+</script>
+</body>
+</html>
