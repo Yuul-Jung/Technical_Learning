@@ -11,6 +11,7 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 5. Level 1 논리게이트 FPGA 실습
 6. 구조화 Gate Module RTL 실습
 7. Verilog 기본 문법과 로직게이트 실습
+8. Boolean Algebra · Karnaugh Map RTL 실습
 
 ## 기본 구조
 
