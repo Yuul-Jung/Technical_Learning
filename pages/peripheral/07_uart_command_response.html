@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="UART Byte Stream을 LF 기준 Line Frame으로 만들고 LED=ON, LED=OFF, STATUS? 명령을 해석해 OK/STATUS/ERR 응답을 보내는 재사용 Command/Response Controller RTL 자료" name="description"/>
+<title>07. UART Command Parser · Response Generator RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+      <strong>07. UART Command / Response</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">RTL 주변기기 회로설계 · 07</p>
+    <h1>UART Command Parser · Response Generator RTL 실습</h1>
+    <p class="hero-desc">
+      Echo에서 한 단계 확장하여 수신 Byte Stream을 LF 기준 Command Frame으로 만들고,
+      <code>LED=ON</code>, <code>LED=OFF</code>, <code>STATUS?</code> 명령을 해석한 뒤
+      UART TX FIFO를 통해 응답 문자열을 반환합니다.
+    </p>
+
+    <div class="hero-meta">
+      <span class="chip">Line Receiver</span>
+      <span class="chip">Command Parser</span>
+      <span class="chip">Response Generator</span>
+      <span class="chip">valid / ready</span>
+      <span class="chip">Backpressure</span>
+    </div>
+
+    <div class="hero-brief">
+      <article><h2>Frame</h2><p>Byte Stream을 LF(0x0A)까지 모아 하나의 명령 Frame으로 확정합니다.</p></article>
+      <article><h2>Parser</h2><p>Frame 길이와 각 ASCII Byte를 비교하여 지원 명령을 판별합니다.</p></article>
+      <article><h2>Response</h2><p>응답은 1Byte씩 <code>out_valid / out_ready</code> Handshake로 TX FIFO에 전달합니다.</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">COMMAND FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. Frame · Command</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>전체 구조</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>Line Receiver</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>명령 정의</span></a></li>
+  </ol>
+
+  <p class="phase">B. Parser · Response</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>Command Parser</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>Response Generator</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>Backpressure</span></a></li>
+  </ol>
+
+  <p class="phase">C. Integration</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>Controller · Top</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>검증 기준</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>전체 데이터 흐름</h2>
+  <div class="stage-flow">
+    <span class="stage">PC Command</span><span class="arrow">→</span>
+    <span class="stage">UART RX FIFO</span><span class="arrow">→</span>
+    <span class="stage">Line Receiver</span><span class="arrow">→</span>
+    <span class="stage">Command Parser</span><span class="arrow">→</span>
+    <span class="stage">Response Generator</span><span class="arrow">→</span>
+    <span class="stage">UART TX FIFO</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. Echo에서 Command / Response로 확장</h2>
+
+  <pre class="codeblock-pre"><code>06. Echo
+RX Byte → 그대로 TX
+
+07. Command / Response
+RX Byte Stream
+→ LF 기준 Frame
+→ 명령어 해석
+→ 내부 상태 변경
+→ 응답 문자열 생성
+→ TX</code></pre>
+
+  <p>
+    이번 단계에서도 <code>uart_core</code>, <code>uart_rx_core</code>,
+    <code>uart_tx_core</code>는 수정하지 않습니다.
+    기능은 보드와 독립된 Controller 모듈로 추가합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. uart_line_receiver — LF 기준 Frame 생성</h2>
+
+  <div class="flow">
+    L → E → D → = → O → N → LF
+    → frame_len = 6
+    → frame_valid = 1 Clock
+  </div>
+
+  <pre class="codeblock-pre"><code>if (in_data == 8'h0A) begin
+    frame_valid &lt;= 1'b1;
+    frame_len   &lt;= wr_index;
+    wr_index    &lt;= 8'd0;
+end
+else if (wr_index &lt; MAX_LEN) begin
+    frame_data[8*wr_index +: 8] &lt;= in_data;
+    wr_index &lt;= wr_index + 1'b1;
+end</code></pre>
+
+  <p>
+    기존 BRAM Line Buffer 실습과 역할은 비슷하지만,
+    Command Parser가 문자열 전체를 바로 비교할 수 있도록 이번에는
+    <code>frame_data</code> 벡터를 Controller 인터페이스로 제공합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. 지원 Command와 Response</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Command</th><th>내부 동작</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td><code>LED=ON + LF</code></td><td>LED0 ON</td><td><code>OK LED ON + LF</code></td></tr>
+        <tr><td><code>LED=OFF + LF</code></td><td>LED0 OFF</td><td><code>OK LED OFF + LF</code></td></tr>
+        <tr><td><code>STATUS? + LF</code></td><td>LED0 상태 확인</td><td><code>LED=ON</code> 또는 <code>LED=OFF</code> + LF</td></tr>
+        <tr><td>기타</td><td>지원하지 않는 명령</td><td><code>ERR CMD + LF</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    LF(Line Feed, 줄바꿈)는 ASCII <code>0x0A</code>이며 Command 문자열 자체 길이에는 포함하지 않습니다.
+  </div>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. uart_command_parser — Frame을 명령으로 해석</h2>
+
+  <pre class="codeblock-pre"><code>assign cmd_led_on =
+    (frame_len == 8'd6) &amp;&amp;
+    (c0 == "L") &amp;&amp; (c1 == "E") &amp;&amp; (c2 == "D") &amp;&amp;
+    (c3 == "=") &amp;&amp; (c4 == "O") &amp;&amp; (c5 == "N");</code></pre>
+
+  <p>
+    <code>LED=OFF</code>와 <code>STATUS?</code>도 같은 방식으로
+    Frame 길이와 각 ASCII Byte를 함께 비교합니다.
+  </p>
+
+  <pre class="codeblock-pre"><code>if (cmd_led_on) begin
+    led0_state   &lt;= 1'b1;
+    response_sel &lt;= RESP_OK_LED_ON;
+    response_req &lt;= 1'b1;
+end
+else if (cmd_led_off) begin
+    led0_state   &lt;= 1'b0;
+    response_sel &lt;= RESP_OK_LED_OFF;
+    response_req &lt;= 1'b1;
+end
+else if (cmd_status) begin
+    response_sel &lt;= RESP_STATUS;
+    response_req &lt;= 1'b1;
+end
+else begin
+    response_sel &lt;= RESP_ERR_CMD;
+    response_req &lt;= 1'b1;
+end</code></pre>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. uart_response_generator — 문자열을 1Byte씩 출력</h2>
+
+  <div class="flow">
+    RESP_OK_LED_ON
+    → O → K → Space → L → E → D → Space → O → N → LF
+  </div>
+
+  <p>
+    응답 문자열 전체를 한 번에 UART에 넣는 것이 아니라,
+    현재 <code>index</code>에 해당하는 한 Byte를 출력하고
+    뒤쪽이 받을 준비가 되었을 때만 다음 Byte로 이동합니다.
+  </p>
+
+  <pre class="codeblock-pre"><code>assign out_data  = resp_byte;
+assign out_valid = busy_reg;
+
+if (busy_reg &amp;&amp; out_ready) begin
+    if (index == resp_len - 1'b1)
+        busy_reg &lt;= 1'b0;
+    else
+        index &lt;= index + 1'b1;
+end</code></pre>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. valid / ready와 TX FIFO Backpressure</h2>
+
+  <div class="flow">
+    Response Generator out_valid
+    → TX FIFO Full 확인
+    → 공간 있음: 1Byte Write
+    → 공간 없음: 현재 Byte 유지
+  </div>
+
+  <pre class="codeblock-pre"><code>assign response_ready = !tx_full;
+
+assign tx_wr_data = response_data;
+assign tx_wr_en   = response_valid &amp;&amp; response_ready;</code></pre>
+
+  <p>
+    TX FIFO가 Full이면 <code>out_ready=0</code>이 되어 Response Generator가
+    현재 Byte와 <code>index</code>를 그대로 유지합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. Controller와 Top Module 분리</h2>
+
+  <pre class="codeblock-pre"><code>uart_command_response_controller
+├── uart_line_receiver
+├── uart_command_parser
+└── uart_response_generator</code></pre>
+
+  <div class="flow">
+    uart_core
+    ↔ uart_command_response_controller
+    → led0_state
+  </div>
+
+  <p>
+    <code>basys3_uart_command_top.v</code>은 보드 핀,
+    <code>uart_core</code>, Controller, LED 상태 연결만 담당합니다.
+    LF 검출, 명령 해석, 응답 문자열 생성은 Top 밖에 둡니다.
+  </p>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. 검증 기준과 Source 검증 메모</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>입력</th><th>기대 내부 상태</th><th>기대 응답</th></tr></thead>
+      <tbody>
+        <tr><td><code>LED=ON + LF</code></td><td>LED0=1</td><td><code>OK LED ON + LF</code></td></tr>
+        <tr><td><code>LED=OFF + LF</code></td><td>LED0=0</td><td><code>OK LED OFF + LF</code></td></tr>
+        <tr><td><code>STATUS? + LF</code></td><td>상태 유지</td><td>현재 LED 상태 문자열</td></tr>
+        <tr><td><code>BAD + LF</code></td><td>상태 유지</td><td><code>ERR CMD + LF</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">
+    <strong>검증 메모:</strong>
+    참고자료의 명령표에는 기타 명령의 응답을 <code>ERR CMD</code>로 정의했지만,
+    같은 자료의 예시 <code>command_parser_fsm.v</code>는 기타 명령을
+    <code>RESP_STATUS</code>로 연결합니다.
+    이번 RTL은 명령표의 정의를 기준으로 <code>RESP_ERR_CMD</code>를 별도로 추가했습니다.
+  </div>
+
+  <div class="note">
+    Testbench 파일은 Parser와 Response Generator 단위로 제공하지만,
+    현재 실행 환경에는 Verilog Simulator가 없어 실제 Simulation Output으로 표시하지 않았습니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>UART Echo는 Byte를 그대로 반환하지만 Command 단계는 LF까지 모은 Frame을 해석합니다.</li>
+    <li><code>uart_line_receiver</code>가 Byte Stream을 Frame으로 변환합니다.</li>
+    <li><code>uart_command_parser</code>가 LED=ON, LED=OFF, STATUS?를 판별합니다.</li>
+    <li><code>uart_response_generator</code>가 OK, STATUS, ERR 응답을 Byte Stream으로 생성합니다.</li>
+    <li>TX FIFO Full 시 valid/ready Backpressure로 응답 Byte 손실을 방지합니다.</li>
+    <li>Top은 Shell로 유지하고 실제 기능은 재사용 가능한 Controller에 둡니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="06_uart_echo_loopback.html">← 이전: 06. UART Echo</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <span class="disabled next">08. Register Map 준비 중 →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>
