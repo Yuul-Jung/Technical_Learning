@@ -7,6 +7,10 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 1. Ubuntu에서 AMD Vivado 2024.2 설치
 2. SW0를 이용한 LED0 ON/OFF 실습
 3. 74 시리즈 기반 Verilog RTL 설계 가이드
+4. 부울대수 공리 FPGA 실습
+5. Level 1 논리게이트 FPGA 실습
+6. 구조화 Gate Module RTL 실습
+7. Verilog 기본 문법과 로직게이트 실습
 
 ## 기본 구조
 
@@ -18,9 +22,16 @@ Technical_Learning/
 │   │   └── 01_ubuntu_vivado_install.html
 │   └── fpga/
 │       ├── 02_sw0_led.html
-│       └── 03_verilog_rtl_74series_guide.html
+│       ├── 03_verilog_rtl_74series_guide.html
+│       ├── 04_boolean_algebra_axiom_lab.html
+│       ├── 05_logic_gates_level1_lab.html
+│       ├── 06_structured_gate_modules.html
+│       └── 07_verilog_syntax_logic_gates.html
 ├── images/
 ├── code/
+│   └── fpga/
+│       ├── ch06_gate_modules/
+│       └── ch07_verilog_syntax/
 ├── css/
 │   └── style.css
 └── README.md
