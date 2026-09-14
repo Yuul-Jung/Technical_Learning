@@ -2,12 +2,126 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta http-equiv="refresh" content="0; url=../peripheral/01_uart_tx_fifo_fsm.html"/>
-<title>UART TX 페이지 이동</title>
-<link rel="canonical" href="../peripheral/01_uart_tx_fifo_fsm.html"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Basys3 버튼 입력에서 ASCII 문자를 생성하고, FIFO·Sender·UART TX FSM을 거쳐 9600bps 8N1 직렬 신호로 PC에 전송하는 UART TX RTL 실습" name="description"/>
+<title>UART TX · FIFO · Sender · 8N1 FSM RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
 </head>
 <body>
-<p>UART 자료는 <a href="../peripheral/01_uart_tx_fifo_fsm.html">RTL 주변기기 회로설계 01. UART TX</a>로 이동했습니다.</p>
+<div class="topbar"><div class="topbar-inner"><div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>Digital / FPGA</span><span class="sep">/</span><strong>UART TX</strong></div><div class="brand">PE. JUNG · TECHNICAL NOTES</div></div></div>
+<header class="hero"><div aria-hidden="true" class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">Digital / FPGA · Chapter 25</p>
+<h1>UART TX · FIFO · Sender · 8N1 FSM RTL 실습</h1>
+<p class="hero-desc">Basys3의 버튼을 한 번 누를 때마다 ASCII 문자를 TX FIFO에 저장하고, Sender가 1Byte씩 꺼내 UART TX FSM으로 전달하여 PC에 9600bps 8N1 형식으로 송신합니다.</p>
+<div class="hero-meta"><span class="chip">UART TX</span><span class="chip">9600 bps</span><span class="chip">8N1</span><span class="chip">16-Byte FIFO</span><span class="chip">FSM</span></div>
+<div class="hero-brief"><article><h2>입력</h2><p><code>btnC</code> → Debounce → 1-Clock <code>btn_pulse</code></p></article><article><h2>Buffer</h2><p>16Byte FIFO가 FPGA 내부 속도와 느린 UART 송신 속도의 차이를 흡수합니다.</p></article><article><h2>출력</h2><p><code>Idle → Start → D0~D7 → Stop</code> 순서로 <code>RsTx</code>를 출력합니다.</p></article></div>
+</div></header>
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">UART TX FLOW</p><p class="nav-help">STEP 01 → 08</p>
+<p class="phase">A. 입력 · 저장</p><ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>전체 구조</span></a></li><li><a href="#step02"><span class="n">02</span><span>Button · ASCII</span></a></li><li><a href="#step03"><span class="n">03</span><span>TX FIFO</span></a></li></ol>
+<p class="phase">B. 송신 제어</p><ol class="timeline"><li><a href="#step04"><span class="n">04</span><span>TX Sender</span></a></li><li><a href="#step05"><span class="n">05</span><span>8N1 FSM</span></a></li><li><a href="#step06"><span class="n">06</span><span>Baud 계산</span></a></li></ol>
+<p class="phase">C. 통합 · 검증</p><ol class="timeline"><li><a href="#step07"><span class="n">07</span><span>TX Core · Top</span></a></li><li><a href="#step08"><span class="n">08</span><span>Testbench · Board</span></a></li></ol>
+</aside>
+<main>
+<div class="overview-card"><h2>전체 데이터 흐름</h2><div class="stage-flow"><span class="stage">btnC</span><span class="arrow">→</span><span class="stage">Debounce</span><span class="arrow">→</span><span class="stage">ASCII</span><span class="arrow">→</span><span class="stage">TX FIFO</span><span class="arrow">→</span><span class="stage">Sender</span><span class="arrow">→</span><span class="stage">TX FSM</span><span class="arrow">→</span><span class="stage">RsTx</span></div></div>
+
+<section class="step-card" id="step01"><span class="step">STEP 01</span><h2>1. UART TX 전체 구조</h2>
+<pre class="codeblock-pre"><code>btnC
+→ button_debounce_pulse
+→ ASCII 증가 로직
+→ tx_wr_data[7:0] + tx_wr_en
+→ uart_tx_core
+   ├─ uart_tx_fifo
+   ├─ uart_tx_sender
+   └─ uart_tx_fsm
+→ RsTx
+→ PC / moserial</code></pre>
+<p>UART(Universal Asynchronous Receiver/Transmitter, 범용 비동기 송수신)는 별도 Clock 선 없이 송수신 측이 같은 Baud Rate를 기준으로 데이터를 주고받습니다. 이번 단계는 TX(Transmit, 송신) 경로만 구현합니다.</p>
+</section>
+
+<section class="step-card" id="step02"><span class="step">STEP 02</span><h2>2. Button Pulse와 ASCII 문자 생성</h2>
+<p>기계식 버튼은 Chapter 22에서 만든 것과 같은 흐름으로 동기화·디바운스한 뒤 1-Clock Pulse로 사용합니다.</p>
+<div class="flow">btnC → 2-FF 동기화 → 약 20ms Debounce → btn_pulse 1 Clock</div>
+<pre class="codeblock-pre"><code>if (btn_pulse &amp;&amp; !tx_full) begin
+    tx_wr_data &lt;= ascii_reg;
+    tx_wr_en   &lt;= 1'b1;
+
+    if (ascii_reg == 8'h7A)
+        ascii_reg &lt;= 8'h61;
+    else
+        ascii_reg &lt;= ascii_reg + 1'b1;
+end</code></pre>
+<div class="flow">8'h61 = 'a' → b → c → ... → z(8'h7A) → a</div>
+</section>
+
+<section class="step-card" id="step03"><span class="step">STEP 03</span><h2>3. UART TX FIFO — 16Byte 송신 대기열</h2>
+<p>FPGA 내부는 100MHz로 매우 빠르게 동작하지만 UART 송신은 훨씬 느립니다. FIFO(First In First Out, 먼저 들어온 데이터가 먼저 나가는 버퍼)가 두 속도 사이의 차이를 흡수합니다.</p>
+<div class="table-wrap"><table><thead><tr><th>구성</th><th>역할</th></tr></thead><tbody><tr><td><code>mem[0:15]</code></td><td>8bit × 16개 데이터 저장</td></tr><tr><td><code>wr_ptr</code></td><td>다음 Write 위치</td></tr><tr><td><code>rd_ptr</code></td><td>다음 Read 위치</td></tr><tr><td><code>count_reg</code></td><td>현재 저장 Byte 수 0~16</td></tr><tr><td><code>full / empty</code></td><td>Write/Read 가능 여부</td></tr></tbody></table></div>
+<pre class="codeblock-pre"><code>case ({wr_en &amp;&amp; !full, rd_en &amp;&amp; !empty})
+    2'b10: Write만 수행
+    2'b01: Read만 수행
+    2'b11: Write + Read 동시 수행
+    default: 상태 유지
+endcase</code></pre>
+</section>
+
+<section class="step-card" id="step04"><span class="step">STEP 04</span><h2>4. uart_tx_sender — FIFO와 TX FSM 사이의 관리자</h2>
+<div class="flow">S_IDLE → S_WAIT_BUSY → S_WAIT_DONE → S_IDLE</div>
+<pre class="codeblock-pre"><code>if (!fifo_empty &amp;&amp; !tx_busy) begin
+    tx_data    &lt;= fifo_rd_data;
+    tx_start   &lt;= 1'b1;
+    fifo_rd_en &lt;= 1'b1;
+    state_reg  &lt;= S_WAIT_BUSY;
+end</code></pre>
+<p><code>tx_start</code>와 <code>fifo_rd_en</code>은 모두 1-Clock Pulse입니다. Sender는 TX FSM이 실제로 <code>tx_busy=1</code>이 되었는지 확인한 뒤 송신 완료까지 기다립니다.</p>
+</section>
+
+<section class="step-card" id="step05"><span class="step">STEP 05</span><h2>5. uart_tx_fsm — UART 8N1 직렬 송신</h2>
+<div class="flow">Idle 1 → Start 0 → D0 → D1 → D2 → D3 → D4 → D5 → D6 → D7 → Stop 1</div>
+<div class="table-wrap"><table><thead><tr><th>상태</th><th>역할</th></tr></thead><tbody><tr><td><code>S_IDLE</code></td><td>TX Line을 1로 유지하며 <code>tx_start</code> 대기</td></tr><tr><td><code>S_START</code></td><td>Start Bit 0을 1 Bit 시간 유지</td></tr><tr><td><code>S_DATA</code></td><td>D0~D7을 LSB First로 송신</td></tr><tr><td><code>S_STOP</code></td><td>Stop Bit 1을 1 Bit 시간 유지 후 <code>tx_done</code> 발생</td></tr></tbody></table></div>
+<pre class="codeblock-pre"><code>if (bit_timer == CLKS_PER_BIT - 1) begin
+    bit_timer &lt;= 32'd0;
+    ...
+end</code></pre>
+<p>8N1은 Data 8bit, Parity 없음(N), Stop Bit 1개를 의미합니다.</p>
+</section>
+
+<section class="step-card" id="step06"><span class="step">STEP 06</span><h2>6. 100MHz · 9600bps의 CLKS_PER_BIT</h2>
+<div class="flow">100,000,000 / 9,600 ≈ 10,416.67 → 정수 근사값 10,417</div>
+<pre class="codeblock-pre"><code>parameter CLKS_PER_BIT = 10417;</code></pre>
+<p>따라서 UART의 한 Bit는 Basys3 100MHz Clock 약 10,417개 동안 유지됩니다. 8N1 한 프레임은 Start 1 + Data 8 + Stop 1로 총 10 Bit입니다.</p>
+<div class="note">9600bps에서 1Byte 프레임 시간의 근사값은 10 / 9600 ≈ 1.0417ms입니다. 실제 회로는 정수 Clock 수를 사용하므로 작은 근사 오차가 포함됩니다.</div>
+</section>
+
+<section class="step-card" id="step07"><span class="step">STEP 07</span><h2>7. uart_tx_core와 Basys3 Top</h2>
+<p><code>uart_tx_core</code>는 FIFO, Sender, TX FSM을 하나의 TX Core로 묶습니다.</p>
+<pre class="codeblock-pre"><code>uart_tx_core
+├── uart_tx_fifo
+├── uart_tx_sender
+└── uart_tx_fsm</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Top Port</th><th>기능</th></tr></thead><tbody><tr><td><code>clk</code></td><td>100MHz 시스템 Clock</td></tr><tr><td><code>btnC</code></td><td>문자 송신 버튼</td></tr><tr><td><code>btnU</code></td><td>Reset</td></tr><tr><td><code>RsTx</code></td><td>PC 방향 UART TX</td></tr><tr><td><code>led[0]</code></td><td>FIFO Empty</td></tr><tr><td><code>led[1]</code></td><td>FIFO Full</td></tr><tr><td><code>led[2]</code></td><td>TX Busy</td></tr><tr><td><code>led[3]</code></td><td>TX Done Pulse</td></tr><tr><td><code>led[8:4]</code></td><td>FIFO Count</td></tr><tr><td><code>led[15:9]</code></td><td>다음 ASCII 코드 하위 7bit</td></tr></tbody></table></div>
+<div class="note">XDC는 새 파일을 만들지 않고 기존 Basys3 XDC에서 <code>clk, btnC, btnU, RsTx, led[15:0]</code>만 활성화하는 원본 기준을 유지했습니다.</div>
+</section>
+
+<section class="step-card" id="step08"><span class="step">STEP 08</span><h2>8. 개별 Testbench와 보드 확인</h2>
+<div class="table-wrap"><table><thead><tr><th>Testbench</th><th>검증</th></tr></thead><tbody><tr><td><code>tb_uart_tx_fifo.v</code></td><td>a, b, c Write/Read 순서와 Empty/Count</td></tr><tr><td><code>tb_uart_tx_sender.v</code></td><td>FIFO 데이터 존재 + TX Idle 조건에서 Read/Start Pulse</td></tr><tr><td><code>tb_uart_tx_fsm.v</code></td><td>ASCII 'a'(8'h61)의 Start/Data/Stop Bit</td></tr></tbody></table></div>
+<pre class="codeblock-pre"><code>btnU → Reset
+btnC 1회 → a 송신
+btnC 2회 → b 송신
+...
+btnC 반복 → a ... z → a ...
+
+PC / moserial 예상 수신
+abcdefghijklmnopqrstuvwxyzabc...</code></pre>
+<div class="warn"><strong>실제 출력과 예상 동작 구분:</strong> 위 문자열은 원본에서 제시한 보드 확인 기준입니다. 이 GitHub 페이지 생성 과정에서 Basys3 보드와 moserial을 직접 실행해 측정한 결과는 아닙니다.</div>
+</section>
+
+<section class="step-card summary"><h2>핵심 정리</h2><ul><li>버튼 입력은 Debounce 후 1-Clock Pulse로 변환해 송신 요청에 사용합니다.</li><li>FIFO는 최대 16Byte의 송신 대기 데이터를 순서대로 저장합니다.</li><li>Sender는 <code>fifo_empty</code>와 <code>tx_busy</code>를 확인해 한 Byte씩 TX FSM에 전달합니다.</li><li>TX FSM은 8N1 형식으로 Start 0 → D0~D7 → Stop 1을 직렬 출력합니다.</li><li>100MHz / 9600bps 기준 <code>CLKS_PER_BIT=10417</code>을 사용합니다.</li><li>Top은 <code>btnC → ASCII → FIFO → Sender → FSM → RsTx</code> 흐름을 연결합니다.</li></ul></section>
+
+<nav aria-label="챕터 이동" class="chapter-nav"><a href="24_fsm_moore_mealy.html">← 이전: FSM</a><a class="home" href="../../index.html">🏠 홈</a><span class="disabled next">다음: UART RX 준비 중 →</span></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+<script>(()=>{const links=[...document.querySelectorAll('.timeline a')];const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);if(!links.length||!targets.length||!('IntersectionObserver'in window))return;const activate=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id));const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top));if(visible.length)activate(visible[0].target.id);},{rootMargin:'-12% 0px -78% 0px',threshold:[0,1]});targets.forEach(t=>observer.observe(t));activate(targets[0].id);})();</script>
 </body>
 </html>

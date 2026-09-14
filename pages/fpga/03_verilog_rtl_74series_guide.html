@@ -2,13 +2,430 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta http-equiv="refresh" content="0; url=02_verilog_rtl_74series_guide.html"/>
-<title>페이지 이동</title>
-<link rel="canonical" href="02_verilog_rtl_74series_guide.html"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="74 시리즈를 기준으로 Verilog RTL 모듈을 Gate, Combinational, Sequential, Project/Peripheral로 분류하고 파일·모듈 구조와 설계 흐름을 정리한 가이드" name="description"/>
+<title>74 시리즈 기반 Verilog RTL 설계 가이드</title>
+<link href="../../css/style.css" rel="stylesheet"/>
 </head>
 <body>
-<p>Digital / FPGA 번호 체계 변경으로 페이지가 이동했습니다.
-<a href="02_verilog_rtl_74series_guide.html">02. 74 Series RTL</a></p>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>Digital / FPGA</span><span class="sep">/</span>
+      <strong>Verilog RTL 설계 가이드</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">Digital / FPGA · Chapter 03</p>
+    <h1>74 시리즈 기반 Verilog RTL 설계 가이드</h1>
+    <p class="hero-desc">
+      74 시리즈 디지털 회로를 기준으로 Verilog RTL 모듈을 Gate, Combinational,
+      Sequential, Project/Peripheral 계열로 나누고, 파일명·모듈명 규칙과 계층적 프로젝트 구조를 정리합니다.
+    </p>
+    <div class="hero-meta">
+      <span class="chip">Digital System</span>
+      <span class="chip">Verilog RTL</span>
+      <span class="chip">74 Series</span>
+      <span class="chip">FPGA</span>
+    </div>
+
+    <div class="hero-brief">
+      <article>
+        <h2>핵심 관점</h2>
+        <p>Verilog는 프로그램을 순서대로 실행하는 언어가 아니라 하드웨어 회로를 기술하는 HDL입니다.</p>
+      </article>
+      <article>
+        <h2>분류 기준</h2>
+        <p><code>g_</code>, <code>c_</code>, <code>s_</code>, <code>p_</code> 접두어로 RTL 모듈의 역할을 구분합니다.</p>
+      </article>
+      <article>
+        <h2>확장 방향</h2>
+        <p>Gate → 조합논리 → 순차논리 → UART/FSM 같은 실제 FPGA 기능으로 확장합니다.</p>
+      </article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">CHAPTER FLOW</p>
+  <p class="nav-help">SECTION 01 → 10</p>
+
+  <p class="phase">A. RTL 기본 관점</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>FPGA 설계 철학</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>RTL 4계열 분류</span></a></li>
+  </ol>
+
+  <p class="phase">B. 회로 계층</p>
+  <ol class="timeline">
+    <li><a href="#step03"><span class="n">03</span><span>Gate 계열</span></a></li>
+    <li><a href="#step04"><span class="n">04</span><span>Combinational</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>Sequential</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>Project / Peripheral</span></a></li>
+  </ol>
+
+  <p class="phase">C. 프로젝트 구조</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>UART · FSM</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>추천 폴더 구조</span></a></li>
+    <li><a href="#step09"><span class="n">09</span><span>코딩 스타일</span></a></li>
+    <li><a href="#step10"><span class="n">10</span><span>학습 테크트리</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>전체 구조</h2>
+  <div aria-label="전체 설계 구조" class="stage-flow">
+    <span class="stage">Gate</span><span class="arrow">→</span>
+    <span class="stage">Combinational</span><span class="arrow">→</span>
+    <span class="stage">Sequential</span><span class="arrow">→</span>
+    <span class="stage">Project / Peripheral</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">SECTION 01</span>
+  <h2>1. FPGA 설계 철학</h2>
+
+  <p>Verilog는 일반적인 소프트웨어 프로그램 언어처럼 명령을 순서대로 실행하기 위한 언어가 아닙니다.</p>
+
+  <div class="flow">
+    Verilog HDL 작성 → 하드웨어 구조 기술 → FPGA 내부 회로 구현
+  </div>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>관점</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td>Software 관점</td><td>명령을 순서대로 실행</td></tr>
+      <tr><td>Verilog HDL 관점</td><td>동시에 존재하는 하드웨어 회로와 신호 관계를 기술</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    이 장의 기준은 “코드를 실행한다”보다 “코드로 회로를 만든다”에 두고 있습니다.
+  </div>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">SECTION 02</span>
+  <h2>2. RTL 모듈의 4계열 분류</h2>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Prefix</th><th>의미</th><th>역할</th></tr></thead>
+    <tbody>
+      <tr><td><code>g_</code></td><td>Gate</td><td>기본 논리 연산</td></tr>
+      <tr><td><code>c_</code></td><td>Combinational</td><td>선택 · 계산</td></tr>
+      <tr><td><code>s_</code></td><td>Sequential</td><td>기억 · 상태</td></tr>
+      <tr><td><code>p_</code></td><td>Project / Peripheral</td><td>실제 시스템 기능</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="flow">
+    g_ 기본 게이트 → c_ 조합논리 → s_ 순차논리 → p_ 프로젝트 기능
+  </div>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">SECTION 03</span>
+  <h2>3. g_ : Gate 계열</h2>
+
+  <p>Gate 계열은 가장 기본적인 논리 연산을 담당하며, 출력은 현재 입력값으로 결정됩니다.</p>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>파일명</th><th>기능</th></tr></thead>
+    <tbody>
+      <tr><td><code>g_not_7404.v</code></td><td>NOT Gate</td></tr>
+      <tr><td><code>g_buffer_7407.v</code></td><td>Buffer</td></tr>
+      <tr><td><code>g_nand_7400.v</code></td><td>NAND Gate</td></tr>
+      <tr><td><code>g_nor_7402.v</code></td><td>NOR Gate</td></tr>
+      <tr><td><code>g_and_7408.v</code></td><td>AND Gate</td></tr>
+      <tr><td><code>g_or_7432.v</code></td><td>OR Gate</td></tr>
+      <tr><td><code>g_xor_7486.v</code></td><td>XOR Gate</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Gate 예제</h3>
+
+  <pre class="codeblock-pre"><code>module g_and_7408(
+    input  a,
+    input  b,
+    output y
+);
+
+assign y = a &amp; b;
+
+endmodule</code></pre>
+
+  <p>핵심 개념은 Boolean Algebra, Truth Table, DeMorgan Law, Universal Gate, <code>assign</code> 문입니다.</p>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">SECTION 04</span>
+  <h2>4. c_ : Combinational 계열</h2>
+
+  <p>조합논리 회로는 기억 기능이 없으며 출력이 현재 입력 상태에만 의존합니다.</p>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>파일명</th><th>기능</th></tr></thead>
+    <tbody>
+      <tr><td><code>c_mux2_74157.v</code></td><td>2:1 MUX</td></tr>
+      <tr><td><code>c_mux8_74151.v</code></td><td>8:1 MUX</td></tr>
+      <tr><td><code>c_decoder2_74139.v</code></td><td>2-to-4 Decoder</td></tr>
+      <tr><td><code>c_decoder3_74138.v</code></td><td>3-to-8 Decoder</td></tr>
+      <tr><td><code>c_decoder4_74154.v</code></td><td>4-to-16 Decoder</td></tr>
+      <tr><td><code>c_encoder8_74148.v</code></td><td>Priority Encoder</td></tr>
+      <tr><td><code>c_comparator_7485.v</code></td><td>Comparator</td></tr>
+      <tr><td><code>c_adder4_74283.v</code></td><td>4-bit Adder</td></tr>
+      <tr><td><code>c_alu_74181.v</code></td><td>ALU</td></tr>
+      <tr><td><code>c_sevenseg_7447.v</code></td><td>7-Segment Decoder</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Decoder</h3>
+  <p>Decoder는 하나의 대상을 선택하는 회로로 주소 선택, 메모리 선택, 장치 선택, FSM 상태 선택 등에 연결됩니다.</p>
+
+  <h3>MUX</h3>
+  <p>MUX는 여러 입력 중 하나를 선택하여 전달하는 회로입니다.</p>
+
+  <h3>ALU</h3>
+  <p>ALU는 덧셈, 뺄셈, AND, OR, XOR, 비교 등의 연산을 수행하는 조합논리 구조입니다.</p>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">SECTION 05</span>
+  <h2>5. s_ : Sequential 계열</h2>
+
+  <p>순차논리 회로는 현재 입력뿐 아니라 이전 상태를 함께 사용합니다. 즉, 기억 기능이 존재합니다.</p>
+
+  <div class="flow">현재 입력 + 이전 상태 → 현재 출력 · 다음 상태</div>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>파일명</th><th>기능</th></tr></thead>
+    <tbody>
+      <tr><td><code>s_dff_7474.v</code></td><td>D Flip-Flop</td></tr>
+      <tr><td><code>s_latch_7475.v</code></td><td>Latch</td></tr>
+      <tr><td><code>s_counter_74161.v</code></td><td>Synchronous Counter</td></tr>
+      <tr><td><code>s_counter_7490.v</code></td><td>Decade Counter</td></tr>
+      <tr><td><code>s_shift_74164.v</code></td><td>Shift Register</td></tr>
+      <tr><td><code>s_shift_74194.v</code></td><td>Universal Shift Register</td></tr>
+      <tr><td><code>s_register_74173.v</code></td><td>Register</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Sequential 예제</h3>
+
+  <pre class="codeblock-pre"><code>module s_dff_7474(
+    input  clk,
+    input  d,
+    output reg q
+);
+
+always @(posedge clk)
+begin
+    q &lt;= d;
+end
+
+endmodule</code></pre>
+
+  <p>핵심 개념은 Clock, Reset, Flip-Flop, Register, Counter, Shift Register, State, Timing, <code>always</code> 블록, Non-blocking Assignment입니다.</p>
+
+  <h3>Counter</h3>
+  <p>Counter는 상태가 계속 변화하는 순차회로이며 Timer, Frequency Divider, Digital Clock, FSM 등에 활용됩니다.</p>
+
+  <h3>Shift Register</h3>
+  <p>Shift Register는 데이터를 한 비트씩 이동시키며 UART, SPI, Serial Communication과 연결됩니다.</p>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">SECTION 06</span>
+  <h2>6. p_ : Project / Peripheral 계열</h2>
+
+  <p>실제 FPGA 프로젝트에서 기능 단위로 재사용하는 모듈을 배치합니다.</p>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>파일명</th><th>기능</th></tr></thead>
+    <tbody>
+      <tr><td><code>p_debounce.v</code></td><td>버튼 채터링 제거</td></tr>
+      <tr><td><code>p_clock_divider.v</code></td><td>클럭 분주</td></tr>
+      <tr><td><code>p_edge_detector.v</code></td><td>Edge 검출</td></tr>
+      <tr><td><code>p_uart_tx.v</code></td><td>UART 송신</td></tr>
+      <tr><td><code>p_uart_rx.v</code></td><td>UART 수신</td></tr>
+      <tr><td><code>p_baud_gen.v</code></td><td>Baud Rate Generator</td></tr>
+      <tr><td><code>p_sevenseg_driver.v</code></td><td>7-Segment Driver</td></tr>
+      <tr><td><code>p_fsm_controller.v</code></td><td>FSM Controller</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">SECTION 07</span>
+  <h2>7. UART와 FSM으로 확장</h2>
+
+  <h3>UART 구조</h3>
+  <pre class="codeblock-pre"><code>UART
+├─ UART TX
+├─ UART RX
+├─ Baud Generator
+└─ FSM</code></pre>
+
+  <h3>FSM</h3>
+  <p>FSM(Finite State Machine)은 순차논리와 조합논리를 결합한 제어 구조입니다.</p>
+
+  <div class="flow">순차논리 + 조합논리 → FSM Controller</div>
+
+  <p>활용 예로 UART, 신호등, 자판기, CPU Control, 통신 제어가 제시됩니다.</p>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">SECTION 08</span>
+  <h2>8. 추천 프로젝트 구조</h2>
+
+  <pre class="codeblock-pre"><code>rtl_lib/
+├── g_gate/
+├── c_comb/
+├── s_seq/
+└── p_project/</code></pre>
+
+  <h3>파일 구성 예</h3>
+  <pre class="codeblock-pre"><code>g_and_7408.v
+g_nand_7400.v
+g_xor_7486.v
+
+c_mux2_74157.v
+c_decoder3_74138.v
+c_adder4_74283.v
+c_alu_74181.v
+
+s_dff_7474.v
+s_counter_74161.v
+s_shift_74164.v
+
+p_uart_tx.v
+p_uart_rx.v</code></pre>
+
+  <div class="note">
+    모듈 역할을 폴더와 파일명에서 바로 구분할 수 있도록 구조화하는 방식입니다.
+  </div>
+</section>
+
+<section class="step-card" id="step09">
+  <span class="step">SECTION 09</span>
+  <h2>9. Verilog 코딩 스타일 규칙</h2>
+
+  <h3>파일명과 모듈명은 동일하게 작성</h3>
+  <pre class="codeblock-pre"><code>g_and_7408.v
+
+module g_and_7408(
+    ...
+);</code></pre>
+
+  <h3>포트는 읽기 쉽게 정렬</h3>
+  <pre class="codeblock-pre"><code>module g_and_7408(
+    input  a,
+    input  b,
+    output y
+);</code></pre>
+
+  <h3>간단한 조합논리는 assign으로 표현</h3>
+  <pre class="codeblock-pre"><code>assign y = a &amp; b;</code></pre>
+
+  <div class="note">
+    원본 자료에서는 이 장에서 기본 규칙을 제시하고, 추가 규칙은 별도로 확장하는 방향으로 구성되어 있습니다.
+  </div>
+</section>
+
+<section class="step-card" id="step10">
+  <span class="step">SECTION 10</span>
+  <h2>10. FPGA / Verilog 학습 테크트리</h2>
+
+  <div class="stage-flow">
+    <span class="stage">LEVEL 1<br/>Gate</span>
+    <span class="arrow">→</span>
+    <span class="stage">LEVEL 2<br/>Combinational</span>
+    <span class="arrow">→</span>
+    <span class="stage">LEVEL 3<br/>Sequential</span>
+    <span class="arrow">→</span>
+    <span class="stage">LEVEL 4<br/>FPGA Project</span>
+  </div>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>단계</th><th>대표 내용</th></tr></thead>
+    <tbody>
+      <tr><td>LEVEL 1</td><td>NOT, Buffer, NAND, NOR, AND, OR, XOR</td></tr>
+      <tr><td>LEVEL 2</td><td>MUX, Decoder, Encoder, Comparator, Adder, ALU</td></tr>
+      <tr><td>LEVEL 3</td><td>DFF, Latch, Register, Counter, Shift Register</td></tr>
+      <tr><td>LEVEL 4</td><td>Debounce, Clock Divider, UART, FSM, Peripheral</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="step-card summary" id="summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>Verilog는 하드웨어 회로를 설명하는 HDL로 이해합니다.</li>
+    <li><code>g_</code> → <code>c_</code> → <code>s_</code> → <code>p_</code> 순서로 회로의 복잡도가 확장됩니다.</li>
+    <li>조합논리는 현재 입력에 의존하고, 순차논리는 현재 입력과 이전 상태에 의존합니다.</li>
+    <li>74 시리즈 회로를 기준으로 모듈을 분류하면 디지털 회로와 RTL 구조를 연결해서 이해하기 쉽습니다.</li>
+    <li>파일명과 모듈명을 맞추고 역할별 폴더를 분리하면 이후 UART, FSM, 주변장치 설계로 확장하기 쉽습니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="02_sw0_led.html">← 이전: SW0 → LED0</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <span class="disabled next">다음 챕터 준비 중 →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+
+  const activate = id => {
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  };
+
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries
+      .filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
 </body>
 </html>

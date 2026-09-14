@@ -227,6 +227,30 @@
         </a><br/>
         07 · LF Line Frame → LED=ON/OFF · STATUS? Parser → OK/STATUS/ERR Response → TX FIFO
       </li>
+      <li>
+        <a href="pages/peripheral/08_uart_register_map_led_pwm.html">
+          <strong>UART Register Map · LED PWM Dimming RTL 실습</strong>
+        </a><br/>
+        08 · CMD/ADDR/DATA 3Byte Packet → Register Write → CTRL/PWM_VALUE → 약 1kHz LED PWM
+      </li>
+      <li>
+        <a href="pages/peripheral/09_uart_cds_led_pwm_fnd.html">
+          <strong>UART Register Map · CdS + LED PWM + FND RTL 실습</strong>
+        </a><br/>
+        09 · CTRL Bit Field → JA[0] CdS 2-FF 동기화 → LED PWM + FND L---/d--- 상태 표시
+      </li>
+      <li>
+        <a href="pages/peripheral/10_pwm_value_led_bar_dimming.html">
+          <strong>PWM_VALUE 기반 LED Bar Dimming RTL 실습</strong>
+        </a><br/>
+        10 · PWM_VALUE → PWM Duty + 0~16 LED 개수 계산 → LED Level Mask → 밝기와 Bar 길이 동시 제어
+      </li>
+      <li>
+        <a href="pages/peripheral/11_hcsr04_ultrasonic_register_map.html">
+          <strong>HC-SR04 초음파 거리계 · UART Register Map RTL 실습</strong>
+        </a><br/>
+        11 · CTRL[2] → Trigger 10us → Echo 1us 측정 → distance_cm = echo_us/58 → Timeout → FND 거리값
+      </li>
     </ol>
   </section>
 </main>

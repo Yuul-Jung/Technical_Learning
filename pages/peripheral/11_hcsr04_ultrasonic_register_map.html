@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="HC-SR04 초음파 거리 센서의 Trigger, Echo, 1us Tick, FSM, 거리 계산, Timeout, UART Register Map CTRL[2] 통합을 설명하는 RTL 주변기기 실습" name="description"/>
+<title>11. HC-SR04 초음파 거리계 · UART Register Map RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+      <strong>11. HC-SR04 초음파 거리계</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">RTL 주변기기 회로설계 · 11</p>
+    <h1>HC-SR04 초음파 거리계 · UART Register Map RTL 실습</h1>
+    <p class="hero-desc">
+      FPGA가 10us Trigger Pulse를 만들고, HC-SR04의 Echo HIGH 시간을 1us 단위로 측정하여 거리를 계산합니다.
+      <code>CTRL[2]</code>로 초음파 기능을 켜고 끄며 거리값은 FND 하위 3자리에 표시할 수 있도록 BCD로 변환합니다.
+    </p>
+    <div class="hero-meta">
+      <span class="chip">HC-SR04</span>
+      <span class="chip">10us Trigger</span>
+      <span class="chip">Echo Timing</span>
+      <span class="chip">1us Tick</span>
+      <span class="chip">CTRL[2]</span>
+      <span class="chip">Timeout</span>
+    </div>
+    <div class="hero-brief">
+      <article><h2>Trigger</h2><p><code>us_trig</code>를 10us 동안 HIGH로 출력합니다.</p></article>
+      <article><h2>Echo</h2><p><code>us_echo</code> HIGH 시간을 측정합니다.</p></article>
+      <article><h2>Distance</h2><p><code>distance_cm ≈ echo_us_cnt / 58</code>로 계산합니다.</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">ULTRASONIC FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. Sensor · Safety</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>전체 구조</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>HC-SR04 동작</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>전압 인터페이스</span></a></li>
+  </ol>
+
+  <p class="phase">B. Timing · RTL</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>거리 계산</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>FSM</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>Timeout</span></a></li>
+  </ol>
+
+  <p class="phase">C. Register · Board</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>CTRL[2] 통합</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>검증 기준</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>전체 데이터 흐름</h2>
+  <div class="stage-flow">
+    <span class="stage">CTRL[2]</span><span class="arrow">→</span>
+    <span class="stage">10us Trigger</span><span class="arrow">→</span>
+    <span class="stage">HC-SR04</span><span class="arrow">→</span>
+    <span class="stage">Echo HIGH</span><span class="arrow">→</span>
+    <span class="stage">1us Counter</span><span class="arrow">→</span>
+    <span class="stage">distance_cm</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. Register Map + 초음파 전체 구조</h2>
+  <pre class="codeblock-pre"><code>PC / moserial
+→ UART RX
+→ uart_reg_write_controller
+→ simple_register_map
+→ CTRL[2] = dist_en
+→ ultrasonic_distance_meter
+→ distance_cm / distance_bcd
+→ FND</code></pre>
+
+  <figure style="margin:24px 0">
+    <img src="../../images/peripheral/uart_register_map_ultrasonic_flow.png"
+         alt="UART Register Map과 초음파 거리계 전체 흐름"
+         style="width:100%;height:auto;border-radius:12px;border:1px solid #ddd">
+    <figcaption style="margin-top:8px">업로드 참고자료의 Register Map + 초음파 통합 흐름도</figcaption>
+  </figure>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. HC-SR04 동작 원리</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>순서</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>FPGA가 Trigger를 10us 동안 HIGH 출력</td></tr>
+        <tr><td>2</td><td>HC-SR04가 40kHz 초음파 8 Cycle 송신</td></tr>
+        <tr><td>3</td><td>초음파가 물체에 반사</td></tr>
+        <tr><td>4</td><td>반사파가 돌아오는 동안 Echo HIGH</td></tr>
+        <tr><td>5</td><td>FPGA가 Echo HIGH 시간을 측정</td></tr>
+        <tr><td>6</td><td>Echo 시간을 cm 거리로 변환</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>TRIG  ____|‾‾‾‾‾‾‾‾‾‾|________________
+             10 us
+
+BURST _________||||||||_________________
+                40 kHz × 8 cycle
+
+ECHO  ______________|‾‾‾‾‾‾‾‾‾|________
+                    ← HIGH 시간 →</code></pre>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. Basys3 3.3V 입력 보호</h2>
+
+  <div class="warn">
+    <strong>중요:</strong>
+    HC-SR04는 일반적으로 5V 전원으로 사용하며 Echo 출력도 5V가 될 수 있습니다.
+    Basys3 PMOD I/O는 3.3V 기준이므로 Echo를 FPGA 입력 핀에 직접 연결하지 않습니다.
+  </div>
+
+  <figure style="margin:24px 0">
+    <img src="../../images/peripheral/hcsr04_cds_interface.png"
+         alt="HC-SR04 5V to 3.3V 인터페이스와 PMOD JA 연결"
+         style="width:100%;height:auto;border-radius:12px;border:1px solid #ddd">
+    <figcaption style="margin-top:8px">업로드 참고자료의 HC-SR04 · CdS · PMOD JA 인터페이스 회로</figcaption>
+  </figure>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>신호</th><th>PMOD</th><th>FPGA Pin</th><th>방향</th></tr></thead>
+      <tbody>
+        <tr><td>CdS</td><td>JA1</td><td>J1</td><td>입력</td></tr>
+        <tr><td>Ultrasonic Trigger</td><td>JA2</td><td>L2</td><td>출력</td></tr>
+        <tr><td>Ultrasonic Echo</td><td>JA3</td><td>J2</td><td>입력</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. Echo 시간에서 거리 계산</h2>
+  <div class="flow">거리(cm) ≈ Echo HIGH 시간(us) ÷ 58</div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>거리</th><th>Echo HIGH</th><th>100MHz Clock Count</th></tr></thead>
+      <tbody>
+        <tr><td>1cm</td><td>약 58us</td><td>약 5,800</td></tr>
+        <tr><td>10cm</td><td>약 580us</td><td>약 58,000</td></tr>
+        <tr><td>50cm</td><td>약 2,900us</td><td>약 290,000</td></tr>
+        <tr><td>100cm</td><td>약 5,800us</td><td>약 580,000</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>현재 RTL은 100MHz를 먼저 1us Tick으로 바꾸고 Echo HIGH 시간을 us 단위로 셉니다.</p>
+  <pre class="codeblock-pre"><code>assign calc_distance_cm_wide =
+    echo_us_cnt / 32'd58;</code></pre>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. ultrasonic_distance_meter FSM</h2>
+
+  <div class="stage-flow">
+    <span class="stage">S_IDLE</span><span class="arrow">→</span>
+    <span class="stage">S_TRIG</span><span class="arrow">→</span>
+    <span class="stage">S_WAIT_ECHO_HIGH</span><span class="arrow">→</span>
+    <span class="stage">S_MEASURE_ECHO</span><span class="arrow">→</span>
+    <span class="stage">S_IDLE</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>State</th><th>역할</th></tr></thead>
+      <tbody>
+        <tr><td><code>S_IDLE</code></td><td>측정 간격 대기</td></tr>
+        <tr><td><code>S_TRIG</code></td><td>Trigger 10us HIGH</td></tr>
+        <tr><td><code>S_WAIT_ECHO_HIGH</code></td><td>Echo HIGH 대기</td></tr>
+        <tr><td><code>S_MEASURE_ECHO</code></td><td>Echo HIGH 시간을 1us 단위로 측정</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>MEASURE_GAP_US  = 60_000
+TRIG_PULSE_US   = 10
+ECHO_TIMEOUT_US = 30_000</code></pre>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. Echo Timeout 두 종류</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>실패</th><th>Echo 형태</th><th>처리</th></tr></thead>
+      <tbody>
+        <tr><td>Echo 없음</td><td>계속 LOW</td><td>대기 Timeout</td></tr>
+        <tr><td>Echo 너무 김</td><td>HIGH가 너무 오래 유지</td><td>측정 Timeout</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>timeout_error   &lt;= 1'b1;
+distance_valid &lt;= 1'b0;
+busy           &lt;= 1'b0;
+state          &lt;= S_IDLE;</code></pre>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. UART Register Map 통합</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Address / Bit</th><th>기능</th><th>이번 단계</th></tr></thead>
+      <tbody>
+        <tr><td><code>CTRL[0]</code></td><td>LED PWM Enable</td><td>유지</td></tr>
+        <tr><td><code>CTRL[1]</code></td><td>CdS Enable</td><td>유지</td></tr>
+        <tr><td><code>CTRL[2]</code></td><td>Ultrasonic Enable</td><td>추가</td></tr>
+        <tr><td><code>0x02</code></td><td>DIST_LIMIT_CM</td><td>저장만 수행</td></tr>
+        <tr><td><code>0x10</code></td><td>SPI0_CTRL</td><td>예약</td></tr>
+        <tr><td><code>0x20</code></td><td>I2C0_CTRL</td><td>예약</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Packet</th><th>동작</th><th>FND</th></tr></thead>
+      <tbody>
+        <tr><td><code>01 00 04</code></td><td>초음파만 ON</td><td><code>-xxx</code></td></tr>
+        <tr><td><code>01 00 06</code></td><td>CdS + 초음파 ON</td><td><code>Lxxx</code> / <code>dxxx</code></td></tr>
+        <tr><td><code>01 00 07</code></td><td>LED PWM + CdS + 초음파 ON</td><td><code>Lxxx</code> / <code>dxxx</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    Chapter 10의 LED Bar PWM Controller를 그대로 유지하고 초음파 기능만 추가했습니다.
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. Testbench 검증 기준</h2>
+
+  <div class="flow">
+    CTRL = 0x04
+    → us_trig 발생
+    → Echo HIGH 5800us
+    → distance_cm ≈ 100cm
+    → distance_valid = 1
+  </div>
+
+  <pre class="codeblock-pre"><code>send_echo_after_trig(5800);
+
+check_distance_range(
+    10'd95,
+    10'd105
+);</code></pre>
+
+  <div class="warn">
+    <strong>검증 메모:</strong>
+    현재 환경에는 Verilog Simulator가 설치되어 있지 않아 실제 Simulation Output으로 표시하지 않았습니다.
+  </div>
+
+  <div class="note">
+    원본 최신 Top은 표준 Byte Stream 이름을 사용하지만, 기존 공개 Chapter를 깨뜨리지 않기 위해
+    이번 Top은 현재 누적 사이트의 <code>rx_data / rx_valid / rx_ready</code> UART Core 인터페이스에 연결했습니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>HC-SR04 Trigger는 FPGA 출력이고 Echo는 FPGA 입력입니다.</li>
+    <li>Trigger는 10us HIGH, 센서는 40kHz 초음파 8 Cycle을 송신합니다.</li>
+    <li>Echo HIGH 시간을 1us 단위로 측정한 뒤 <code>/58</code>로 cm 거리값을 계산합니다.</li>
+    <li>Echo 입력은 2-FF 동기화를 적용합니다.</li>
+    <li>Echo 없음과 Echo 과다 지속을 각각 Timeout으로 처리합니다.</li>
+    <li><code>CTRL[2]</code>가 초음파 거리계 Enable입니다.</li>
+    <li>HC-SR04 Echo 5V를 Basys3 3.3V 입력에 직접 연결하지 않습니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="10_pwm_value_led_bar_dimming.html">← 이전: 10. LED Bar Dimming</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <span class="disabled next">12. FND 거리 상태 문자 변경 준비 중 →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>

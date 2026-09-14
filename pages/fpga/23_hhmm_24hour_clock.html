@@ -2,13 +2,315 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta http-equiv="refresh" content="0; url=22_hhmm_24hour_clock.html"/>
-<title>페이지 이동</title>
-<link rel="canonical" href="22_hhmm_24hour_clock.html"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="100MHz Clock에서 1초 Tick과 1분 Tick을 만들고, 24시간 HH:MM Counter와 1Hz DP Blink, FND Scan을 결합하는 Basys3 디지털 시계 RTL 실습" name="description"/>
+<title>24시간 디지털 시계 · HH:MM RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
 </head>
 <body>
-<p>Digital / FPGA 번호 체계 변경으로 페이지가 이동했습니다.
-<a href="22_hhmm_24hour_clock.html">22. 24시간 시계</a></p>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>Digital / FPGA</span><span class="sep">/</span>
+      <strong>24시간 시계</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">Digital / FPGA · Chapter 23</p>
+    <h1>24시간 디지털 시계 · HH:MM RTL 실습</h1>
+    <p class="hero-desc">
+      100MHz 기준 Clock에서 1초 Tick과 1분 Tick을 만들고,
+      00:00부터 23:59까지 증가하는 HH:MM Counter를 FND 4자리에 표시합니다.
+    </p>
+    <div class="hero-meta">
+      <span class="chip">1s Tick</span>
+      <span class="chip">60s Counter</span>
+      <span class="chip">24-Hour HH:MM</span>
+      <span class="chip">1Hz DP Blink</span>
+      <span class="chip">FND Multiplexing</span>
+    </div>
+    <div class="hero-brief">
+      <article><h2>시간 기준</h2><p>100MHz의 100,000,000 Clock을 세어 1초 Tick을 생성합니다.</p></article>
+      <article><h2>시계 Counter</h2><p>60초 → 1분 Tick → HH:MM 증가 구조로 시간 단위를 계층화합니다.</p></article>
+      <article><h2>표시</h2><p>시·분 사이 Decimal Point를 1Hz Duty 50%로 점멸합니다.</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">HH:MM CLOCK FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+  <p class="phase">A. 시간 생성</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>전체 구조</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>1초 Tick</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>60초 Counter</span></a></li>
+  </ol>
+  <p class="phase">B. 시각 계산</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>HH:MM Counter</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>23:59 → 00:00</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>DP Blink</span></a></li>
+  </ol>
+  <p class="phase">C. 표시 · 검증</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>FND · Top</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>Testbench</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>전체 연결 구조</h2>
+  <div class="stage-flow">
+    <span class="stage">100MHz</span><span class="arrow">→</span>
+    <span class="stage">1초 Tick</span><span class="arrow">→</span>
+    <span class="stage">60초 Counter</span><span class="arrow">→</span>
+    <span class="stage">1분 Tick</span><span class="arrow">→</span>
+    <span class="stage">HH:MM Counter</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. 24시간 시계 전체 구조</h2>
+
+  <pre class="codeblock-pre"><code>clock_divider_1s
+        ↓ tick_1s
+second_counter_60
+        ↓ tick_1min
+clock_counter_hhmm
+        ↓ hour_tens, hour_ones, min_tens, min_ones
+
+dp_blink_1hz
+        ↓ dp_state
+
+fnd_scan_counter
+        ↓ digit_sel
+fnd_mux_4digit
+        ↓ current_digit, an
+fnd_decoder
+        ↓ seg</code></pre>
+
+  <h3>FND 표시 기준</h3>
+  <pre class="codeblock-pre"><code>digit3 digit2 . digit1 digit0
+ 10시    1시   dp  10분    1분</code></pre>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. 100MHz에서 1초 Tick 생성</h2>
+
+  <div class="flow">
+    100MHz → 1초에 100,000,000 Clock<br/>
+    Counter 0부터 시작 → 비교값 99,999,999
+  </div>
+
+  <pre class="codeblock-pre"><code>if (count_div == 27'd99_999_999) begin
+    count_div &lt;= 27'd0;
+    tick_1s &lt;= 1'b1;
+end
+else begin
+    count_div &lt;= count_div + 1'b1;
+end</code></pre>
+
+  <p><code>tick_1s</code>는 새로운 Clock이 아니라 1 Clock 폭의 Enable 신호입니다.</p>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. 60초 Counter에서 1분 Tick 생성</h2>
+
+  <pre class="codeblock-pre"><code>if (tick_1s) begin
+    if (sec_count == 6'd59) begin
+        sec_count &lt;= 6'd0;
+        tick_1min &lt;= 1'b1;
+    end
+    else begin
+        sec_count &lt;= sec_count + 1'b1;
+    end
+end</code></pre>
+
+  <div class="flow">
+    0초 → 1초 → ... → 58초 → 59초 → 0초<br/>
+    59 → 0 전환 순간 → tick_1min = 1
+  </div>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. HH:MM Counter</h2>
+
+  <pre class="codeblock-pre"><code>assign carry_min_ones =
+    (min_ones == 4'd9);
+
+assign carry_min_tens =
+    (min_ones == 4'd9) &amp;&amp;
+    (min_tens == 4'd5);</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>신호</th><th>범위</th><th>역할</th></tr></thead>
+      <tbody>
+        <tr><td><code>min_ones</code></td><td>0~9</td><td>1분 자리</td></tr>
+        <tr><td><code>min_tens</code></td><td>0~5</td><td>10분 자리</td></tr>
+        <tr><td><code>hour_ones</code></td><td>시간에 따라 0~9</td><td>1시간 자리</td></tr>
+        <tr><td><code>hour_tens</code></td><td>0~2</td><td>10시간 자리</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flow">
+    12:58 → 12:59 → 13:00
+  </div>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. 23:59 다음은 00:00</h2>
+
+  <pre class="codeblock-pre"><code>assign last_time =
+    (hour_tens == 4'd2) &amp;&amp;
+    (hour_ones == 4'd3) &amp;&amp;
+    (min_tens == 4'd5) &amp;&amp;
+    (min_ones == 4'd9);</code></pre>
+
+  <pre class="codeblock-pre"><code>if (last_time) begin
+    min_ones  &lt;= 4'd0;
+    min_tens  &lt;= 4'd0;
+    hour_ones &lt;= 4'd0;
+    hour_tens &lt;= 4'd0;
+end</code></pre>
+
+  <div class="flow">
+    23:58 → 23:59 → 00:00 → 00:01
+  </div>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. 시·분 사이 DP 1Hz Duty 50% Blink</h2>
+
+  <div class="flow">
+    100MHz → 0.5초 = 50,000,000 Clock<br/>
+    비교값 49,999,999 → blink 반전<br/>
+    0.5초 ON + 0.5초 OFF → 1Hz, Duty 50%
+  </div>
+
+  <pre class="codeblock-pre"><code>if (count_blink == 26'd49_999_999) begin
+    count_blink &lt;= 26'd0;
+    blink &lt;= ~blink;
+end
+
+assign dp_state = ~blink;</code></pre>
+
+  <p>Basys3의 DP는 Active-Low이므로 내부 <code>blink</code>를 반전해 출력합니다.</p>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. FND Scan과 Basys3 Top 통합</h2>
+
+  <p>FND의 네 자리를 빠르게 순환 선택하고 현재 BCD 값 하나를 Decoder에 전달합니다.</p>
+
+  <pre class="codeblock-pre"><code>fnd_mux_4digit u_mux(
+    .digit0(min_ones),
+    .digit1(min_tens),
+    .digit2(hour_ones),
+    .digit3(hour_tens),
+    .digit_sel(digit_sel),
+    .current_digit(current_digit),
+    .an(an)
+);</code></pre>
+
+  <p>시와 분 사이 DP만 점멸하도록 Top에서 다음 조건을 사용합니다.</p>
+
+  <pre class="codeblock-pre"><code>assign dp =
+    (digit_sel == 2'd2) ? dp_state : 1'b1;</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Basys3 자원</th><th>역할</th></tr></thead>
+      <tbody>
+        <tr><td><code>btnC</code></td><td>Reset</td></tr>
+        <tr><td><code>sw[0]</code></td><td>Clock 동작 Enable</td></tr>
+        <tr><td><code>led[0]</code></td><td>1초 Tick 확인</td></tr>
+        <tr><td><code>led[1]</code></td><td>1분 Tick 확인</td></tr>
+        <tr><td><code>led[7:2]</code></td><td>내부 초 Count 확인</td></tr>
+        <tr><td><code>seg/an/dp</code></td><td>HH:MM 표시</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. Testbench 검증</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Testbench</th><th>확인 내용</th></tr></thead>
+      <tbody>
+        <tr><td><code>tb_second_counter_60.v</code></td><td>65개의 1초 Tick으로 59→0 및 1분 Tick 확인</td></tr>
+        <tr><td><code>tb_clock_counter_hhmm.v</code></td><td>1445개의 1분 Tick으로 24시간 경계까지 확인</td></tr>
+        <tr><td><code>tb_dp_blink_1hz.v</code></td><td>0.5초 반전과 1Hz Duty 50% 확인</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    원본의 실제 Waveform·보드 이미지는 임시 서명 URL이므로 GitHub Pages에 직접 연결하지 않았습니다.
+    실제 Vivado 결과 이미지는 Repository의 <code>images/</code> 아래에 저장해 추가하는 방식이 적합합니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>100MHz Clock 100,000,000개를 세어 1초 Tick을 생성합니다.</li>
+    <li>60개의 1초 Tick을 세어 1분 Tick을 생성합니다.</li>
+    <li>HH:MM Counter는 분의 Carry를 시간 자리까지 전달하고 23:59 다음 00:00으로 복귀합니다.</li>
+    <li>시·분 사이 DP는 0.5초마다 반전하여 1Hz Duty 50%로 점멸합니다.</li>
+    <li>FND Scan·MUX·Decoder는 앞선 Counter 실습과 동일한 구조를 재사용합니다.</li>
+    <li>전체 시스템은 하나의 100MHz Clock Domain 안에서 Tick을 Enable로 사용합니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="22_button_debounce_pulse.html">← 이전: Button Debounce</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <span class="disabled next">다음 챕터 준비 중 →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
 </body>
 </html>

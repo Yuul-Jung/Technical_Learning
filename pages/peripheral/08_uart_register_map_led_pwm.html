@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="UART 3Byte 고정 Packet을 Register Write 신호로 변환하고 CTRL 및 PWM_VALUE Register로 Basys3 LED 16개의 PWM 밝기를 제어하는 Register Map RTL 실습" name="description"/>
+<title>08. UART Register Map · LED PWM Dimming RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>RTL 주변기기 회로설계</span><span class="sep">/</span><strong>08. UART Register Map</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero">
+<div aria-hidden="true" class="hero-grid"></div>
+<div class="hero-inner">
+<p class="hero-kicker">RTL 주변기기 회로설계 · 08</p>
+<h1>UART Register Map · LED PWM Dimming RTL 실습</h1>
+<p class="hero-desc">문자열 Command 대신 <code>CMD · ADDR · DATA</code> 3Byte 고정 Packet을 사용합니다. UART로 받은 Byte를 Register Write 신호로 변환하고, <code>CTRL</code>과 <code>PWM_VALUE</code> Register에 저장하여 LED 16개의 밝기를 제어합니다.</p>
+<div class="hero-meta">
+<span class="chip">Register Map</span><span class="chip">3Byte Packet</span><span class="chip">CTRL</span><span class="chip">PWM_VALUE</span><span class="chip">8-bit PWM</span>
+</div>
+<div class="hero-brief">
+<article><h2>Packet</h2><p><code>CMD → ADDR → DATA</code> 순으로 3Byte를 받아 Register Write 요청으로 변환합니다.</p></article>
+<article><h2>Register Map</h2><p><code>0x00=CTRL</code>, <code>0x01=PWM_VALUE</code> 두 개의 Register를 사용합니다.</p></article>
+<article><h2>PWM</h2><p>8-bit PWM과 Prescaler를 사용하여 LED 16개의 밝기를 동시에 제어합니다.</p></article>
+</div></div></header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">REGISTER MAP FLOW</p><p class="nav-help">STEP 01 → 08</p>
+<p class="phase">A. Packet · Register</p>
+<ol class="timeline">
+<li><a href="#step01"><span class="n">01</span><span>전체 구조</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>3Byte Packet</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>Register Map</span></a></li>
+</ol>
+<p class="phase">B. Controller · PWM</p>
+<ol class="timeline">
+<li><a href="#step04"><span class="n">04</span><span>Write Controller</span></a></li>
+<li><a href="#step05"><span class="n">05</span><span>Register 저장</span></a></li>
+<li><a href="#step06"><span class="n">06</span><span>LED PWM</span></a></li>
+</ol>
+<p class="phase">C. Board · Verification</p>
+<ol class="timeline">
+<li><a href="#step07"><span class="n">07</span><span>moserial · Top</span></a></li>
+<li><a href="#step08"><span class="n">08</span><span>Test · 검증 메모</span></a></li>
+</ol>
+</aside>
+
+<main>
+<div class="overview-card"><h2>전체 데이터 흐름</h2>
+<div class="stage-flow">
+<span class="stage">PC HEX</span><span class="arrow">→</span><span class="stage">UART RX</span><span class="arrow">→</span><span class="stage">3Byte Parser</span><span class="arrow">→</span><span class="stage">Register Map</span><span class="arrow">→</span><span class="stage">PWM Controller</span><span class="arrow">→</span><span class="stage">LED[15:0]</span>
+</div></div>
+
+<section class="step-card" id="step01"><span class="step">STEP 01</span>
+<h2>1. 문자열 Command에서 Register Map 제어로 전환</h2>
+<pre class="codeblock-pre"><code>07. Command / Response
+"LED=ON\n"
+→ 문자열 비교
+→ 기능 실행
+→ 문자열 응답
+
+08. Register Map
+01 00 01
+→ CMD / ADDR / DATA
+→ Register Write
+→ 제어 Register 값으로 하드웨어 동작</code></pre>
+<p>이번 단계에서는 문자열 명령을 사용하지 않습니다. UART Core가 이미 복원한 8-bit Byte를 고정된 3Byte Packet으로 해석합니다.</p>
+</section>
+
+<section class="step-card" id="step02"><span class="step">STEP 02</span>
+<h2>2. 입력 포맷 — CMD · ADDR · DATA</h2>
+<div class="table-wrap"><table><thead><tr><th>순서</th><th>이름</th><th>의미</th></tr></thead><tbody>
+<tr><td>1 Byte</td><td><code>CMD</code></td><td>명령 종류</td></tr>
+<tr><td>2 Byte</td><td><code>ADDR</code></td><td>Register 주소</td></tr>
+<tr><td>3 Byte</td><td><code>DATA</code></td><td>Register에 저장할 값</td></tr>
+</tbody></table></div>
+<p>현재 지원 CMD는 Register Write 하나입니다.</p>
+<pre class="codeblock-pre"><code>CMD_WRITE = 0x01</code></pre>
+<div class="flow">01 00 01 → CMD=Write → ADDR=CTRL → DATA=0x01 → LED PWM Enable</div>
+</section>
+
+<section class="step-card" id="step03"><span class="step">STEP 03</span>
+<h2>3. Register Map</h2>
+<div class="table-wrap"><table><thead><tr><th>Address</th><th>Register</th><th>기능</th></tr></thead><tbody>
+<tr><td><code>0x00</code></td><td><code>CTRL</code></td><td>LED PWM Dimming ON/OFF</td></tr>
+<tr><td><code>0x01</code></td><td><code>PWM_VALUE</code></td><td>LED 밝기 0~255</td></tr>
+</tbody></table></div>
+<pre class="codeblock-pre"><code>01 00 01 → CTRL = 0x01 → PWM Enable
+01 01 80 → PWM_VALUE = 0x80 → 약 50% Duty</code></pre>
+<p>정의되지 않은 주소에 Write가 들어오면 기존 Register 값은 유지하고 <code>reg_error</code>를 1Clock Pulse로 발생시킵니다.</p>
+</section>
+
+<section class="step-card" id="step04"><span class="step">STEP 04</span>
+<h2>4. uart_reg_write_controller — 3Byte를 Write 신호로 변환</h2>
+<pre class="codeblock-pre"><code>byte_index = 0 → CMD 저장
+byte_index = 1 → ADDR 저장
+byte_index = 2 → DATA 수신 + Write 판단</code></pre>
+<pre class="codeblock-pre"><code>if (cmd_reg == CMD_WRITE) begin
+    reg_wr_en   &lt;= 1'b1;
+    reg_wr_addr &lt;= addr_reg;
+    reg_wr_data &lt;= in_data;
+end
+else begin
+    cmd_error &lt;= 1'b1;
+end</code></pre>
+<div class="note"><code>reg_wr_en</code>과 <code>cmd_error</code>는 상태가 아니라 사건을 알리는 1Clock Pulse입니다.</div>
+</section>
+
+<section class="step-card" id="step05"><span class="step">STEP 05</span>
+<h2>5. simple_register_map — 주소 해석과 Register 저장</h2>
+<pre class="codeblock-pre"><code>case (reg_wr_addr)
+    8'h00: ctrl_reg      &lt;= reg_wr_data;
+    8'h01: pwm_value_reg &lt;= reg_wr_data;
+    default: reg_error   &lt;= 1'b1;
+endcase</code></pre>
+<div class="flow">Register Write Interface → Address Decode → 실제 Register 저장 → Controller가 Register 값을 사용</div>
+<p>UART Packet 해석 회로와 실제 LED 제어 회로를 직접 결합하지 않고 Register Map을 중간 제어 계층으로 둡니다.</p>
+</section>
+
+<section class="step-card" id="step06"><span class="step">STEP 06</span>
+<h2>6. led_pwm_controller — 약 1kHz 8-bit PWM</h2>
+<div class="flow">100 MHz ÷ (390 × 256) → 약 1001.6 Hz → 약 1 kHz</div>
+<pre class="codeblock-pre"><code>assign pwm_enable = (ctrl_reg == 8'h01);
+assign pwm_active = (pwm_counter &lt; pwm_value);</code></pre>
+<div class="table-wrap"><table><thead><tr><th>PWM_VALUE</th><th>밝기 기준</th></tr></thead><tbody>
+<tr><td><code>0x00</code></td><td>OFF</td></tr><tr><td><code>0x20</code></td><td>약한 밝기</td></tr>
+<tr><td><code>0x40</code></td><td>약 25%</td></tr><tr><td><code>0x80</code></td><td>약 50%</td></tr>
+<tr><td><code>0xC0</code></td><td>약 75%</td></tr><tr><td><code>0xFF</code></td><td>최대에 가까운 밝기</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="step-card" id="step07"><span class="step">STEP 07</span>
+<h2>7. Basys3 Top과 moserial HEX 전송</h2>
+<pre class="codeblock-pre"><code>basys3_uart_led_pwm_min_top
+├── uart_core
+├── uart_reg_write_controller
+├── simple_register_map
+└── led_pwm_controller</code></pre>
+<p>moserial은 HEX 전송 모드에서 공백 없이 연속 입력합니다.</p>
+<div class="table-wrap"><table><thead><tr><th>동작</th><th>moserial 입력</th><th>실제 Byte</th></tr></thead><tbody>
+<tr><td>PWM Enable</td><td><code>010001</code></td><td><code>01 00 01</code></td></tr>
+<tr><td>약한 밝기</td><td><code>010120</code></td><td><code>01 01 20</code></td></tr>
+<tr><td>약 50%</td><td><code>010180</code></td><td><code>01 01 80</code></td></tr>
+<tr><td>최대 부근</td><td><code>0101FF</code></td><td><code>01 01 FF</code></td></tr>
+<tr><td>LED OFF</td><td><code>010000</code></td><td><code>01 00 00</code></td></tr>
+</tbody></table></div>
+<div class="note">위 보드 결과는 참고자료에서 제시한 확인 절차이며 이번 HTML 생성 과정에서 실제 Basys3 측정 결과를 새로 만든 것은 아닙니다.</div>
+</section>
+
+<section class="step-card" id="step08"><span class="step">STEP 08</span>
+<h2>8. Testbench와 검증 메모</h2>
+<p>참고자료의 Testbench 기준대로 내부 <code>in_data</code>를 직접 자극하지 않고 Top의 <code>RsRx</code>에 실제 UART 8N1 직렬 파형을 입력하도록 구성했습니다.</p>
+<div class="table-wrap"><table><thead><tr><th>UART Packet</th><th>확인 항목</th></tr></thead><tbody>
+<tr><td><code>01 00 01</code></td><td><code>CTRL = 0x01</code></td></tr>
+<tr><td><code>01 01 80</code></td><td><code>PWM_VALUE = 0x80</code></td></tr>
+<tr><td><code>01 00 00</code></td><td><code>CTRL = 0x00</code>, LED OFF</td></tr>
+</tbody></table></div>
+
+<div class="warn"><strong>검증 메모 1:</strong> 소스의 PWM 비교식은 <code>pwm_counter &lt; pwm_value</code>입니다. 따라서 <code>0xFF</code>는 256 Step 중 255 Step이 ON이므로 정확히 100%가 아니라 약 99.6% Duty입니다. “최대 밝기에 가깝다”가 정확한 표현입니다.</div>
+
+<div class="warn"><strong>검증 메모 2:</strong> 참고자료의 최신 <code>uart_core</code> 예시는 <code>rx_out_data / rx_out_valid / rx_out_ready</code>, <code>tx_in_data / tx_in_valid / tx_in_ready</code> 형태를 사용합니다. 기존 공개 04~07을 일괄 변경하지 않기 위해 이번 Top 소스는 현재 누적 사이트의 <code>rx_data / rx_valid / rx_ready</code> 인터페이스에 연결했습니다. Register Controller 자체는 <code>in_data / in_valid / in_ready</code> 표준 인터페이스를 유지합니다.</div>
+
+<div class="note">제공한 Testbench는 참고자료의 검증 구조를 코드로 정리한 것이며 현재 생성 환경에서 Vivado Simulation을 실제 실행한 결과로 표시하지 않았습니다.</div>
+</section>
+
+<section class="step-card summary"><h2>핵심 정리</h2><ul>
+<li>문자열 명령 대신 <code>CMD · ADDR · DATA</code> 3Byte Packet으로 Register를 직접 제어합니다.</li>
+<li><code>0x00</code>은 CTRL, <code>0x01</code>은 PWM_VALUE Register입니다.</li>
+<li>UART Packet 해석, Register 저장, PWM 출력을 각각 독립 모듈로 분리합니다.</li>
+<li>100MHz, Prescale 390, 8-bit PWM의 주파수는 약 1kHz입니다.</li>
+<li>Top Module은 보드 핀과 재사용 모듈 연결만 담당합니다.</li>
+<li>Register Map 구조는 이후 주변기기 제어 Register 확장의 기준이 됩니다.</li>
+</ul></section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+<a href="07_uart_command_response.html">← 이전: 07. Command / Response</a>
+<a class="home" href="../../index.html">🏠 홈</a>
+<span class="disabled next">09. 다음 주변기기 단계 준비 중 →</span>
+</nav>
+
+</main></div>
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+</body></html>

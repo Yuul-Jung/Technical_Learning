@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="PWM_VALUE 하나로 Basys3 LED의 밝기와 켜지는 개수를 동시에 제어하는 LED Bar Dimming RTL 실습" name="description"/>
+<title>10. PWM_VALUE 기반 LED Bar Dimming RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+      <strong>10. LED Bar Dimming</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">RTL 주변기기 회로설계 · 10</p>
+    <h1>PWM_VALUE 기반 LED Bar Dimming RTL 실습</h1>
+    <p class="hero-desc">
+      Chapter 09의 UART Register Map · CdS · FND 구조는 그대로 유지하고,
+      <code>led_pwm_controller.v</code> 하나만 수정합니다.
+      이제 <code>PWM_VALUE</code> 하나가 LED의 PWM 밝기와 LED Bar의 개수를 동시에 결정합니다.
+    </p>
+
+    <div class="hero-meta">
+      <span class="chip">PWM_VALUE</span>
+      <span class="chip">LED Bar</span>
+      <span class="chip">8-bit PWM</span>
+      <span class="chip">16-Level</span>
+      <span class="chip">Minimal Change</span>
+    </div>
+
+    <div class="hero-brief">
+      <article><h2>기존</h2><p>LED 16개가 모두 같은 PWM 밝기로 동시에 켜졌습니다.</p></article>
+      <article><h2>변경</h2><p><code>PWM_VALUE</code>가 커질수록 LED 밝기와 켜지는 개수가 함께 증가합니다.</p></article>
+      <article><h2>수정 범위</h2><p><code>led_pwm_controller.v</code> 한 파일만 변경합니다.</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">LED BAR FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. 변경 목적</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>과제 범위</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>변경 전·후</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>16단계 변환</span></a></li>
+  </ol>
+
+  <p class="phase">B. 계산 · RTL</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>led_count</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>LED Mask</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>PWM 결합</span></a></li>
+  </ol>
+
+  <p class="phase">C. Register · Verification</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>UART Packet</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>계산 검증</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>최종 동작 구조</h2>
+  <div class="stage-flow">
+    <span class="stage">PWM_VALUE Register</span><span class="arrow">→</span>
+    <span class="stage">pwm_value</span><span class="arrow">→</span>
+    <span class="stage">PWM 밝기 계산</span><span class="arrow">→</span>
+    <span class="stage">LED 개수 계산</span><span class="arrow">→</span>
+    <span class="stage">led_level_mask</span><span class="arrow">→</span>
+    <span class="stage">LED[15:0]</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. 수정 범위 — LED PWM Controller만 변경</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>구분</th><th>파일</th></tr></thead>
+      <tbody>
+        <tr><td>수정</td><td><code>led_pwm_controller.v</code></td></tr>
+        <tr><td>유지</td><td><code>uart_core</code>, <code>uart_reg_write_controller.v</code>, <code>simple_register_map.v</code></td></tr>
+        <tr><td>유지</td><td><code>cds_input_filter.v</code>, <code>fnd_status_3digit_display.v</code>, Top, XDC</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    업로드된 참고자료의 핵심 원칙은 기존 회로를 크게 변경하지 않고
+    <code>PWM_VALUE</code>에 LED Bar 기능만 추가하는 것입니다.
+  </div>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. 변경 전과 변경 후</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>PWM_VALUE</th><th>변경 전</th><th>변경 후</th></tr></thead>
+      <tbody>
+        <tr><td><code>0x40</code></td><td>LED 16개 · 약 25%</td><td>약 4개 · 약 25%</td></tr>
+        <tr><td><code>0x80</code></td><td>LED 16개 · 약 50%</td><td>약 8개 · 약 50%</td></tr>
+        <tr><td><code>0xC0</code></td><td>LED 16개 · 약 75%</td><td>약 12개 · 약 75%</td></tr>
+        <tr><td><code>0xFF</code></td><td>LED 16개 · 최대 부근</td><td>LED 16개 · 최대 부근</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>// 변경 전
+led = {16{pwm_active}};
+
+// 변경 후
+led = led_level_mask;</code></pre>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. 8-bit PWM_VALUE를 16단계 LED 개수로 변환</h2>
+
+  <div class="flow">
+    PWM_VALUE 0~255
+    → 16단계로 구분
+    → LED 0~16개
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>PWM_VALUE 범위</th><th>LED 개수</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>0개</td></tr>
+        <tr><td>1 ~ 16</td><td>1개</td></tr>
+        <tr><td>17 ~ 32</td><td>2개</td></tr>
+        <tr><td>33 ~ 48</td><td>3개</td></tr>
+        <tr><td>49 ~ 64</td><td>4개</td></tr>
+        <tr><td>...</td><td>...</td></tr>
+        <tr><td>241 ~ 255</td><td>16개</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. led_count 계산</h2>
+
+  <pre class="codeblock-pre"><code>assign led_count =
+    (pwm_value == 8'd0) ? 5'd0 :
+    (({1'b0, pwm_value} + 9'd15) &gt;&gt; 4);</code></pre>
+
+  <p>
+    핵심은 <code>(pwm_value + 15) / 16</code>의 올림 계산입니다.
+    16으로 나누는 동작은 오른쪽 4-bit Shift로 구현합니다.
+  </p>
+
+  <div class="flow">
+    pwm_value = 64
+    → (64 + 15) >> 4
+    → 79 >> 4
+    → 4
+
+    pwm_value = 128
+    → (128 + 15) >> 4
+    → 143 >> 4
+    → 8
+  </div>
+
+  <div class="warn">
+    <strong>중요:</strong>
+    <code>{1'b0, pwm_value}</code>로 9-bit로 확장한 뒤 15를 더합니다.
+    그렇지 않으면 8-bit에서 <code>255 + 15</code> 계산이 Overflow할 수 있습니다.
+  </div>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. led_level_mask 생성</h2>
+
+  <pre class="codeblock-pre"><code>assign led_level_mask =
+    (led_count == 5'd0)  ? 16'h0000 :
+    (led_count &gt;= 5'd16) ? 16'hFFFF :
+    ((16'h0001 &lt;&lt; led_count) - 16'h0001);</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>led_count</th><th>Mask</th><th>LED</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td><code>0x0000</code></td><td>0개</td></tr>
+        <tr><td>1</td><td><code>0x0001</code></td><td>LED0</td></tr>
+        <tr><td>2</td><td><code>0x0003</code></td><td>LED1~0</td></tr>
+        <tr><td>8</td><td><code>0x00FF</code></td><td>LED7~0</td></tr>
+        <tr><td>16</td><td><code>0xFFFF</code></td><td>LED15~0</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. PWM 밝기와 LED 개수를 동시에 적용</h2>
+
+  <pre class="codeblock-pre"><code>if (pwm_enable &amp;&amp; pwm_active) begin
+    led = led_level_mask;
+end
+else begin
+    led = 16'h0000;
+end</code></pre>
+
+  <div class="flow">
+    pwm_value
+    ├→ pwm_active      → 얼마나 오래 켤 것인가
+    └→ led_level_mask  → 몇 개를 켤 것인가
+  </div>
+
+  <p>
+    하나의 <code>PWM_VALUE</code>가 시간축의 Duty와 공간축의 LED Bar 길이를 동시에 제어합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. UART Register Map에서 제어</h2>
+
+  <p>
+    Register 주소와 Packet 형식은 Chapter 09와 동일합니다.
+    <code>CTRL[0]</code>으로 LED PWM을 켠 뒤 <code>PWM_VALUE</code>를 변경합니다.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>moserial HEX</th><th>의미</th><th>예상 LED Bar</th></tr></thead>
+      <tbody>
+        <tr><td><code>010001</code></td><td>CTRL[0] = 1</td><td>PWM 기능 ON</td></tr>
+        <tr><td><code>010140</code></td><td>PWM_VALUE = 0x40</td><td>약 4개 · 약 25%</td></tr>
+        <tr><td><code>010180</code></td><td>PWM_VALUE = 0x80</td><td>약 8개 · 약 50%</td></tr>
+        <tr><td><code>0101C0</code></td><td>PWM_VALUE = 0xC0</td><td>약 12개 · 약 75%</td></tr>
+        <tr><td><code>0101FF</code></td><td>PWM_VALUE = 0xFF</td><td>16개 · 최대 부근</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    위 값은 참고자료가 제시한 보드 확인 기준입니다.
+    이번 생성 과정에서 실제 Basys3 보드 측정 결과를 새로 만든 것은 아닙니다.
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. 계산 검증과 착안 사항</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>PWM_VALUE</th><th>led_count</th><th>Mask</th><th>Duty 계산값</th></tr></thead>
+      <tbody>
+        <tr><td><code>0x00</code></td><td>0</td><td><code>0x0000</code></td><td>0.0%</td></tr>
+<tr><td><code>0x10</code></td><td>1</td><td><code>0x0001</code></td><td>6.2%</td></tr>
+<tr><td><code>0x11</code></td><td>2</td><td><code>0x0003</code></td><td>6.6%</td></tr>
+<tr><td><code>0x40</code></td><td>4</td><td><code>0x000F</code></td><td>25.0%</td></tr>
+<tr><td><code>0x80</code></td><td>8</td><td><code>0x00FF</code></td><td>50.0%</td></tr>
+<tr><td><code>0xC0</code></td><td>12</td><td><code>0x0FFF</code></td><td>75.0%</td></tr>
+<tr><td><code>0xF0</code></td><td>15</td><td><code>0x7FFF</code></td><td>93.8%</td></tr>
+<tr><td><code>0xFF</code></td><td>16</td><td><code>0xFFFF</code></td><td>99.6%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">
+    <strong>검증 메모:</strong>
+    <code>pwm_active = (pwm_counter &lt; pwm_value)</code>이므로
+    <code>0xFF</code>의 Duty는 정확히 100%가 아니라 <code>255/256 ≈ 99.6%</code>입니다.
+    LED 개수는 16개가 맞지만 밝기는 “거의 최대”로 표현하는 것이 정확합니다.
+  </div>
+
+  <div class="note">
+    업로드된 참고자료에는 이번 단계에서 별도 Testbench 변경을 요구하지 않고,
+    <code>led_pwm_controller.v</code> 한 파일만 수정하도록 되어 있습니다.
+    따라서 불필요한 신규 Testbench는 추가하지 않았습니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li><code>PWM_VALUE</code> 하나로 LED 밝기와 LED Bar 개수를 동시에 제어합니다.</li>
+    <li>0~255의 값을 0~16개 LED로 변환하기 위해 올림 나눗셈 <code>(value+15)&gt;&gt;4</code>를 사용합니다.</li>
+    <li><code>led_level_mask</code>가 실제로 켤 LED의 위치와 개수를 결정합니다.</li>
+    <li>PWM Duty는 시간축, LED Mask는 공간축의 표시량을 담당합니다.</li>
+    <li>CdS/FND/Register Map 구조는 수정하지 않고 LED PWM Controller만 최소 변경합니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="09_uart_cds_led_pwm_fnd.html">← 이전: 09. CdS + LED PWM + FND</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <a class="next" href="11_hcsr04_ultrasonic_register_map.html">다음: 11. HC-SR04 초음파 거리계 →</a>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>

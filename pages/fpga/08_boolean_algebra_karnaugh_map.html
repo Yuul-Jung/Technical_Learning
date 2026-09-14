@@ -2,13 +2,98 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta http-equiv="refresh" content="0; url=07_boolean_algebra_karnaugh_map.html"/>
-<title>페이지 이동</title>
-<link rel="canonical" href="07_boolean_algebra_karnaugh_map.html"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Gate 모듈을 조합해 부울 논리식을 구현하고 Boolean Algebra, DeMorgan, NAND Universal Gate, SOP, POS, Karnaugh Map으로 회로를 간략화하는 FPGA 실습" name="description"/>
+<title>Boolean Algebra · Karnaugh Map RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
 </head>
 <body>
-<p>Digital / FPGA 번호 체계 변경으로 페이지가 이동했습니다.
-<a href="07_boolean_algebra_karnaugh_map.html">07. Boolean · K-Map</a></p>
-</body>
-</html>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>Digital / FPGA</span><span class="sep">/</span><strong>Boolean Algebra · Karnaugh Map</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+<header class="hero"><div aria-hidden="true" class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">Digital / FPGA · Chapter 08</p>
+<h1>Boolean Algebra · Karnaugh Map RTL 실습</h1>
+<p class="hero-desc">이전 장에서 만든 Gate Module을 조합해 논리식을 실제 회로로 구성하고, 부울대수와 카르노맵으로 같은 동작을 더 단순한 회로로 줄이는 과정을 확인합니다.</p>
+<div class="hero-meta"><span class="chip">Boolean Algebra</span><span class="chip">Karnaugh Map</span><span class="chip">DeMorgan</span><span class="chip">SOP / POS</span><span class="chip">Basys3</span></div>
+<div class="hero-brief">
+<article><h2>입력</h2><p>2입력은 SW0·SW1, 3입력 실습은 SW0·SW1·SW2를 사용합니다.</p></article>
+<article><h2>핵심</h2><p>원래 논리식과 간략화 논리식을 각각 구현하여 출력이 동일한지 비교합니다.</p></article>
+<article><h2>목표</h2><p>동작은 유지하면서 Gate 수와 논리 구조를 줄이는 회로 최적화 관점을 익힙니다.</p></article>
+</div></div></header>
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 진행 순서">
+<p class="nav-title">LEVEL 2 FLOW</p><p class="nav-help">STEP 01 → 08</p>
+<p class="phase">A. 논리식 구현 · 간략화</p><ol class="timeline">
+<li><a href="#step01"><span class="n">01</span><span>Gate 조합 논리식</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Boolean Algebra</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>간략화 전후 비교</span></a></li></ol>
+<p class="phase">B. Universal · 표현형식</p><ol class="timeline">
+<li><a href="#step04"><span class="n">04</span><span>DeMorgan</span></a></li>
+<li><a href="#step05"><span class="n">05</span><span>NAND Universal</span></a></li>
+<li><a href="#step06"><span class="n">06</span><span>SOP</span></a></li>
+<li><a href="#step07"><span class="n">07</span><span>POS</span></a></li></ol>
+<p class="phase">C. 최적화</p><ol class="timeline"><li><a href="#step08"><span class="n">08</span><span>Karnaugh Map</span></a></li></ol>
+</aside>
+<main>
+<div class="overview-card"><h2>이번 장의 핵심 흐름</h2><div class="stage-flow"><span class="stage">논리식</span><span class="arrow">→</span><span class="stage">Gate 조합</span><span class="arrow">→</span><span class="stage">Boolean / K-Map 간략화</span><span class="arrow">→</span><span class="stage">전후 회로 비교</span></div></div>
+<section class="step-card" id="step01"><span class="step">STEP 01</span><h2>1. Gate 조합으로 논리식 구현</h2>
+<p>XOR Gate를 직접 사용하지 않고 NOT, AND, OR Gate만 조합하여 <code>F = A'B + AB'</code>를 구현합니다.</p>
+<div class="flow"><strong>F = A'B + AB'</strong> → A와 B가 서로 다를 때만 1 → XOR과 동일한 동작</div>
+<div class="table-wrap"><table><thead><tr><th>Gate</th><th>필요 수</th></tr></thead><tbody><tr><td>NOT</td><td>2</td></tr><tr><td>AND</td><td>2</td></tr><tr><td>OR</td><td>1</td></tr></tbody></table></div>
+<pre class="codeblock-pre"><code>wire na, nb;
+wire w1, w2;
+
+g_not_7404 u_not1(.a(sw[0]), .y(na));
+g_not_7404 u_not2(.a(sw[1]), .y(nb));
+g_and_7408 u_and1(.a(na),    .b(sw[1]), .y(w1));
+g_and_7408 u_and2(.a(sw[0]), .b(nb),    .y(w2));
+g_or_7432  u_or1 (.a(w1),    .b(w2),    .y(led));</code></pre>
+<div class="table-wrap"><table><thead><tr><th>A</th><th>B</th><th>F</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>1</td></tr><tr><td>1</td><td>0</td><td>1</td></tr><tr><td>1</td><td>1</td><td>0</td></tr></tbody></table></div></section>
+<section class="step-card" id="step02"><span class="step">STEP 02</span><h2>2. Boolean Algebra 기본 정리</h2>
+<div class="table-wrap"><table><thead><tr><th>이름</th><th>식</th><th>의미</th></tr></thead><tbody>
+<tr><td>Identity</td><td>X·1 = X / X+0 = X</td><td>기본값과 연산하면 원래 값 유지</td></tr>
+<tr><td>Null</td><td>X·0 = 0 / X+1 = 1</td><td>0 또는 1이 결과를 지배</td></tr>
+<tr><td>Idempotent</td><td>X·X = X / X+X = X</td><td>같은 값의 중복 제거</td></tr>
+<tr><td>Complement</td><td>X·X' = 0 / X+X' = 1</td><td>상보 관계</td></tr>
+<tr><td>Distributive</td><td>XY + XZ = X(Y+Z)</td><td>공통항 묶기</td></tr>
+<tr><td>Absorption</td><td>X + XY = X</td><td>불필요한 항 제거</td></tr></tbody></table></div>
+<pre class="codeblock-pre"><code>F = XY + XY'
+  = X(Y + Y')
+  = X · 1
+  = X</code></pre></section>
+<section class="step-card" id="step03"><span class="step">STEP 03</span><h2>3. 간략화 전후 회로 비교</h2>
+<p><code>F = XY + XY'</code>와 간략화 결과 <code>F = X</code>를 각각 LED에 연결해 두 출력이 모든 입력에서 같은지 확인합니다.</p>
+<div class="stage-flow"><span class="stage">원래 식<br/>NOT + AND + AND + OR</span><span class="arrow">→</span><span class="stage">비교</span><span class="arrow">→</span><span class="stage">간략화<br/>BUFFER</span></div>
+<div class="note">두 LED가 항상 같다면 기능을 유지한 채 회로를 단순화한 것입니다.</div></section>
+<section class="step-card" id="step04"><span class="step">STEP 04</span><h2>4. DeMorgan 정리</h2>
+<pre class="codeblock-pre"><code>~(A · B) = A' + B'
+~(A + B) = A' · B'</code></pre>
+<p>원본 실습에서는 이 관계를 이용해 NAND Gate만으로 OR Gate를 구현합니다.</p><div class="flow">A+B = (A' · B')' → 입력 반전 → NAND → OR 동작</div></section>
+<section class="step-card" id="step05"><span class="step">STEP 05</span><h2>5. NAND Universal Gate</h2>
+<p>NAND만으로 NOT·AND·OR를 구현할 수 있습니다.</p>
+<div class="table-wrap"><table><thead><tr><th>기능</th><th>NAND 기반 표현</th></tr></thead><tbody>
+<tr><td>NOT A</td><td>A NAND A</td></tr><tr><td>A AND B</td><td>(A NAND B) NAND (A NAND B)</td></tr><tr><td>A OR B</td><td>(A NAND A) NAND (B NAND B)</td></tr></tbody></table></div></section>
+<section class="step-card" id="step06"><span class="step">STEP 06</span><h2>6. SOP 논리식</h2><p>SOP(Sum of Products, 곱의 합)는 진리표에서 출력이 1인 항을 곱항으로 만든 뒤 OR로 합치는 구조입니다.</p><div class="flow">출력 1인 행 → Minterm → AND 항 → OR 결합</div></section>
+<section class="step-card" id="step07"><span class="step">STEP 07</span><h2>7. POS 논리식</h2><p>POS(Product of Sums, 합의 곱)는 합항을 만든 뒤 AND로 결합합니다.</p><div class="flow">출력 0인 행 → Maxterm → OR 항 → AND 결합</div></section>
+<section class="step-card" id="step08"><span class="step">STEP 08</span><h2>8. Karnaugh Map 간략화</h2>
+<pre class="codeblock-pre"><code>F = A'B'C + AB'C + A'BC + ABC</code></pre>
+<p>네 항 모두 <code>C=1</code>인 경우이므로 Karnaugh Map에서 하나의 그룹으로 묶입니다.</p>
+<div class="flow"><strong>간략화 결과 → F = C</strong></div>
+<div class="table-wrap"><table><thead><tr><th>구분</th><th>구조</th></tr></thead><tbody><tr><td>간략화 전</td><td>4개의 3변수 곱항 + OR 결합</td></tr><tr><td>간략화 후</td><td>C 입력을 그대로 출력</td></tr></tbody></table></div>
+<p>원본의 <code>kmap_3var_compare_top.v</code>처럼 원래 회로와 <code>F=C</code> 회로를 동시에 구현해 결과를 비교합니다.</p></section>
+<section class="step-card summary"><h2>핵심 정리</h2><ul>
+<li>Gate Module을 조합하면 Boolean Equation을 실제 계층적 RTL 회로로 구현할 수 있습니다.</li>
+<li>Boolean Algebra는 같은 동작을 유지하면서 중복 항과 불필요한 Gate를 줄입니다.</li>
+<li>DeMorgan 정리는 NAND/NOR 기반 설계와 연결됩니다.</li>
+<li>NAND는 NOT·AND·OR를 모두 만들 수 있는 Universal Gate입니다.</li>
+<li>SOP는 곱항의 합, POS는 합항의 곱 형태입니다.</li>
+<li>Karnaugh Map은 인접항을 묶어 논리식을 시각적으로 간략화합니다.</li>
+<li><code>F = A'B'C + AB'C + A'BC + ABC</code>는 <code>F = C</code>로 줄어듭니다.</li>
+</ul></section>
+<nav aria-label="챕터 이동" class="chapter-nav"><a href="07_verilog_syntax_logic_gates.html">← 이전: Verilog 문법</a><a class="home" href="../../index.html">🏠 홈</a><span class="disabled next">다음 챕터 준비 중 →</span></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+<script>(()=>{const links=[...document.querySelectorAll('.timeline a')];const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);if(!links.length||!targets.length||!('IntersectionObserver'in window))return;const activate=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id));const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top));if(visible.length)activate(visible[0].target.id);},{rootMargin:'-12% 0px -78% 0px',threshold:[0,1]});targets.forEach(t=>observer.observe(t));activate(targets[0].id);})();</script>
+</body></html>

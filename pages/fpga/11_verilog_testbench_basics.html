@@ -2,13 +2,165 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta http-equiv="refresh" content="0; url=10_verilog_testbench_basics.html"/>
-<title>페이지 이동</title>
-<link rel="canonical" href="10_verilog_testbench_basics.html"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Verilog Testbench에서 DUT를 인스턴스화하고 reg, wire, initial, delay, 포트 매핑을 이용해 Half Adder를 검증하는 기본 개념 실습" name="description"/>
+<title>Verilog Testbench 기본 개념</title>
+<link href="../../css/style.css" rel="stylesheet"/>
 </head>
 <body>
-<p>Digital / FPGA 번호 체계 변경으로 페이지가 이동했습니다.
-<a href="10_verilog_testbench_basics.html">10. Testbench</a></p>
-</body>
-</html>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>Digital / FPGA</span><span class="sep">/</span><strong>Verilog Testbench</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+<header class="hero"><div aria-hidden="true" class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">Digital / FPGA · Chapter 11</p>
+<h1>Verilog Testbench 기본 개념</h1>
+<p class="hero-desc">Testbench Module 안에 실제 DUT 회로를 Instance하고, 입력 자극을 생성하여 DUT의 출력 결과를 관찰하는 Verilog Simulation의 기본 구조를 익힙니다.</p>
+<div class="hero-meta"><span class="chip">Testbench</span><span class="chip">DUT</span><span class="chip">reg / wire</span><span class="chip">initial</span><span class="chip">Vivado Simulation</span></div>
+<div class="hero-brief">
+<article><h2>Testbench</h2><p><code>tb_c_halfadder</code>가 검증 환경을 구성합니다.</p></article>
+<article><h2>DUT</h2><p><code>c_halfadder dut</code>가 실제 검증 대상 회로입니다.</p></article>
+<article><h2>핵심 흐름</h2><p>입력 생성 → DUT 전달 → 논리 연산 → 출력 관찰 순으로 동작합니다.</p></article>
+</div></div></header>
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">TESTBENCH FLOW</p><p class="nav-help">STEP 01 → 08</p>
+<p class="phase">A. 구조 이해</p><ol class="timeline">
+<li><a href="#step01"><span class="n">01</span><span>전체 개념</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>DUT 원본</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>Testbench 전체</span></a></li></ol>
+<p class="phase">B. 핵심 문법</p><ol class="timeline">
+<li><a href="#step04"><span class="n">04</span><span>reg · wire</span></a></li>
+<li><a href="#step05"><span class="n">05</span><span>포트 매핑</span></a></li>
+<li><a href="#step06"><span class="n">06</span><span>initial · #10</span></a></li></ol>
+<p class="phase">C. 동작 흐름</p><ol class="timeline">
+<li><a href="#step07"><span class="n">07</span><span>Instance 구조</span></a></li>
+<li><a href="#step08"><span class="n">08</span><span>Simulation 흐름</span></a></li></ol>
+</aside>
+<main>
+<div class="overview-card"><h2>전체 검증 구조</h2><div class="stage-flow">
+<span class="stage">Testbench<br/>reg 입력 생성</span><span class="arrow">→</span><span class="stage">DUT<br/>c_halfadder</span><span class="arrow">→</span><span class="stage">wire 출력</span><span class="arrow">→</span><span class="stage">Waveform 관찰</span>
+</div></div>
+<section class="step-card" id="step01"><span class="step">STEP 01</span><h2>1. Testbench와 DUT의 관계</h2>
+<p>Verilog Simulation에서는 Testbench가 실제 DUT 회로를 내부에 생성하여 검증합니다.</p>
+<pre class="codeblock-pre"><code>tb_c_halfadder
+    └── c_halfadder dut</code></pre>
+<div class="table-wrap"><table><thead><tr><th>구분</th><th>의미</th></tr></thead><tbody>
+<tr><td><code>tb_c_halfadder</code></td><td>검증 환경 Testbench</td></tr>
+<tr><td><code>c_halfadder dut</code></td><td>실제 동작하는 검증 대상 회로 DUT</td></tr>
+</tbody></table></div>
+<h3>권장 파일명과 모듈명</h3><div class="table-wrap"><table><thead><tr><th>종류</th><th>파일명</th><th>모듈명</th></tr></thead><tbody>
+<tr><td>DUT</td><td><code>c_halfadder.v</code></td><td><code>c_halfadder</code></td></tr>
+<tr><td>Testbench</td><td><code>tb_c_halfadder.v</code></td><td><code>tb_c_halfadder</code></td></tr>
+</tbody></table></div></section>
+<section class="step-card" id="step02"><span class="step">STEP 02</span><h2>2. DUT 원본 소스</h2>
+<pre class="codeblock-pre"><code>module c_halfadder(
+    input  in_a,
+    input  in_b,
+    output sum,
+    output carry
+);
+
+assign sum   = in_a ^ in_b;
+assign carry = in_a &amp; in_b;
+
+endmodule</code></pre>
+<div class="flow">in_a · in_b → XOR → sum<br/>in_a · in_b → AND → carry</div>
+<div class="note">원본 자료의 DUT 회로 그림은 Notion 임시 파일 URL이므로 GitHub Pages에 직접 연결하지 않았습니다. 대신 소스와 신호 관계를 텍스트 구조로 유지했습니다.</div>
+</section>
+<section class="step-card" id="step03"><span class="step">STEP 03</span><h2>3. Testbench 전체 코드</h2>
+<pre class="codeblock-pre"><code>module tb_c_halfadder;
+
+reg tb_a;
+reg tb_b;
+
+wire tb_sum;
+wire tb_carry;
+
+c_halfadder dut(
+    .in_a(tb_a),
+    .in_b(tb_b),
+    .sum(tb_sum),
+    .carry(tb_carry)
+);
+
+initial begin
+    tb_a = 0; tb_b = 0; #10;
+    tb_a = 0; tb_b = 1; #10;
+    tb_a = 1; tb_b = 0; #10;
+    tb_a = 1; tb_b = 1; #10;
+    $finish;
+end
+
+endmodule</code></pre>
+<p>Testbench에는 외부 입력·출력 포트가 없으며, 내부에서 DUT 입력 자극을 만들고 DUT 출력을 관찰합니다.</p>
+</section>
+<section class="step-card" id="step04"><span class="step">STEP 04</span><h2>4. reg와 wire의 역할</h2>
+<div class="table-wrap"><table><thead><tr><th>종류</th><th>역할</th><th>예</th></tr></thead><tbody>
+<tr><td><code>reg</code></td><td>Testbench가 직접 값을 변경하여 DUT에 입력을 공급하는 신호</td><td><code>reg tb_a;</code></td></tr>
+<tr><td><code>wire</code></td><td>DUT가 계산한 출력 결과를 전달받는 연결 신호</td><td><code>wire tb_sum;</code></td></tr>
+</tbody></table></div>
+<div class="flow">Testbench가 값을 넣는 신호 → reg<br/>DUT 출력에서 값을 받아오는 신호 → wire</div>
+</section>
+<section class="step-card" id="step05"><span class="step">STEP 05</span><h2>5. 포트 연결 문법</h2>
+<pre class="codeblock-pre"><code>.포트명(연결신호명)</code></pre>
+<p>예:</p><pre class="codeblock-pre"><code>.in_a(tb_a)</code></pre>
+<div class="table-wrap"><table><thead><tr><th>위치</th><th>의미</th></tr></thead><tbody>
+<tr><td>왼쪽 <code>.in_a</code></td><td>DUT 내부 포트 이름</td></tr>
+<tr><td>오른쪽 <code>(tb_a)</code></td><td>Testbench 내부 신호 이름</td></tr>
+</tbody></table></div></section>
+<section class="step-card" id="step06"><span class="step">STEP 06</span><h2>6. initial과 시간 지연</h2>
+<p><code>initial</code> 블록은 시뮬레이션 시작 시 한 번 실행됩니다.</p>
+<div class="table-wrap"><table><thead><tr><th>문법</th><th>의미</th></tr></thead><tbody>
+<tr><td><code>initial</code></td><td>시뮬레이션 시작 시 1회 실행</td></tr>
+<tr><td><code>#10</code></td><td>다음 입력 변경 전까지 일정 시간 대기</td></tr>
+<tr><td><code>$finish</code></td><td>Simulation 종료</td></tr>
+</tbody></table></div></section>
+<section class="step-card" id="step07"><span class="step">STEP 07</span><h2>7. Instance 개념</h2>
+<pre class="codeblock-pre"><code>c_halfadder dut(
+    .in_a(tb_a),
+    .in_b(tb_b),
+    .sum(tb_sum),
+    .carry(tb_carry)
+);</code></pre>
+<p><code>c_halfadder</code>라는 회로를 Testbench 내부에 실제로 하나 생성하고, Instance 이름을 <code>dut</code>로 지정합니다.</p>
+<pre class="codeblock-pre"><code>module tb_c_halfadder
+    내부에
+        c_halfadder dut 생성</code></pre>
+</section>
+<section class="step-card" id="step08"><span class="step">STEP 08</span><h2>8. 실제 Simulation 동작 흐름</h2>
+<div class="stage-flow"><span class="stage">STEP 1<br/>reg 입력 생성</span><span class="arrow">→</span><span class="stage">STEP 2<br/>DUT 입력 전달</span><span class="arrow">→</span><span class="stage">STEP 3<br/>DUT 논리 연산</span><span class="arrow">→</span><span class="stage">STEP 4<br/>출력 포트</span><span class="arrow">→</span><span class="stage">STEP 5<br/>wire 관찰</span></div>
+<pre class="codeblock-pre"><code>tb_a = 1;
+tb_b = 0;
+
+      ↓
+
+.in_a(tb_a)
+.in_b(tb_b)
+
+      ↓
+
+sum   = in_a ^ in_b
+carry = in_a &amp; in_b
+
+      ↓
+
+.sum(tb_sum)
+.carry(tb_carry)</code></pre>
+<div class="table-wrap"><table><thead><tr><th>tb_a</th><th>tb_b</th><th>tb_sum</th><th>tb_carry</th></tr></thead><tbody>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>1</td><td>0</td></tr><tr><td>1</td><td>0</td><td>1</td><td>0</td></tr><tr><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+</tbody></table></div></section>
+<section class="step-card summary"><h2>핵심 정리</h2><ul>
+<li>Testbench는 검증 환경이고 DUT는 실제 검증 대상 회로입니다.</li>
+<li>Testbench 안에서 DUT Module을 Instance하여 검증합니다.</li>
+<li><code>reg</code>는 Testbench가 입력값을 직접 변경하는 신호입니다.</li>
+<li><code>wire</code>는 DUT 출력 결과를 전달받는 연결 신호입니다.</li>
+<li><code>.포트명(연결신호명)</code> 문법으로 DUT 포트와 Testbench 신호를 매핑합니다.</li>
+<li><code>initial</code>에서 입력 자극을 만들고 <code>#10</code>으로 입력 변경 사이 시간을 둡니다.</li>
+<li>Simulation은 입력 생성 → DUT 전달 → 논리 연산 → 출력 → Testbench 관찰 흐름으로 이해합니다.</li>
+</ul></section>
+<nav aria-label="챕터 이동" class="chapter-nav"><a href="10_cla_adder_practical.html">← 이전: CLA Adder</a><a class="home" href="../../index.html">🏠 홈</a><span class="disabled next">다음 챕터 준비 중 →</span></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+<script>(()=>{const links=[...document.querySelectorAll('.timeline a')];const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);if(!links.length||!targets.length||!('IntersectionObserver'in window))return;const activate=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id));const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top));if(visible.length)activate(visible[0].target.id);},{rootMargin:'-12% 0px -78% 0px',threshold:[0,1]});targets.forEach(t=>observer.observe(t));activate(targets[0].id);})();</script>
+</body></html>

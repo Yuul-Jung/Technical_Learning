@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="UART Register Map의 CTRL bit field를 확장하고 CdS 디지털 입력을 2-FF 동기화하여 FND에 밝음 L 또는 어두움 d 상태를 표시하는 RTL 주변기기 실습" name="description"/>
+<title>09. UART Register Map · CdS + LED PWM + FND RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+      <strong>09. CdS + LED PWM + FND</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">RTL 주변기기 회로설계 · 09</p>
+    <h1>UART Register Map · CdS + LED PWM + FND RTL 실습</h1>
+    <p class="hero-desc">
+      08의 UART Register Map을 그대로 확장합니다.
+      <code>CTRL[0]</code>은 LED PWM, <code>CTRL[1]</code>은 CdS 상태 표시 Enable로 사용하고,
+      외부 CdS 디지털 입력 <code>JA[0]</code>을 2-FF 동기화하여
+      FND에 <code>L---</code> 또는 <code>d---</code>를 표시합니다.
+    </p>
+
+    <div class="hero-meta">
+      <span class="chip">Register Bit Field</span>
+      <span class="chip">CdS</span>
+      <span class="chip">2-FF Synchronizer</span>
+      <span class="chip">LED PWM</span>
+      <span class="chip">FND Status</span>
+    </div>
+
+    <div class="hero-brief">
+      <article><h2>CTRL[0]</h2><p>LED PWM(피더블유엠, 펄스폭 변조) 출력 Enable입니다.</p></article>
+      <article><h2>CTRL[1]</h2><p>CdS(씨디에스, 황화카드뮴) 상태를 FND에 표시할지 결정합니다.</p></article>
+      <article><h2>JA[0]</h2><p>외부 CdS 회로의 디지털 출력으로, 밝음 1 · 어두움 0 기준입니다.</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">CDS CONTROL FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. Register 확장</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>전체 구조</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>CTRL Bit Field</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>Packet 예제</span></a></li>
+  </ol>
+
+  <p class="phase">B. CdS · FND</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>CdS 입력</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>2-FF 동기화</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>FND 상태 표시</span></a></li>
+  </ol>
+
+  <p class="phase">C. 통합 · 검증</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>Top · XDC</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>Testbench · 검증</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>전체 연결 구조</h2>
+  <div class="stage-flow">
+    <span class="stage">PC HEX</span><span class="arrow">→</span>
+    <span class="stage">UART Core</span><span class="arrow">→</span>
+    <span class="stage">Register Map</span><span class="arrow">→</span>
+    <span class="stage">CTRL / PWM_VALUE</span>
+  </div>
+  <div class="stage-flow" style="margin-top:10px">
+    <span class="stage">JA[0]</span><span class="arrow">→</span>
+    <span class="stage">2-FF Sync</span><span class="arrow">→</span>
+    <span class="stage">CdS State</span><span class="arrow">→</span>
+    <span class="stage">FND L--- / d---</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. Chapter 08 Register Map을 확장</h2>
+
+  <pre class="codeblock-pre"><code>PC / moserial
+→ RsRx
+→ uart_core
+→ uart_reg_write_controller
+→ simple_register_map
+→ CTRL / PWM_VALUE
+
+CTRL[0]
+→ led_pwm_controller
+→ led[15:0]
+
+JA[0]
+→ cds_input_filter
+→ cds_is_light
+→ fnd_status_3digit_display
+→ L--- / d---</code></pre>
+
+  <p>
+    UART Packet 형식과 Register 주소는 Chapter 08과 동일합니다.
+    새 Register를 추가하지 않고 <code>CTRL</code> Register의 각 bit에 기능을 배정합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. CTRL Register를 Bit Field로 사용</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>CTRL Bit</th><th>이름</th><th>기능</th><th>현재 사용</th></tr></thead>
+      <tbody>
+        <tr><td><code>CTRL[0]</code></td><td><code>led_pwm_en</code></td><td>LED PWM Enable</td><td>사용</td></tr>
+        <tr><td><code>CTRL[1]</code></td><td><code>cds_en</code></td><td>CdS FND 상태 표시 Enable</td><td>사용</td></tr>
+        <tr><td><code>CTRL[2]</code></td><td><code>dist_en</code></td><td>초음파 거리 기능</td><td>향후</td></tr>
+        <tr><td><code>CTRL[3]</code></td><td><code>motor_en</code></td><td>모터 제어 기능</td><td>향후</td></tr>
+        <tr><td><code>CTRL[7:4]</code></td><td>Reserved</td><td>확장용</td><td>향후</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">
+    <strong>중요:</strong>
+    Chapter 08에서는 <code>ctrl_reg == 8'h01</code>일 때 PWM을 켰지만,
+    이번에는 <code>CTRL[1]</code>도 동시에 사용할 수 있어야 하므로
+    PWM Enable 조건을 <code>ctrl_reg[0]</code>으로 변경합니다.
+  </div>
+
+  <pre class="codeblock-pre"><code>// 기존
+assign pwm_enable = (ctrl_reg == 8'h01);
+
+// 변경
+assign pwm_enable = ctrl_reg[0];</code></pre>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. CTRL Packet 조합</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Packet</th><th>CTRL[1:0]</th><th>LED PWM</th><th>CdS FND</th></tr></thead>
+      <tbody>
+        <tr><td><code>01 00 00</code></td><td>00</td><td>OFF</td><td><code>----</code></td></tr>
+        <tr><td><code>01 00 01</code></td><td>01</td><td>ON</td><td><code>----</code></td></tr>
+        <tr><td><code>01 00 02</code></td><td>10</td><td>OFF</td><td><code>L---</code> / <code>d---</code></td></tr>
+        <tr><td><code>01 00 03</code></td><td>11</td><td>ON</td><td><code>L---</code> / <code>d---</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flow">
+    01 00 03
+    → CMD=Write
+    → ADDR=CTRL
+    → DATA=0x03
+    → CTRL[0]=1 + CTRL[1]=1
+    → LED PWM + CdS 표시 동시 ON
+  </div>
+
+  <p><code>PWM_VALUE</code>는 계속 <code>ADDR=0x01</code>을 사용합니다.</p>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. CdS 입력의 의미</h2>
+
+  <p>
+    CdS는 빛의 세기에 따라 저항이 변하는 광도전 소자입니다.
+    이번 RTL에서는 아날로그 저항값을 FPGA가 직접 읽지 않고,
+    외부 회로가 이미 밝음/어두움을 1-bit 디지털 신호로 만들어 <code>JA[0]</code>에 전달합니다.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>주변 상태</th><th>외부 출력</th><th>JA[0]</th><th>내부 판단</th></tr></thead>
+      <tbody>
+        <tr><td>밝음 / 낮</td><td>1</td><td>1</td><td><code>cds_is_light=1</code></td></tr>
+        <tr><td>어두움 / 밤</td><td>0</td><td>0</td><td><code>cds_is_light=0</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    입력 반전은 FPGA 내부에서 수행하지 않습니다.
+    필요한 극성 변환은 외부 CdS 회로에서 처리한다는 것이 원본 설계 기준입니다.
+  </div>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. cds_input_filter — 외부 입력 2-FF 동기화</h2>
+
+  <pre class="codeblock-pre"><code>always @(posedge clk) begin
+    if (reset) begin
+        cds_meta     &lt;= 1'b0;
+        cds_sync_reg &lt;= 1'b0;
+    end
+    else begin
+        cds_meta     &lt;= cds_sw_raw;
+        cds_sync_reg &lt;= cds_meta;
+    end
+end
+
+assign cds_sw_sync  = cds_sync_reg;
+assign cds_is_light = cds_sync_reg;</code></pre>
+
+  <div class="flow">
+    JA[0]
+    → cds_meta
+    → cds_sync_reg
+    → cds_is_light
+  </div>
+
+  <p>
+    외부 CdS 입력은 FPGA의 시스템 Clock과 비동기이므로
+    2-FF Synchronizer(투 플립플롭 동기화기)를 사용해 Clock 영역 안으로 가져옵니다.
+  </p>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. FND(에프엔디, 7-세그먼트 표시기) 상태 표시</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>조건</th><th>상태 코드</th><th>FND</th></tr></thead>
+      <tbody>
+        <tr><td><code>CTRL[1]=0</code></td><td>무관</td><td><code>----</code></td></tr>
+        <tr><td><code>CTRL[1]=1</code>, 밝음</td><td><code>4'hA</code></td><td><code>L---</code></td></tr>
+        <tr><td><code>CTRL[1]=1</code>, 어두움</td><td><code>4'hB</code></td><td><code>d---</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>4'hA → L → seg = 7'b1000111
+4'hB → d → seg = 7'b0100001
+4'hC → - → seg = 7'b0111111</code></pre>
+
+  <p>
+    하위 3자리 숫자 표시 인터페이스도 남겨 두지만,
+    이번 CdS 단계에서는 <code>value_valid=0</code>으로 두어 모두 <code>-</code>로 표시합니다.
+  </p>
+
+  <div class="note">
+    원본 Top에 있던 <code>cds_is_light ? 4'hA : 4'hB</code> 선택식은
+    현재 홈페이지의 Top Shell 원칙에 맞춰 <code>cds_status_encoder.v</code>로 분리했습니다.
+    표시 결과와 코드값은 원본과 동일합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. Basys3 Top과 XDC 사용 범위</h2>
+
+  <pre class="codeblock-pre"><code>basys3_uart_led_pwm_cds_fnd_top
+├── uart_core                       [재사용]
+├── uart_reg_write_controller       [재사용]
+├── simple_register_map             [재사용]
+├── led_pwm_controller              [CTRL[0] 방식으로 변경]
+├── cds_input_filter                [추가]
+├── cds_status_encoder              [구조화 추가]
+└── fnd_status_3digit_display       [추가]</code></pre>
+
+  <p>Top에서 사용하는 외부 포트는 다음 범위입니다.</p>
+
+  <pre class="codeblock-pre"><code>clk
+btnU
+RsRx
+RsTx
+led[15:0]
+seg[6:0]
+an[3:0]
+dp
+JA[0]</code></pre>
+
+  <div class="note">
+    <code>JA[0]</code>만 사용하므로 소스의 Top 포트도 <code>input wire [0:0] JA</code> 형태입니다.
+    XDC는 기존 Basys3 Master XDC에서 실제 사용하는 핀만 활성화하는 방식으로 관리합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. Testbench 검증 흐름</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>순서</th><th>입력</th><th>확인 기준</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Reset</td><td>CTRL/PWM 초기화</td></tr>
+        <tr><td>2</td><td><code>01 00 02</code></td><td>CdS 기능만 Enable</td></tr>
+        <tr><td>3</td><td><code>JA[0]=1</code></td><td><code>cds_is_light=1</code>, 상태 코드 <code>A</code></td></tr>
+        <tr><td>4</td><td><code>JA[0]=0</code></td><td><code>cds_is_light=0</code>, 상태 코드 <code>B</code></td></tr>
+        <tr><td>5</td><td><code>01 01 80</code></td><td><code>PWM_VALUE=0x80</code></td></tr>
+        <tr><td>6</td><td><code>01 00 03</code></td><td>LED PWM + CdS 동시 Enable</td></tr>
+        <tr><td>7</td><td><code>01 00 00</code></td><td>전체 OFF</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">
+    <strong>검증 메모:</strong>
+    Testbench는 참고자료와 동일하게 <code>uart_core</code>를 우회하지 않고
+    <code>RsRx</code>에 UART 8N1 직렬 파형을 넣는 구조로 작성했습니다.
+    현재 생성 과정에서 Vivado Simulation 결과를 실제 Output으로 만들지는 않았습니다.
+  </div>
+
+  <div class="note">
+    참고자료에 포함된 CdS/FND 이미지는 임시 서명 URL이므로 GitHub Pages에 직접 삽입하지 않았습니다.
+    실제 회로 사진이나 Vivado Waveform은 Repository의 <code>images/</code>에 저장한 뒤 상대경로로 추가하는 방식이 적합합니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>Chapter 08의 Register Map을 유지하면서 <code>CTRL</code>을 Bit Field 방식으로 확장합니다.</li>
+    <li><code>CTRL[0]</code>은 LED PWM, <code>CTRL[1]</code>은 CdS FND 표시 Enable입니다.</li>
+    <li>외부 CdS 디지털 입력 <code>JA[0]</code>은 2-FF 동기화를 거쳐 사용합니다.</li>
+    <li>밝음은 <code>L---</code>, 어두움은 <code>d---</code>, CdS 기능 OFF는 <code>----</code>로 표시합니다.</li>
+    <li>Register Map을 확장하면 이후 거리 센서·모터 등도 CTRL bit와 별도 Register를 통해 누적할 수 있습니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="08_uart_register_map_led_pwm.html">← 이전: 08. Register Map</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <a class="next" href="10_pwm_value_led_bar_dimming.html">다음: 10. LED Bar Dimming →</a>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>

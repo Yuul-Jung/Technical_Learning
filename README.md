@@ -43,6 +43,10 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 05. UART RX 1문자 즉시 표시 · RX Display Register 수정
 06. UART Echo · RX → TX Loopback RTL 실습
 07. UART Command Parser · Response Generator RTL 실습
+08. UART Register Map · LED PWM Dimming RTL 실습
+09. UART Register Map · CdS + LED PWM + FND RTL 실습
+10. PWM_VALUE 기반 LED Bar Dimming RTL 실습
+11. HC-SR04 초음파 거리계 · UART Register Map RTL 실습
 
 > UART부터는 Digital / FPGA 기초 번호와 분리하여 `01`부터 별도 번호 체계로 관리합니다.
 
@@ -65,7 +69,11 @@ Technical_Learning/
 │       ├── 04_uart_rx_tx_integration.html
 │       ├── 05_uart_rx_immediate_display.html
 │       ├── 06_uart_echo_loopback.html
-│       └── 07_uart_command_response.html
+│       ├── 07_uart_command_response.html
+│       ├── 08_uart_register_map_led_pwm.html
+│       ├── 09_uart_cds_led_pwm_fnd.html
+│       ├── 10_pwm_value_led_bar_dimming.html
+│       └── 11_hcsr04_ultrasonic_register_map.html
 ├── images/
 ├── code/
 │   ├── fpga/
@@ -79,7 +87,11 @@ Technical_Learning/
 │       ├── ch04_uart_rx_tx/
 │       ├── ch05_uart_rx_immediate_display/
 │       ├── ch06_uart_echo/
-│       └── ch07_uart_command_response/
+│       ├── ch07_uart_command_response/
+│       ├── ch08_uart_register_map_led_pwm/
+│       ├── ch09_uart_cds_led_fnd/
+│       ├── ch10_pwm_value_led_bar/
+│       └── ch11_hcsr04_ultrasonic/
 ├── css/
 │   └── style.css
 └── README.md

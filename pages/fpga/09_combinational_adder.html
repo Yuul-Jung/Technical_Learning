@@ -1,14 +1,79 @@
 <!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta http-equiv="refresh" content="0; url=08_combinational_adder.html"/>
-<title>페이지 이동</title>
-<link rel="canonical" href="08_combinational_adder.html"/>
-</head>
-<body>
-<p>Digital / FPGA 번호 체계 변경으로 페이지가 이동했습니다.
-<a href="08_combinational_adder.html">08. Adder</a></p>
-</body>
-</html>
+<html lang="ko"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Half Adder, Full Adder, 4bit Ripple Carry Adder, Carry Look-Ahead Adder, Seven Segment, Testbench와 Basys3 검증을 연결하는 조합회로 설계 실습" name="description"/>
+<title>조합회로 설계 실습 — Adder</title><link href="../../css/style.css" rel="stylesheet"/></head><body>
+<div class="topbar"><div class="topbar-inner"><div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>Digital / FPGA</span><span class="sep">/</span><strong>조합회로 · Adder</strong></div><div class="brand">PE. JUNG · TECHNICAL NOTES</div></div></div>
+<header class="hero"><div aria-hidden="true" class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">Digital / FPGA · Chapter 09</p><h1>조합회로 설계 실습 — Adder</h1>
+<p class="hero-desc">Logic Gate에서 출발해 Half Adder → Full Adder → 4bit Adder → Seven Segment까지 확장하고, Testbench·Waveform·RTL Schematic·Basys3 보드 검증을 하나의 흐름으로 연결합니다.</p>
+<div class="hero-meta"><span class="chip">Combinational Logic</span><span class="chip">Half / Full Adder</span><span class="chip">Testbench</span><span class="chip">RTL Schematic</span><span class="chip">Basys3</span></div>
+<div class="hero-brief"><article><h2>설계 확장</h2><p>작은 기능 블록을 재사용하여 더 큰 조합회로를 계층적으로 구성합니다.</p></article><article><h2>검증 축</h2><p>코드 작성 후 Testbench → Simulation → Waveform → RTL Schematic 순서로 확인합니다.</p></article><article><h2>보드 출력</h2><p>4bit 덧셈 결과를 Seven Segment 한 자리에 표시하고 Carry는 별도 출력으로 확인합니다.</p></article></div>
+</div></header>
+<div class="wrap"><aside class="flow-nav" aria-label="학습 진행 순서"><p class="nav-title">LEVEL 2-A FLOW</p><p class="nav-help">STEP 01 → 08</p>
+<p class="phase">A. 모델링 · 기본 가산기</p><ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>Verilog 모델링</span></a></li><li><a href="#step02"><span class="n">02</span><span>Half Adder</span></a></li><li><a href="#step03"><span class="n">03</span><span>Full Adder</span></a></li></ol>
+<p class="phase">B. 확장 · 표시</p><ol class="timeline"><li><a href="#step04"><span class="n">04</span><span>4bit Ripple Adder</span></a></li><li><a href="#step05"><span class="n">05</span><span>Carry Look-Ahead</span></a></li><li><a href="#step06"><span class="n">06</span><span>Seven Segment</span></a></li></ol>
+<p class="phase">C. 검증</p><ol class="timeline"><li><a href="#step07"><span class="n">07</span><span>Testbench · Waveform</span></a></li><li><a href="#step08"><span class="n">08</span><span>Basys3 확인</span></a></li></ol></aside>
+<main>
+<div class="overview-card"><h2>LEVEL 2-A 전체 흐름</h2><div class="stage-flow"><span class="stage">Logic Gate</span><span class="arrow">→</span><span class="stage">Half Adder</span><span class="arrow">→</span><span class="stage">Full Adder</span><span class="arrow">→</span><span class="stage">4bit Adder</span><span class="arrow">→</span><span class="stage">7-Segment</span><span class="arrow">→</span><span class="stage">Verification</span></div></div>
+<section class="step-card" id="step01"><span class="step">STEP 01</span><h2>1. Verilog 조합회로 모델링 방법</h2>
+<div class="table-wrap"><table><thead><tr><th>모델링</th><th>주요 문법</th><th>특징</th></tr></thead><tbody><tr><td>Gate-Level</td><td><code>and</code>, <code>or</code>, <code>not</code>, <code>xor</code></td><td>Gate Primitive 직접 사용</td></tr><tr><td>Dataflow</td><td><code>assign</code></td><td>논리식 기반, 조합논리에 간결</td></tr><tr><td>Behavioral</td><td><code>always @(*)</code></td><td><code>if</code>/<code>case</code> 기반</td></tr><tr><td>Structural</td><td>module instance</td><td>작은 모듈을 조합해 큰 회로 구성</td></tr></tbody></table></div>
+<div class="note">같은 회로 기능도 표현 방법은 여러 가지일 수 있습니다. 이 장에서는 Half Adder는 Dataflow, Full/4bit Adder는 Structural, Seven Segment는 Behavioral 표현을 함께 사용합니다.</div></section>
+<section class="step-card" id="step02"><span class="step">STEP 02</span><h2>2. Half Adder</h2><p>Half Adder는 Carry 입력이 없는 1bit 덧셈 회로입니다.</p>
+<div class="flow">SUM ← A XOR B &nbsp;&nbsp; | &nbsp;&nbsp; CARRY ← A AND B</div>
+<div class="table-wrap"><table><thead><tr><th>A</th><th>B</th><th>SUM</th><th>CARRY</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>1</td><td>0</td></tr><tr><td>1</td><td>0</td><td>1</td><td>0</td></tr><tr><td>1</td><td>1</td><td>0</td><td>1</td></tr></tbody></table></div>
+<pre class="codeblock-pre"><code>assign sum   = a ^ b;
+assign carry = a &amp; b;</code></pre></section>
+<section class="step-card" id="step03"><span class="step">STEP 03</span><h2>3. Full Adder</h2><p>Full Adder는 이전 자리에서 넘어온 <code>cin</code>까지 포함하여 1bit 덧셈을 수행합니다.</p>
+<div class="stage-flow"><span class="stage">Half Adder #1<br/>A + B</span><span class="arrow">→</span><span class="stage">중간 SUM</span><span class="arrow">→</span><span class="stage">Half Adder #2<br/>+ CIN</span><span class="arrow">→</span><span class="stage">SUM / COUT</span></div>
+<pre class="codeblock-pre"><code>c_halfadder u_ha0(
+    .a(a), .b(b),
+    .sum(s1), .carry(c1)
+);
+
+c_halfadder u_ha1(
+    .a(s1), .b(cin),
+    .sum(sum), .carry(c2)
+);
+
+assign cout = c1 | c2;</code></pre></section>
+<section class="step-card" id="step04"><span class="step">STEP 04</span><h2>4. 4bit Ripple Carry Adder</h2><p>Full Adder 4개를 연결하여 4bit Binary Adder를 구현합니다. 각 비트의 Carry가 다음 비트로 순차 전달됩니다.</p>
+<div class="flow">bit0 COUT → bit1 CIN → bit1 COUT → bit2 CIN → bit2 COUT → bit3 CIN</div>
+<pre class="codeblock-pre"><code>c_fulladder u_fa0(.a(a[0]), .b(b[0]), .cin(cin), .sum(sum[0]), .cout(c1));
+c_fulladder u_fa1(.a(a[1]), .b(b[1]), .cin(c1),  .sum(sum[1]), .cout(c2));
+c_fulladder u_fa2(.a(a[2]), .b(b[2]), .cin(c2),  .sum(sum[2]), .cout(c3));
+c_fulladder u_fa3(.a(a[3]), .b(b[3]), .cin(c3),  .sum(sum[3]), .cout(cout));</code></pre>
+<div class="warn"><strong>검증 메모:</strong> 실제 74283은 Carry Look-Ahead 계열 구조로 Carry 전달 속도를 개선한 IC입니다. 이 실습의 <code>c_adder4_74283</code>은 교육을 위해 먼저 Ripple Carry 구조로 구현합니다.</div></section>
+<section class="step-card" id="step05"><span class="step">STEP 05</span><h2>5. Carry Look-Ahead Adder</h2><p>Ripple Carry는 비트 수가 늘수록 Carry가 순서대로 전달되어 지연이 커질 수 있습니다. Carry Look-Ahead는 Propagate와 Generate를 사용해 Carry를 논리식으로 미리 계산합니다.</p>
+<div class="table-wrap"><table><thead><tr><th>신호</th><th>식</th><th>의미</th></tr></thead><tbody><tr><td>Propagate</td><td><code>P = A ^ B</code></td><td>이전 Carry가 다음으로 전달될 조건</td></tr><tr><td>Generate</td><td><code>G = A &amp; B</code></td><td>해당 자리에서 Carry가 새로 발생할 조건</td></tr></tbody></table></div>
+<pre class="codeblock-pre"><code>assign c1 = g[0] | (p[0] &amp; cin);
+assign c2 = g[1] | (p[1] &amp; g[0]) | (p[1] &amp; p[0] &amp; cin);
+assign c3 = g[2] | (p[2] &amp; g[1]) | (p[2] &amp; p[1] &amp; g[0]) |
+            (p[2] &amp; p[1] &amp; p[0] &amp; cin);</code></pre></section>
+<section class="step-card" id="step06"><span class="step">STEP 06</span><h2>6. Seven Segment 출력</h2><p>Adder의 4bit 결과를 BCD 입력으로 받아 Seven Segment 패턴으로 변환합니다. 조합논리 <code>always @(*)</code>와 <code>case</code>를 사용합니다.</p>
+<pre class="codeblock-pre"><code>always @(*) begin
+    case (bcd)
+        4'd0: seg = 7'b1000000;
+        4'd1: seg = 7'b1111001;
+        ...
+        4'd9: seg = 7'b0010000;
+        default: seg = 7'b1111111;
+    endcase
+end</code></pre>
+<p>Top에서는 4bit Adder의 <code>sum</code>을 Seven Segment Decoder에 연결하고, 오른쪽 한 자리만 활성화합니다.</p><pre class="codeblock-pre"><code>assign an = 4'b1110;</code></pre>
+<div class="warn">현재 예제는 한 자리 표시만 확인합니다. 결과가 10 이상이면 한 자리 BCD 표시 범위를 넘습니다. 여러 자리 표시는 빠른 자리 선택 스캔이 필요하며 이후 Counter/FSM/Sequential Logic 단계로 연결됩니다.</div></section>
+<section class="step-card" id="step07"><span class="step">STEP 07</span><h2>7. Testbench · Simulation · RTL Schematic</h2>
+<div class="stage-flow"><span class="stage">Design Source</span><span class="arrow">→</span><span class="stage">Testbench</span><span class="arrow">→</span><span class="stage">Behavioral Simulation</span><span class="arrow">→</span><span class="stage">Waveform</span><span class="arrow">→</span><span class="stage">Elaborated Design</span></div>
+<pre class="codeblock-pre"><code>initial begin
+    a = 0; b = 0; #10;
+    a = 0; b = 1; #10;
+    a = 1; b = 0; #10;
+    a = 1; b = 1; #10;
+    $finish;
+end</code></pre>
+<p>Half Adder에서는 네 입력 조합 모두를 확인하고, Full/4bit Adder에서도 입력과 Carry 조합을 바꾸며 <code>sum</code>과 <code>cout</code>이 기대값과 일치하는지 확인합니다.</p></section>
+<section class="step-card" id="step08"><span class="step">STEP 08</span><h2>8. Basys3 FPGA 확인</h2>
+<ol><li><code>c_halfadder.v</code>, <code>c_fulladder.v</code>, <code>c_adder4_74283.v</code>, <code>c_sevenseg_7447.v</code>, <code>c_adder4_7seg_top.v</code>를 Design Sources에 추가합니다.</li><li><code>c_adder4_7seg_top</code>을 Top Module로 설정합니다.</li><li>Basys3 XDC를 추가하고 Synthesis → Implementation → Bitstream을 수행합니다.</li><li>Hardware Manager에서 Program Device를 실행합니다.</li><li>Adder 결과가 Seven Segment에 표시되고 Carry 출력이 예상대로 발생하는지 확인합니다.</li></ol></section>
+<section class="step-card summary"><h2>핵심 정리</h2><ul><li>Half Adder는 XOR과 AND로 1bit 덧셈의 SUM과 CARRY를 만듭니다.</li><li>Full Adder는 Half Adder 2개를 계층적으로 재사용하여 CIN까지 처리합니다.</li><li>4bit Ripple Carry Adder는 Full Adder 4개를 연결하고 Carry를 다음 비트로 순차 전달합니다.</li><li>Carry Look-Ahead는 P/G 신호로 Carry를 미리 계산해 긴 Carry 경로를 줄이는 개념입니다.</li><li>Seven Segment는 조합논리 <code>case</code> 문으로 4bit 입력을 표시 패턴으로 변환합니다.</li><li>설계는 Verilog 작성만으로 끝나지 않고 Testbench → Waveform → RTL Schematic → Basys3 보드 검증까지 연결해야 합니다.</li></ul></section>
+<nav aria-label="챕터 이동" class="chapter-nav"><a href="08_boolean_algebra_karnaugh_map.html">← 이전: Boolean Algebra · K-Map</a><a class="home" href="../../index.html">🏠 홈</a><span class="disabled next">다음 챕터 준비 중 →</span></nav>
+</main></div><footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+<script>(()=>{const links=[...document.querySelectorAll('.timeline a')];const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);if(!links.length||!targets.length||!('IntersectionObserver'in window))return;const activate=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id));const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top));if(visible.length)activate(visible[0].target.id);},{rootMargin:'-12% 0px -78% 0px',threshold:[0,1]});targets.forEach(t=>observer.observe(t));activate(targets[0].id)})();</script></body></html>

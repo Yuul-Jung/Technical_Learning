@@ -2,13 +2,348 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta http-equiv="refresh" content="0; url=23_fsm_moore_mealy.html"/>
-<title>페이지 이동</title>
-<link rel="canonical" href="23_fsm_moore_mealy.html"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="FSM의 현재상태 레지스터, 차기상태 논리, 출력논리, Moore/Mealy 차이와 Verilog 3-Block 코딩 구조를 설명하는 FPGA RTL 학습자료" name="description"/>
+<title>FSM 회로 설계 · Moore · Mealy RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
 </head>
 <body>
-<p>Digital / FPGA 번호 체계 변경으로 페이지가 이동했습니다.
-<a href="23_fsm_moore_mealy.html">23. FSM</a></p>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>Digital / FPGA</span><span class="sep">/</span>
+      <strong>FSM</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">Digital / FPGA · Chapter 24</p>
+    <h1>FSM 회로 설계 · Moore · Mealy RTL 실습</h1>
+    <p class="hero-desc">
+      FSM(Finite State Machine, 유한상태머신)을 현재상태 레지스터,
+      차기상태 논리, 출력논리의 3개 블록으로 나누어 설계하고
+      Moore FSM과 Mealy FSM의 출력 결정 방식을 비교합니다.
+    </p>
+    <div class="hero-meta">
+      <span class="chip">FSM</span>
+      <span class="chip">Present State</span>
+      <span class="chip">Next State</span>
+      <span class="chip">Moore</span>
+      <span class="chip">Mealy</span>
+    </div>
+    <div class="hero-brief">
+      <article><h2>State Register</h2><p>현재 상태를 Flip-Flop에 저장하고 Clock 상승 Edge에서만 상태를 갱신합니다.</p></article>
+      <article><h2>Next State Logic</h2><p>현재 상태와 입력을 이용하여 다음 상태를 조합논리로 미리 계산합니다.</p></article>
+      <article><h2>Output Logic</h2><p>Moore는 현재 상태, Mealy는 현재 상태와 입력을 이용해 출력을 만듭니다.</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">FSM FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+  <p class="phase">A. 기본 구조</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>FSM 개요</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>3개 구성 요소</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>PS · NS</span></a></li>
+  </ol>
+  <p class="phase">B. 코딩 기준</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>3-Block RTL</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>Moore FSM</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>Mealy FSM</span></a></li>
+  </ol>
+  <p class="phase">C. 실습 · 검증</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>상태도 → RTL</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>Simulation</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>FSM 전체 구조</h2>
+  <div class="stage-flow">
+    <span class="stage">Input</span><span class="arrow">→</span>
+    <span class="stage">Next State Logic</span><span class="arrow">→</span>
+    <span class="stage">State Register</span><span class="arrow">→</span>
+    <span class="stage">Present State</span><span class="arrow">→</span>
+    <span class="stage">Output Logic</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. FSM이 필요한 이유</h2>
+
+  <p>
+    조합회로는 현재 입력만으로 출력이 결정되지만,
+    FSM은 시스템이 지금 어느 단계에 있는지를 상태로 기억하고
+    입력 조건에 따라 다음 동작을 결정합니다.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>회로</th><th>특징</th><th>예</th></tr></thead>
+      <tbody>
+        <tr><td>조합회로</td><td>현재 입력만 사용</td><td>MUX, Decoder, Adder</td></tr>
+        <tr><td>Register</td><td>Clock에 맞추어 값 저장</td><td>데이터 저장</td></tr>
+        <tr><td>Counter</td><td>정해진 순서로 상태 증가</td><td>시간·개수 Count</td></tr>
+        <tr><td>FSM</td><td>조건에 따라 상태 전이</td><td>제어기·통신 제어·모드 제어</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. FSM의 3개 구성 요소</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>구성 요소</th><th>역할</th><th>회로 종류</th></tr></thead>
+      <tbody>
+        <tr><td>현재상태 레지스터</td><td>현재 상태 저장</td><td>순차회로</td></tr>
+        <tr><td>차기상태 논리회로</td><td>다음 상태 계산</td><td>조합회로</td></tr>
+        <tr><td>출력회로</td><td>출력 생성</td><td>조합회로</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flow">
+    현재상태 PS + 입력
+    → 차기상태 NS 계산
+    → Clock 상승 Edge
+    → NS가 새로운 PS로 저장
+  </div>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. Present State와 Next State</h2>
+
+  <pre class="codeblock-pre"><code>always @(posedge clk) begin
+    if (reset)
+        current_state &lt;= S0;
+    else
+        current_state &lt;= next_state;
+end</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>신호</th><th>의미</th></tr></thead>
+      <tbody>
+        <tr><td><code>current_state</code></td><td>PS(Present State, 현재상태)</td></tr>
+        <tr><td><code>next_state</code></td><td>NS(Next State, 차기상태)</td></tr>
+        <tr><td><code>clk</code></td><td>상태 변경 기준 Clock</td></tr>
+        <tr><td><code>&lt;=</code></td><td>순차회로용 Non-blocking Assignment</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    입력이 바뀌어도 현재상태가 즉시 바뀌는 것이 아닙니다.
+    조합논리가 NS를 계산하고 다음 Clock 상승 Edge에서 NS가 PS로 저장됩니다.
+  </div>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. FSM 3-Block RTL 작성 기준</h2>
+
+  <h3>① State Register — 순차논리</h3>
+  <pre class="codeblock-pre"><code>always @(posedge clk) begin
+    if (reset)
+        current_state &lt;= S0;
+    else
+        current_state &lt;= next_state;
+end</code></pre>
+
+  <h3>② Next State Logic — 조합논리</h3>
+  <pre class="codeblock-pre"><code>always @(*) begin
+    next_state = current_state;
+
+    case (current_state)
+        ...
+        default: next_state = S0;
+    endcase
+end</code></pre>
+
+  <h3>③ Output Logic</h3>
+  <pre class="codeblock-pre"><code>always @(*) begin
+    ...
+end</code></pre>
+
+  <div class="warn">
+    <strong>코딩 가이드:</strong> 초기 상태를 명확히 정의하고,
+    조합논리 시작 부분에서 기본값을 먼저 대입하며,
+    <code>case</code>에는 <code>default</code>를 두어 정의되지 않은 상태에서 초기 상태로 복구합니다.
+  </div>
+
+  <p>상태 이름은 직접 숫자를 쓰기보다 <code>localparam S0</code>, <code>S1</code>, <code>IDLE</code>, <code>RUN</code>처럼 의미 있는 이름으로 정의합니다.</p>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. Moore FSM — 버튼 3회 누름 감지기</h2>
+
+  <p>Moore FSM은 출력이 현재 상태만으로 결정됩니다.</p>
+
+  <pre class="codeblock-pre"><code>출력 = f(현재상태)
+
+S0 : z = 0
+S1 : z = 0
+S2 : z = 0
+S3 : z = 1</code></pre>
+
+  <div class="flow">
+    S0 --x=1→ S1 --x=1→ S2 --x=1→ S3(z=1) → S0
+  </div>
+
+  <pre class="codeblock-pre"><code>always @(*) begin
+    case (current_state)
+        S0: z = 1'b0;
+        S1: z = 1'b0;
+        S2: z = 1'b0;
+        S3: z = 1'b1;
+        default: z = 1'b0;
+    endcase
+end</code></pre>
+
+  <p>
+    버튼 입력이 없으면 S0·S1·S2에서 현재 상태를 유지하고,
+    세 번째 입력이 들어오면 S3로 이동합니다.
+    S3에서 출력 <code>z=1</code>을 만든 뒤 다음 상태는 S0입니다.
+  </p>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. Mealy FSM — 동기식 직렬 데이터 수신기</h2>
+
+  <p>Mealy FSM은 출력이 현재 상태와 현재 입력을 함께 보고 결정됩니다.</p>
+
+  <pre class="codeblock-pre"><code>출력 = f(현재상태, 입력)</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>입력 패턴</th><th>의미</th></tr></thead>
+      <tbody>
+        <tr><td><code>11</code></td><td>짧은 정상 프레임</td></tr>
+        <tr><td><code>101</code></td><td>긴 정상 프레임</td></tr>
+        <tr><td><code>100</code></td><td>오류 프레임</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>출력 y</th><th>의미</th></tr></thead>
+      <tbody>
+        <tr><td><code>00</code></td><td>판정 없음</td></tr>
+        <tr><td><code>10</code></td><td>유효 비트 1 수신</td></tr>
+        <tr><td><code>01</code></td><td>긴 프레임 확인 또는 오류 복귀</td></tr>
+        <tr><td><code>11</code></td><td>정상 프레임 수신 완료</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    Mealy 상태는 지금까지 수신한 비트 패턴을 기억하는 역할을 합니다.
+    예를 들어 S1에서 다음 입력이 0이면 지금까지의 비트열이 <code>10</code>이므로 S3으로 이동합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. Moore와 Mealy 비교</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>구분</th><th>Moore FSM</th><th>Mealy FSM</th></tr></thead>
+      <tbody>
+        <tr><td>출력 결정 기준</td><td>현재 상태</td><td>현재 상태 + 입력</td></tr>
+        <tr><td>상태도 출력 표기</td><td>상태 내부</td><td>전이 화살표</td></tr>
+        <tr><td>출력 안정성</td><td>상태 중심으로 비교적 안정적</td><td>입력 변화의 영향을 바로 받을 수 있음</td></tr>
+        <tr><td>반응</td><td>상태 변경 후 출력 변화</td><td>입력 조건에 빠르게 반응 가능</td></tr>
+        <tr><td>대표 적용</td><td>모드·표시·상태 제어</td><td>통신·패턴 검출</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. Simulation 검증 포인트</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>확인 항목</th><th>관찰 내용</th></tr></thead>
+      <tbody>
+        <tr><td>Reset</td><td>현재 상태가 S0로 복귀</td></tr>
+        <tr><td>PS / NS</td><td>NS는 Clock 사이에서 계산되고 PS는 상승 Edge에서 갱신</td></tr>
+        <tr><td>Moore</td><td>S3 상태일 때만 z=1</td></tr>
+        <tr><td>Mealy 11</td><td>정상 프레임 완료 흐름 확인</td></tr>
+        <tr><td>Mealy 101</td><td>긴 정상 프레임 흐름 확인</td></tr>
+        <tr><td>Mealy 100</td><td>오류 상태 S4와 복귀 흐름 확인</td></tr>
+        <tr><td>default</td><td>정의되지 않은 상태는 S0로 복구</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    원본 상태도 이미지는 임시 서명 URL이므로 GitHub Pages에는 직접 포함하지 않았습니다.
+    대신 원본의 상태명, 전이 조건, 출력값을 기준으로 텍스트 상태 흐름과 RTL 코드를 구성했습니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>FSM은 조건에 따라 상태를 이동하며 시스템의 제어 순서를 구현하는 순차회로 설계 방법입니다.</li>
+    <li>FSM은 State Register, Next State Logic, Output Logic의 3개 블록으로 나누어 작성합니다.</li>
+    <li>PS는 Clock 상승 Edge에서만 바뀌고 NS는 현재 상태와 입력으로 미리 계산됩니다.</li>
+    <li>Moore FSM은 출력이 현재 상태만으로 결정됩니다.</li>
+    <li>Mealy FSM은 출력이 현재 상태와 입력을 함께 보고 결정됩니다.</li>
+    <li>초기 상태, 기본값, <code>default</code>, 의미 있는 상태 이름을 명확히 두는 것이 중요합니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="23_hhmm_24hour_clock.html">← 이전: 24시간 시계</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <span class="disabled next">다음: UART 준비 중 →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
 </body>
 </html>
