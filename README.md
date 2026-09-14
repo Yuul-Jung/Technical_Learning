@@ -1,22 +1,27 @@
 # Technical Learning
 
-GitHub Pages용 기술 학습 홈페이지 초안입니다.
+GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 
 ## 현재 공개 챕터
 
 1. Ubuntu에서 AMD Vivado 2024.2 설치
+2. SW0를 이용한 LED0 ON/OFF 실습
 
-## 구조
+## 기본 구조
 
 ```text
-fpga_technical_site/
+Technical_Learning/
 ├── index.html
+├── pages/
+│   ├── environment/
+│   │   └── 01_ubuntu_vivado_install.html
+│   └── fpga/
+│       └── 02_sw0_led.html
+├── images/
+├── code/
 ├── css/
 │   └── style.css
-├── pages/
-│   └── environment/
-│       └── 01_ubuntu_vivado_install.html
 └── README.md
 ```
 
-모든 웹 링크는 상대경로를 사용합니다.
+모든 웹 페이지는 GitHub Pages와 로컬 브라우저에서 모두 동작하도록 상대경로를 기본으로 사용합니다.

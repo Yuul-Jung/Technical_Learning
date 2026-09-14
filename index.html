@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
@@ -8,22 +7,51 @@
 <link href="css/style.css" rel="stylesheet"/>
 </head>
 <body>
-<header class="hero"><div aria-hidden="true" class="hero-grid"></div><div class="hero-inner">
-<div class="hero-kicker">PE.Jung의 Technical Learning Notes</div>
-<h1>FPGA · Digital System</h1>
-<p class="hero-desc">환경구축부터 RTL 설계, 검증, SoC와 NPU까지 순차적으로 확장하는 기술 학습 자료입니다.</p>
-<div class="hero-meta"><span class="chip">FPGA</span><span class="chip">Verilog</span><span class="chip">Vivado</span><span class="chip">Basys3</span></div>
-</div></header>
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <div class="hero-kicker">PE.Jung의 Technical Learning Notes</div>
+    <h1>FPGA · Digital System · SoC · AI</h1>
+    <p class="hero-desc">환경구축부터 RTL 설계, 검증, SoC, NPU, RISC-V와 AI까지 순차적으로 확장하는 기술 학습 자료입니다.</p>
+    <div class="hero-meta">
+      <span class="chip">FPGA</span>
+      <span class="chip">Verilog</span>
+      <span class="chip">Vivado</span>
+      <span class="chip">Basys3</span>
+      <span class="chip">SoC</span>
+      <span class="chip">AI</span>
+    </div>
+  </div>
+</header>
+
 <div class="home-main">
 <main>
-<section class="home-section">
-<h2>환경구축</h2>
-<ol>
-<li><a href="pages/environment/01_ubuntu_vivado_install.html"><strong>Ubuntu에서 AMD Vivado 2024.2 설치</strong></a><br/>Basys3 FPGA 개발환경 구축과 보드 인식 확인</li>
-</ol>
-</section>
+  <section class="home-section">
+    <h2>환경구축</h2>
+    <ol>
+      <li>
+        <a href="pages/environment/01_ubuntu_vivado_install.html">
+          <strong>Ubuntu에서 AMD Vivado 2024.2 설치</strong>
+        </a><br/>
+        Basys3 FPGA 개발환경 구축과 보드 인식 확인
+      </li>
+    </ol>
+  </section>
+
+  <section class="home-section" style="margin-top:18px">
+    <h2>Digital / FPGA</h2>
+    <ol start="2">
+      <li>
+        <a href="pages/fpga/02_sw0_led.html">
+          <strong>SW0를 이용한 LED0 ON/OFF 실습</strong>
+        </a><br/>
+        Verilog 기본 입출력, assign, XDC 핀 설정, Synthesis → Implementation → Bitstream → Program Device 흐름
+      </li>
+    </ol>
+  </section>
 </main>
 </div>
+
 <footer class="site-footer">PE. JUNG</footer>
 </body>
 </html>
