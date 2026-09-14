@@ -25,6 +25,7 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 19. Counter Step 1 · Tick · BCD · FND RTL 실습
 20. Counter Step 2 · Multi-Digit BCD · FND Multiplexing
 21. Stopwatch Step 3 · 4자리 구조화 RTL 실습
+22. Button Debounce · 2-FF Synchronizer · One-Pulse RTL
 
 ## 기본 구조
 
@@ -54,7 +55,8 @@ Technical_Learning/
 │       ├── 18_shift_register_serial_parallel.html
 │       ├── 19_counter_step1_tick_bcd_fnd.html
 │       ├── 20_counter_step2_multidigit_fnd.html
-│       └── 21_stopwatch_structured_rtl.html
+│       ├── 21_stopwatch_structured_rtl.html
+│       └── 22_button_debounce_pulse.html
 ├── images/
 ├── code/
 │   └── fpga/
@@ -73,7 +75,8 @@ Technical_Learning/
 │       ├── ch18_shift_register/
 │       ├── ch19_counter_step1/
 │       ├── ch20_counter_step2/
-│       └── ch21_stopwatch_step3/
+│       ├── ch21_stopwatch_step3/
+│       └── ch22_button_debounce/
 ├── css/
 │   └── style.css
 └── README.md
