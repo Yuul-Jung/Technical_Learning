@@ -40,141 +40,141 @@
 
   <section class="home-section" style="margin-top:18px">
     <h2>Digital / FPGA</h2>
-    <ol start="2">
+    <ol>
       <li>
-        <a href="pages/fpga/02_sw0_led.html">
+        <a href="pages/fpga/01_sw0_led.html">
           <strong>SW0를 이용한 LED0 ON/OFF 실습</strong>
         </a><br/>
         Verilog 기본 입출력, assign, XDC 핀 설정, Synthesis → Implementation → Bitstream → Program Device 흐름
       </li>
       <li>
-        <a href="pages/fpga/03_verilog_rtl_74series_guide.html">
+        <a href="pages/fpga/02_verilog_rtl_74series_guide.html">
           <strong>74 시리즈 기반 Verilog RTL 설계 가이드</strong>
         </a><br/>
         Gate → Combinational → Sequential → Project/Peripheral 순서로 RTL 모듈과 프로젝트 구조 정리
       </li>
       <li>
-        <a href="pages/fpga/04_boolean_algebra_axiom_lab.html">
+        <a href="pages/fpga/03_boolean_algebra_axiom_lab.html">
           <strong>부울대수 공리 FPGA 실습</strong>
         </a><br/>
         SW0와 LED0~LED3를 이용하여 X·1=X, X+0=X, X·0=0, X+1=1을 Verilog로 구현·검증
       </li>
       <li>
-        <a href="pages/fpga/05_logic_gates_level1_lab.html">
+        <a href="pages/fpga/04_logic_gates_level1_lab.html">
           <strong>Level 1 논리게이트 FPGA 실습</strong>
         </a><br/>
         AND · OR · NOT · NAND · NOR · BUFFER를 SW0·SW1과 LED로 구현하고 진리표 검증
       </li>
       <li>
-        <a href="pages/fpga/06_structured_gate_modules.html">
+        <a href="pages/fpga/05_structured_gate_modules.html">
           <strong>구조화 Gate Module RTL 실습</strong>
         </a><br/>
         74 시리즈 Gate를 독립 Module로 분리하고 gate_top에서 Instance하여 계층적 RTL 구조 구현
       </li>
       <li>
-        <a href="pages/fpga/07_verilog_syntax_logic_gates.html">
+        <a href="pages/fpga/06_verilog_syntax_logic_gates.html">
           <strong>Verilog 기본 문법과 로직게이트 실습</strong>
         </a><br/>
         Verilog 문법 및 로직게이트 실습(1)·(2)을 하나의 챕터로 묶어 Module, Port, Vector, wire, assign, 논리연산 정리
       </li>
       <li>
-        <a href="pages/fpga/08_boolean_algebra_karnaugh_map.html">
+        <a href="pages/fpga/07_boolean_algebra_karnaugh_map.html">
           <strong>Boolean Algebra · Karnaugh Map RTL 실습</strong>
         </a><br/>
         Gate 조합 → 부울대수 → DeMorgan → NAND Universal → SOP/POS → Karnaugh Map 간략화와 전후 회로 비교
       </li>
       <li>
-        <a href="pages/fpga/09_combinational_adder.html">
+        <a href="pages/fpga/08_combinational_adder.html">
           <strong>조합회로 설계 실습 — Adder</strong>
         </a><br/>
         Half Adder → Full Adder → 4bit Ripple/Carry Look-Ahead → Seven Segment → Testbench와 Basys3 검증
       </li>
       <li>
-        <a href="pages/fpga/10_cla_adder_practical.html">
+        <a href="pages/fpga/09_cla_adder_practical.html">
           <strong>CLA Adder 원리와 FPGA 실무형 작성법</strong>
         </a><br/>
         Ripple Carry → Carry Look-Ahead 원리 → 직접 Carry 식 → + 연산자 기반 실무형 RTL → 32비트 확장
       </li>
       <li>
-        <a href="pages/fpga/11_verilog_testbench_basics.html">
+        <a href="pages/fpga/10_verilog_testbench_basics.html">
           <strong>Verilog Testbench 기본 개념</strong>
         </a><br/>
         Testbench → DUT Instance → reg/wire → 포트 매핑 → initial 입력 자극 → Simulation 결과 확인
       </li>
       <li>
-        <a href="pages/fpga/12_selection_conversion_logic.html">
+        <a href="pages/fpga/11_selection_conversion_logic.html">
           <strong>Selection · Conversion Logic RTL 실습</strong>
         </a><br/>
         MUX → DEMUX → Decoder → Encoder → Comparator → 확장 MUX/Decoder → Mini ALU 조합회로 설계
       </li>
       <li>
-        <a href="pages/fpga/13_combinational_mini_project.html">
+        <a href="pages/fpga/12_combinational_mini_project.html">
           <strong>조합회로 응용 Mini Project</strong>
         </a><br/>
         요구사항 → 시스템 설계 → Verilog → Testbench → RTL Schematic → Basys3 검증으로 Level 2 조합회로 종합 실습
       </li>
       <li>
-        <a href="pages/fpga/14_tristate_shared_bus.html">
+        <a href="pages/fpga/13_tristate_shared_bus.html">
           <strong>Tri-State Buffer · Shared Bus RTL 실습</strong>
         </a><br/>
         High-Z(Z) → Enable → Shared Bus → Bus Contention 개념 → Testbench → FPGA 내부 MUX 합성 구조 확인
       </li>
       <li>
-        <a href="pages/fpga/15_sequential_logic_latch.html">
+        <a href="pages/fpga/14_sequential_logic_latch.html">
           <strong>순차회로와 Latch 기초</strong>
         </a><br/>
         조합회로의 한계 → State/Memory → SR Latch → Level Sensitive → Inferred Latch → Simulation 검증
       </li>
       <li>
-        <a href="pages/fpga/16_d_flipflop_edge_triggered.html">
+        <a href="pages/fpga/15_d_flipflop_edge_triggered.html">
           <strong>D Flip-Flop · Edge Triggered RTL 실습</strong>
         </a><br/>
         Latch → Clock Edge → D Flip-Flop → posedge → Non-blocking Assignment → Reset → Waveform 검증
       </li>
       <li>
-        <a href="pages/fpga/17_register_enable_load_reset.html">
+        <a href="pages/fpga/16_register_enable_load_reset.html">
           <strong>8bit Register · Enable · Load · Reset RTL 실습</strong>
         </a><br/>
         D Flip-Flop 확장 → 8bit 저장 → Enable/Hold → Load → Reset/Clear → FPGA의 Register + 조합논리 구조
       </li>
       <li>
-        <a href="pages/fpga/18_shift_register_serial_parallel.html">
+        <a href="pages/fpga/17_shift_register_serial_parallel.html">
           <strong>Shift Register · Serial/Parallel 변환 RTL 실습</strong>
         </a><br/>
         Register → Shift Left/Right → SISO/SIPO/PISO → Universal Shift Register → Basys3 수동 동작 검증
       </li>
       <li>
-        <a href="pages/fpga/19_counter_step1_tick_bcd_fnd.html">
+        <a href="pages/fpga/18_counter_step1_tick_bcd_fnd.html">
           <strong>Counter Step 1 · Tick · BCD · FND RTL 실습</strong>
         </a><br/>
         Tick 생성 → 1Hz Enable/Blink 구분 → Up Counter → Reset/Enable → Mod-10 BCD → Basys3 FND 종합
       </li>
       <li>
-        <a href="pages/fpga/20_counter_step2_multidigit_fnd.html">
+        <a href="pages/fpga/19_counter_step2_multidigit_fnd.html">
           <strong>Counter Step 2 · Multi-Digit BCD · FND Multiplexing</strong>
         </a><br/>
         2자리 BCD → 4자리 BCD → 자리 올림 → Digit 선택 → FND Multiplexing → Basys3 4자리 종합
       </li>
       <li>
-        <a href="pages/fpga/21_stopwatch_structured_rtl.html">
+        <a href="pages/fpga/20_stopwatch_structured_rtl.html">
           <strong>Stopwatch Step 3 · 4자리 구조화 RTL 실습</strong>
         </a><br/>
         10ms Tick → Start/Stop 상태 저장 → 4자리 Stopwatch Counter → FND Scan/MUX/Decoder → Basys3 Top
       </li>
       <li>
-        <a href="pages/fpga/22_button_debounce_pulse.html">
+        <a href="pages/fpga/21_button_debounce_pulse.html">
           <strong>Button Debounce · 2-FF Synchronizer · One-Pulse RTL</strong>
         </a><br/>
         Button Bounce → 2-FF 동기화 → Debounce Counter → 안정 상태 → Rising Edge → 1-Clock Pulse
       </li>
       <li>
-        <a href="pages/fpga/23_hhmm_24hour_clock.html">
+        <a href="pages/fpga/22_hhmm_24hour_clock.html">
           <strong>24시간 디지털 시계 · HH:MM RTL 실습</strong>
         </a><br/>
         1초 Tick → 60초 Counter → 1분 Tick → 24시간 HH:MM Counter → 1Hz DP Blink → Basys3 FND
       </li>
       <li>
-        <a href="pages/fpga/24_fsm_moore_mealy.html">
+        <a href="pages/fpga/23_fsm_moore_mealy.html">
           <strong>FSM 회로 설계 · Moore · Mealy RTL 실습</strong>
         </a><br/>
         State Register → Next State Logic → Output Logic → Moore FSM → Mealy FSM → Simulation 검증
@@ -202,6 +202,18 @@
           <strong>UART RX 연속문자 · BRAM Line Buffer RTL 실습</strong>
         </a><br/>
         03 · RX FIFO → 64Byte Line Buffer → LF Frame 종료 → frame_valid / length → Overflow / Discarding
+      </li>
+      <li>
+        <a href="pages/peripheral/04_uart_rx_tx_integration.html">
+          <strong>UART RX + TX 통합 · uart_core RTL 실습</strong>
+        </a><br/>
+        04 · RX Core + TX Core → uart_core → Baud Parameter 통합 → RX Line Buffer + 버튼 TX → Basys3 동시 동작
+      </li>
+      <li>
+        <a href="pages/peripheral/05_uart_rx_immediate_display.html">
+          <strong>UART RX 1문자 즉시 표시 · RX Display Register 수정</strong>
+        </a><br/>
+        05 · LF 대기 방식 → rx_valid 기준 즉시 표시 → Byte 단위 확인 + LF Frame 완료 표시 유지
       </li>
     </ol>
   </section>

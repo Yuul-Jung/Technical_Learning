@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="D Flip-Flop을 여러 비트로 확장한 Register의 저장, Enable, Load, Hold, Reset 동작을 Verilog RTL과 Vivado Simulation으로 확인하는 FPGA 순차회로 실습" name="description"/>
+<title>8bit Register · Enable · Load · Reset RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>Digital / FPGA</span><span class="sep">/</span>
+      <strong>Register</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">Digital / FPGA · 16</p>
+    <h1>8bit Register · Enable · Load · Reset RTL 실습</h1>
+    <p class="hero-desc">
+      D Flip-Flop 1개가 1bit를 저장한다면 Register는 여러 bit를 동시에 저장합니다.
+      기본 8bit Register에서 시작해 Enable, Load, Hold, Reset 기능으로 확장합니다.
+    </p>
+    <div class="hero-meta">
+      <span class="chip">Register</span>
+      <span class="chip">8bit</span>
+      <span class="chip">Enable</span>
+      <span class="chip">Load / Hold</span>
+      <span class="chip">Reset</span>
+    </div>
+
+    <div class="hero-brief">
+      <article>
+        <h2>기본 구조</h2>
+        <p><code>D[7:0] → Register → Q[7:0]</code>, Clock 상승 Edge에서 8bit를 동시에 저장합니다.</p>
+      </article>
+      <article>
+        <h2>기능 확장</h2>
+        <p>Enable·Load로 저장 여부를 제어하고 Reset/Clear로 초기 상태를 만듭니다.</p>
+      </article>
+      <article>
+        <h2>다음 연결</h2>
+        <p>Register에 비트 이동 기능을 더하면 Shift Register로 확장됩니다.</p>
+      </article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">REGISTER FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. 저장 구조</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>Register 개념</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>8bit Register</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>Testbench</span></a></li>
+  </ol>
+
+  <p class="phase">B. 제어 기능</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>Enable · Hold</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>Load</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>Enable vs Load</span></a></li>
+    <li><a href="#step07"><span class="n">07</span><span>Reset · Clear</span></a></li>
+  </ol>
+
+  <p class="phase">C. FPGA 관점</p>
+  <ol class="timeline">
+    <li><a href="#step08"><span class="n">08</span><span>Register + 조합논리</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>전체 흐름</h2>
+  <div class="stage-flow">
+    <span class="stage">D Flip-Flop<br/>1bit</span>
+    <span class="arrow">→</span>
+    <span class="stage">8bit Register</span>
+    <span class="arrow">→</span>
+    <span class="stage">Enable · Load</span>
+    <span class="arrow">→</span>
+    <span class="stage">Reset · Hold</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. Register란?</h2>
+
+  <p>Register는 여러 개의 Flip-Flop을 묶어 여러 bit 데이터를 동시에 저장하는 순차회로입니다.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>구분</th><th>저장 크기</th></tr></thead>
+      <tbody>
+        <tr><td>Flip-Flop</td><td>1bit</td></tr>
+        <tr><td>Register</td><td>여러 bit</td></tr>
+        <tr><td>8bit Register</td><td>8bit 데이터를 동시에 저장</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flow">
+    D[7:0] → Register → Q[7:0]<br/>
+    Clock 상승 Edge 순간에 입력 8bit를 저장
+  </div>
+
+  <p>CPU의 명령어·데이터 저장, UART 송수신 데이터, Counter 상태, FSM 상태, FPGA 중간 데이터 저장 등에 사용됩니다.</p>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. 기본 8bit Register</h2>
+
+  <pre class="codeblock-pre"><code>module register8(
+    input clk,
+    input [7:0] d,
+    output reg [7:0] q
+);
+
+always @(posedge clk) begin
+    q &lt;= d;
+end
+
+endmodule</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Clock 상태</th><th>Register 동작</th></tr></thead>
+      <tbody>
+        <tr><td>상승 Edge</td><td><code>d[7:0]</code>를 <code>q[7:0]</code>에 저장</td></tr>
+        <tr><td>나머지 구간</td><td>이전 <code>q</code> 유지</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    8bit라고 해서 별도의 특별한 저장 원리가 생기는 것이 아니라,
+    D Flip-Flop 저장 동작을 8bit Vector로 확장한 구조로 이해하면 됩니다.
+  </div>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. 기본 Register Testbench</h2>
+
+  <pre class="codeblock-pre"><code>initial begin
+    clk = 0;
+    forever #5 clk = ~clk;
+end
+
+initial begin
+    d = 8'h00;
+
+    #7;  d = 8'hAA;
+    #10; d = 8'h55;
+    #10; d = 8'hF0;
+    #10; d = 8'h0F;
+
+    #20;
+    $finish;
+end</code></pre>
+
+  <div class="flow">
+    #5마다 Clock 반전 → Period 10ns → 100MHz
+  </div>
+
+  <p>
+    <code>d</code>가 바뀌는 순간이 아니라 다음 Clock 상승 Edge에서
+    <code>q</code>가 새 값으로 바뀌는지 Waveform에서 확인합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. Enable Register와 Hold</h2>
+
+  <p>Enable은 저장 동작의 허용 여부를 결정합니다. 원본 자료에서는 TTL-IC 74377과 연결해 설명합니다.</p>
+
+  <pre class="codeblock-pre"><code>always @(posedge clk) begin
+    if (en)
+        q &lt;= d;
+end</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>en</th><th>Clock 상승 Edge에서의 동작</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>새로운 <code>d</code> 저장</td></tr>
+        <tr><td>0</td><td>이전 <code>q</code> 유지 — Hold</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flow">
+    en=1 → Load new data<br/>
+    en=0 → Hold previous data
+  </div>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. Load Register</h2>
+
+  <pre class="codeblock-pre"><code>always @(posedge clk) begin
+    if (load)
+        q &lt;= d;
+end</code></pre>
+
+  <p>
+    이 실습의 <code>load</code>는 1일 때 새 데이터를 저장하고 0일 때 이전 값을 유지합니다.
+    단순 Register 실습에서는 Enable과 거의 같은 제어 형태로 사용됩니다.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>load</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Parallel 데이터 저장</td></tr>
+        <tr><td>0</td><td>이전 상태 유지</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. Enable과 Load를 어떻게 구분하는가?</h2>
+
+  <p>
+    단순한 저장 회로에서는 두 신호 모두 “Clock Edge에서 저장 여부를 결정”하는 형태로 작성될 수 있습니다.
+    그러나 기능이 복합화되면 의미가 달라질 수 있습니다.
+  </p>
+
+  <h3>원본의 74LS194 예</h3>
+  <pre class="codeblock-pre"><code>always @(posedge clk) begin
+    case ({s1, s0})
+        2'b00: q &lt;= q;                     // Hold
+        2'b01: q &lt;= {serial_in, q[3:1]};   // Shift Right
+        2'b10: q &lt;= {q[2:0], serial_in};   // Shift Left
+        2'b11: q &lt;= d;                     // Parallel Load
+    endcase
+end</code></pre>
+
+  <div class="note">
+    여기서 Parallel Load는 단순한 “저장 허용”이 아니라 여러 동작 중
+    <strong>병렬 입력 데이터를 선택해 저장하는 하나의 동작 모드</strong>입니다.
+    다음 Shift Register 챕터에서 이 구조를 더 확장합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. Reset / Clear Register</h2>
+
+  <pre class="codeblock-pre"><code>always @(posedge clk) begin
+    if (reset)
+        q &lt;= 8'h00;
+    else
+        q &lt;= d;
+end</code></pre>
+
+  <p>
+    위 코드는 동기식 Reset 구조입니다. <code>reset=1</code>이어도 실제 상태 변경은 Clock 상승 Edge에서 일어납니다.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>reset</th><th>Clock 상승 Edge에서 q</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>8'h00</code>으로 초기화</td></tr>
+        <tr><td>0</td><td><code>d</code> 저장</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    Reset/Clear는 FSM 초기 상태, Counter 초기값, CPU 및 각종 상태 Register 초기화에 사용됩니다.
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. FPGA 내부 관점 — Register + 조합논리</h2>
+
+  <p>원본 자료는 FPGA 구조를 다음 관점으로 정리합니다.</p>
+
+  <div class="stage-flow">
+    <span class="stage">Register</span>
+    <span class="arrow">+</span>
+    <span class="stage">Combinational Logic</span>
+    <span class="arrow">→</span>
+    <span class="stage">Synchronous Digital System</span>
+  </div>
+
+  <p>
+    조합논리가 다음 값을 계산하고 Register가 Clock Edge에서 그 값을 저장하는 구조가 반복되면서
+    Counter, FSM, UART, CPU Datapath 같은 더 큰 디지털 시스템으로 확장됩니다.
+  </p>
+
+  <div class="warn">
+    <strong>검증 포인트:</strong> Reset이 없는 기본 Register는 Simulation 시작 직후
+    첫 유효한 Clock Edge 이전까지 <code>q</code>가 미정 상태로 보일 수 있습니다.
+    실제 출력처럼 임의의 초기값을 가정하지 말고 Waveform에서 상태를 확인합니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>Register는 여러 Flip-Flop을 묶어 여러 bit를 동시에 저장하는 순차회로입니다.</li>
+    <li>기본 Register는 Clock 상승 Edge에서 <code>d</code>를 <code>q</code>에 저장합니다.</li>
+    <li>Enable 또는 Load가 비활성화되면 이전 값을 유지하는 Hold 동작이 가능합니다.</li>
+    <li>Reset/Clear는 Register를 정해진 초기값으로 되돌립니다.</li>
+    <li>FPGA 디지털 시스템은 크게 Register와 조합논리의 반복 구조로 이해할 수 있습니다.</li>
+    <li>Register에 데이터 이동 기능을 추가하면 다음 단계인 Shift Register로 확장됩니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="15_d_flipflop_edge_triggered.html">← 이전: 15. D Flip-Flop</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <a class="next" href="17_shift_register_serial_parallel.html">다음: 17. Shift Register →</a>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>

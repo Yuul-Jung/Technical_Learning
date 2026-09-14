@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Verilog 문법 및 로직게이트 실습(1)(2)을 하나의 챕터로 구성한 기본 문법·논리연산 실습 자료" name="description"/>
+<title>Verilog 기본 문법과 로직게이트 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>Digital / FPGA</span><span class="sep">/</span><strong>Verilog 문법 · 로직게이트</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div aria-hidden="true" class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">Digital / FPGA · 06</p>
+<h1>Verilog 기본 문법과 로직게이트 실습</h1>
+<p class="hero-desc">Notion의 「Verilog 문법 및 로직게이트 실습(1)·(2)」를 하나의 챕터 단위로 묶고, 앞선 Gate 실습에서 실제로 사용한 문법을 기준으로 정리합니다.</p>
+<div class="hero-meta"><span class="chip">Verilog</span><span class="chip">Logic Gate</span><span class="chip">74 Series</span><span class="chip">Vivado</span></div>
+<div class="hero-brief">
+<article><h2>문법</h2><p><code>module</code>, Port, Vector, <code>wire</code>, <code>assign</code>의 역할을 연결해서 봅니다.</p></article>
+<article><h2>논리연산</h2><p><code>~</code>, <code>&amp;</code>, <code>|</code>, <code>^</code> 연산자를 Gate 동작과 연결합니다.</p></article>
+<article><h2>실습</h2><p>SW 입력 → Verilog 논리식 → LED 출력 흐름으로 문법이 실제 회로가 되는 과정을 확인합니다.</p></article>
+</div>
+</div></header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">CHAPTER FLOW</p><p class="nav-help">SECTION 01 → 08</p>
+<p class="phase">A. 문법 구조</p>
+<ol class="timeline">
+<li><a href="#step01"><span class="n">01</span><span>자료 구성</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Module 구조</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>Port 선언</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>Scalar · Vector</span></a></li>
+</ol>
+<p class="phase">B. 조합논리 문법</p>
+<ol class="timeline">
+<li><a href="#step05"><span class="n">05</span><span>wire · assign</span></a></li>
+<li><a href="#step06"><span class="n">06</span><span>논리 연산자</span></a></li>
+</ol>
+<p class="phase">C. 실습 연결</p>
+<ol class="timeline">
+<li><a href="#step07"><span class="n">07</span><span>통합 예제</span></a></li>
+<li><a href="#step08"><span class="n">08</span><span>Vivado 검증</span></a></li>
+</ol>
+</aside>
+
+<main>
+<div class="overview-card"><h2>전체 학습 흐름</h2><div class="stage-flow"><span class="stage">문법</span><span class="arrow">→</span><span class="stage">논리식</span><span class="arrow">→</span><span class="stage">RTL 회로</span><span class="arrow">→</span><span class="stage">Basys3 검증</span></div></div>
+
+<section class="step-card" id="step01"><span class="step">SECTION 01</span><h2>1. 자료 구성 기준</h2>
+<p>원본 Notion 자료는 「Verilog 문법 및 로직게이트 실습(1)」과 「Verilog 문법 및 로직게이트 실습(2)」 두 페이지로 구성되어 있으며, 두 페이지 모두 슬라이드 이미지 중심 자료입니다.</p>
+<div class="note"><strong>검증 메모:</strong> 원본 슬라이드의 세부 문장은 검색 가능한 텍스트로 제공되지 않아 임의로 옮기지 않았습니다. 아래 문법 설명은 앞선 챕터에서 이미 사용한 Verilog 코드와 표준 문법을 연결한 <strong>보완 정리</strong>입니다. 원본 슬라이드 이미지는 임시 Notion URL이므로 GitHub Pages에 직접 연결하지 않습니다.</div>
+</section>
+
+<section class="step-card" id="step02"><span class="step">SECTION 02</span><h2>2. Module 기본 구조</h2>
+<pre class="codeblock-pre"><code>module logic_example(
+    input  wire a,
+    input  wire b,
+    output wire y
+);
+
+assign y = a &amp; b;
+
+endmodule</code></pre>
+<div class="table-wrap"><table><thead><tr><th>문법</th><th>역할</th></tr></thead><tbody>
+<tr><td><code>module</code></td><td>하나의 하드웨어 회로 블록 정의 시작</td></tr>
+<tr><td><code>logic_example</code></td><td>Module 이름</td></tr>
+<tr><td><code>input</code></td><td>외부에서 Module 안으로 들어오는 신호</td></tr>
+<tr><td><code>output</code></td><td>Module 밖으로 나가는 신호</td></tr>
+<tr><td><code>endmodule</code></td><td>Module 정의 종료</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="step-card" id="step03"><span class="step">SECTION 03</span><h2>3. Port 선언</h2>
+<p>Port는 Module과 외부 회로를 연결하는 신호 통로입니다.</p>
+<pre class="codeblock-pre"><code>input  wire sw0;
+input  wire sw1;
+output wire led0;</code></pre>
+<div class="flow">보드 Switch → input Port → RTL Logic → output Port → LED</div>
+<p>Top Module에서는 이러한 Port 이름이 XDC의 <code>get_ports</code> 이름과 직접 연결됩니다.</p>
+</section>
+
+<section class="step-card" id="step04"><span class="step">SECTION 04</span><h2>4. Scalar와 Vector</h2>
+<h3>1비트 Scalar</h3><pre class="codeblock-pre"><code>input  wire sw0;
+output wire led0;</code></pre>
+<h3>여러 비트 Vector</h3><pre class="codeblock-pre"><code>input  wire [1:0] sw;
+output wire [6:0] led;</code></pre>
+<div class="table-wrap"><table><thead><tr><th>표현</th><th>비트 수</th><th>사용 예</th></tr></thead><tbody>
+<tr><td><code>[1:0] sw</code></td><td>2비트</td><td><code>sw[0]</code>, <code>sw[1]</code></td></tr>
+<tr><td><code>[6:0] led</code></td><td>7비트</td><td><code>led[0]</code> ~ <code>led[6]</code></td></tr>
+</tbody></table></div>
+</section>
+
+<section class="step-card" id="step05"><span class="step">SECTION 05</span><h2>5. wire와 assign</h2>
+<p><code>wire</code>는 회로 블록 사이의 연결 신호를 표현하고, <code>assign</code>은 조합논리의 연속 할당에 사용합니다.</p>
+<pre class="codeblock-pre"><code>output wire y;
+assign y = a &amp; b;</code></pre>
+<div class="flow">입력 a, b가 변함 → AND 결과 즉시 계산 → y 신호 갱신</div>
+<div class="note">이 단계에서는 Clock이나 상태 저장이 없는 조합논리를 다루므로 <code>assign</code> 표현이 직관적입니다.</div>
+</section>
+
+<section class="step-card" id="step06"><span class="step">SECTION 06</span><h2>6. 로직게이트와 Verilog 연산자</h2>
+<div class="table-wrap"><table><thead><tr><th>Gate</th><th>Verilog</th><th>예</th></tr></thead><tbody>
+<tr><td>NOT</td><td><code>~</code></td><td><code>assign y = ~a;</code></td></tr>
+<tr><td>AND</td><td><code>&amp;</code></td><td><code>assign y = a &amp; b;</code></td></tr>
+<tr><td>OR</td><td><code>|</code></td><td><code>assign y = a | b;</code></td></tr>
+<tr><td>XOR</td><td><code>^</code></td><td><code>assign y = a ^ b;</code></td></tr>
+<tr><td>NAND</td><td>AND + NOT</td><td><code>assign y = ~(a &amp; b);</code></td></tr>
+<tr><td>NOR</td><td>OR + NOT</td><td><code>assign y = ~(a | b);</code></td></tr>
+</tbody></table></div>
+<p>Verilog에서는 이 연산식이 단순 계산 결과가 아니라 합성 후 FPGA 내부 논리 자원으로 구현됩니다.</p>
+</section>
+
+<section class="step-card" id="step07"><span class="step">SECTION 07</span><h2>7. 통합 문법 예제</h2>
+<p>다음 코드는 문법을 한 번에 확인하기 위한 <strong>보완 예제</strong>이며, 원본 슬라이드에서 직접 추출한 코드는 아닙니다.</p>
+<pre class="codeblock-pre"><code>module logic_syntax_demo(
+    input  wire [1:0] sw,
+    output wire [5:0] led
+);
+
+assign led[0] = ~sw[0];
+assign led[1] =  sw[0] &amp; sw[1];
+assign led[2] =  sw[0] | sw[1];
+assign led[3] = ~(sw[0] &amp; sw[1]);
+assign led[4] = ~(sw[0] | sw[1]);
+assign led[5] =  sw[0] ^ sw[1];
+
+endmodule</code></pre>
+<div class="flow">Vector 입력 선언 → Bit Select → 논리 연산 → Vector 출력</div>
+</section>
+
+<section class="step-card" id="step08"><span class="step">SECTION 08</span><h2>8. Vivado에서 확인할 것</h2>
+<ol>
+<li>Design Sources에 Verilog 파일 추가</li>
+<li>Top Module 지정</li>
+<li>XDC에서 SW·LED 포트 연결</li>
+<li>Elaborated Design에서 Port와 논리 연결 확인</li>
+<li>Run Synthesis → Run Implementation → Generate Bitstream</li>
+<li>Basys3에 Program Device 후 SW 입력에 따른 LED 결과 확인</li>
+</ol>
+<div class="warn"><strong>중요:</strong> Verilog는 대소문자를 구분하므로 Module 이름, Port 이름, XDC의 <code>get_ports</code> 이름을 동일하게 유지합니다.</div>
+</section>
+
+<section class="step-card summary"><h2>핵심 정리</h2><ul>
+<li><code>module</code>은 회로 블록을 정의하고 Port는 외부 회로와 신호를 연결합니다.</li>
+<li>Scalar는 1비트, Vector는 여러 비트 신호를 묶어 표현합니다.</li>
+<li><code>wire</code>와 <code>assign</code>은 기본 조합논리 연결을 표현할 때 사용합니다.</li>
+<li><code>~</code>, <code>&amp;</code>, <code>|</code>, <code>^</code> 연산자는 NOT, AND, OR, XOR Gate와 직접 대응합니다.</li>
+<li>문법을 외우는 것보다 SW → 논리식 → LED로 이어지는 실제 회로 흐름과 연결해서 이해합니다.</li>
+</ul></section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="05_structured_gate_modules.html">← 이전: 05. Gate Modules</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <a class="next" href="07_boolean_algebra_karnaugh_map.html">다음: 07. Boolean · K-Map →</a>
+</nav>
+</main></div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+<script>
+(() => { const links=[...document.querySelectorAll('.timeline a')]; const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean); if(!links.length||!targets.length||!('IntersectionObserver' in window))return; const activate=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id)); const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top)); if(visible.length)activate(visible[0].target.id);},{rootMargin:'-12% 0px -78% 0px',threshold:[0,1]}); targets.forEach(t=>observer.observe(t)); activate(targets[0].id); })();
+</script>
+</body>
+</html>

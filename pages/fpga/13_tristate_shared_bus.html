@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Tri-State Buffer, High-Z, Shared Bus, Enable, Bus Contention과 FPGA 내부 MUX 합성 구조를 Verilog와 Testbench로 학습하는 실습" name="description"/>
+<title>Tri-State Buffer · Shared Bus RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>Digital / FPGA</span><span class="sep">/</span><strong>Tri-State Buffer</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div aria-hidden="true" class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">Digital / FPGA · 13</p>
+<h1>Tri-State Buffer · Shared Bus RTL 실습</h1>
+<p class="hero-desc">0·1뿐 아니라 High-Z(Z) 상태를 사용하는 Tri-State Buffer를 이해하고, 두 데이터 소스가 하나의 Shared Bus를 선택적으로 사용하는 구조를 Verilog와 Simulation으로 확인합니다.</p>
+<div class="hero-meta"><span class="chip">Tri-State Buffer</span><span class="chip">High-Z</span><span class="chip">Shared Bus</span><span class="chip">Bus Contention</span><span class="chip">Vivado Simulation</span></div>
+<div class="hero-brief">
+<article><h2>핵심 상태</h2><p>논리 0, 논리 1, High-Z(Z)의 세 가지 출력 상태를 구분합니다.</p></article>
+<article><h2>공유 구조</h2><p><code>en_a</code>와 <code>en_b</code>로 A·B 데이터의 Shared Bus 사용 여부를 제어합니다.</p></article>
+<article><h2>FPGA 관점</h2><p>내부 Tri-State 표현이 실제 합성에서는 LUT·MUX 구조로 바뀔 수 있음을 확인합니다.</p></article>
+</div>
+</div></header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">LEVEL 2-B2 FLOW</p><p class="nav-help">STEP 01 → 08</p>
+<p class="phase">A. 기본 개념</p>
+<ol class="timeline">
+<li><a href="#step01"><span class="n">01</span><span>Tri-State 개념</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Z · X 상태</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>Shared Bus</span></a></li>
+</ol>
+<p class="phase">B. RTL 구현</p>
+<ol class="timeline">
+<li><a href="#step04"><span class="n">04</span><span>입출력 정의</span></a></li>
+<li><a href="#step05"><span class="n">05</span><span>Dataflow RTL</span></a></li>
+<li><a href="#step06"><span class="n">06</span><span>Testbench</span></a></li>
+</ol>
+<p class="phase">C. 검증 · 합성</p>
+<ol class="timeline">
+<li><a href="#step07"><span class="n">07</span><span>Waveform 검증</span></a></li>
+<li><a href="#step08"><span class="n">08</span><span>FPGA 내부 구조</span></a></li>
+</ol>
+</aside>
+
+<main>
+<div class="overview-card"><h2>전체 흐름</h2><div class="stage-flow">
+<span class="stage">DATA A / B</span><span class="arrow">→</span><span class="stage">Enable 제어</span><span class="arrow">→</span><span class="stage">Shared Bus</span><span class="arrow">→</span><span class="stage">RTL Schematic</span>
+</div></div>
+
+<section class="step-card" id="step01"><span class="step">STEP 01</span><h2>1. Tri-State Buffer란?</h2>
+<p>일반 Buffer는 출력이 0 또는 1이지만, Tri-State Buffer는 여기에 <strong>Z(High Impedance)</strong> 상태가 추가됩니다.</p>
+<div class="table-wrap"><table><thead><tr><th>상태</th><th>의미</th></tr></thead><tbody>
+<tr><td>0</td><td>Low 출력</td></tr><tr><td>1</td><td>High 출력</td></tr><tr><td>Z</td><td>출력을 끄고 Bus에서 전기적으로 손을 뗀 상태</td></tr>
+</tbody></table></div>
+<h3>대표 74 시리즈 IC</h3>
+<div class="table-wrap"><table><thead><tr><th>IC</th><th>기능</th></tr></thead><tbody>
+<tr><td>74125</td><td>Quad Tri-State Buffer</td></tr><tr><td>74244</td><td>Octal Buffer</td></tr><tr><td>74245</td><td>Bus Transceiver</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="step-card" id="step02"><span class="step">STEP 02</span><h2>2. Z 상태와 X 상태</h2>
+<h3>High-Z(Z)</h3><div class="flow">출력 비활성 → Bus를 구동하지 않음 → 다른 장치가 Bus를 사용할 수 있음</div>
+<h3>Unknown(X)</h3><p>X는 시뮬레이터가 논리값을 결정할 수 없는 상태입니다. 원본 자료에서는 Multiple Driver, Bus Contention, 초기화 안 됨, 충돌 상황을 대표 원인으로 설명합니다.</p>
+<div class="table-wrap"><table><thead><tr><th>표현</th><th>의미</th></tr></thead><tbody>
+<tr><td><code>4'bzzzz</code></td><td>4비트 모두 High-Z</td></tr><tr><td><code>4'bxxxx</code></td><td>4비트 모두 Unknown</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="step-card" id="step03"><span class="step">STEP 03</span><h2>3. Shared Bus 구조</h2>
+<p>Shared Bus는 여러 장치가 하나의 데이터 선을 공유하는 구조입니다. 원본 자료에서는 CPU Datapath, Memory Bus, SPI, UART, AXI로 이어지는 개념 연결을 제시합니다.</p>
+<div class="stage-flow"><span class="stage">Device A</span><span class="arrow">↘</span><span class="stage">Shared Bus</span><span class="arrow">→</span><span class="stage">수신 회로</span></div>
+<div class="stage-flow"><span class="stage">Device B</span><span class="arrow">↗</span><span class="stage">Enable로 사용권 제어</span></div>
+<div class="note">이번 실습의 핵심은 두 입력 중 Enable된 데이터만 하나의 <code>bus[3:0]</code>에 나타나도록 만드는 것입니다.</div>
+</section>
+
+<section class="step-card" id="step04"><span class="step">STEP 04</span><h2>4. 프로젝트 입출력 정의</h2>
+<div class="table-wrap"><table><thead><tr><th>신호</th><th>폭</th><th>기능</th></tr></thead><tbody>
+<tr><td><code>a</code></td><td>4bit</td><td>DATA A</td></tr>
+<tr><td><code>b</code></td><td>4bit</td><td>DATA B</td></tr>
+<tr><td><code>en_a</code></td><td>1bit</td><td>A 출력 허용</td></tr>
+<tr><td><code>en_b</code></td><td>1bit</td><td>B 출력 허용</td></tr>
+<tr><td><code>bus</code></td><td>4bit</td><td>Shared Bus 출력</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="step-card" id="step05"><span class="step">STEP 05</span><h2>5. Dataflow Modeling</h2>
+<p>원본에서는 <code>assign</code>과 조건 연산자로 Shared Bus를 표현합니다.</p>
+<pre class="codeblock-pre"><code>module p_tristate_bus(
+    input [3:0] a,
+    input [3:0] b,
+    input en_a,
+    input en_b,
+    output [3:0] bus
+);
+
+assign bus =
+    en_a ? a :
+    en_b ? b :
+    4'bzzzz;
+
+endmodule</code></pre>
+<div class="table-wrap"><table><thead><tr><th>코드</th><th>의미</th></tr></thead><tbody>
+<tr><td><code>en_a ? a</code></td><td>A Enable 시 A를 Bus로 전달</td></tr>
+<tr><td><code>en_b ? b</code></td><td>A가 꺼져 있고 B Enable 시 B를 전달</td></tr>
+<tr><td><code>4'bzzzz</code></td><td>둘 다 비활성일 때 High-Z</td></tr>
+</tbody></table></div>
+<div class="warn"><strong>검증 메모:</strong> 이 코드는 중첩 조건 연산자이므로 <code>en_a</code>가 우선권을 가집니다. 따라서 <code>en_a=1, en_b=1</code>이면 코드 의미상 A가 출력됩니다. 원본의 관찰표에는 이 경우 “X 가능 / Bus Contention”이라고 되어 있지만, 주어진 RTL 자체는 두 개의 독립 Driver가 아니라 우선순위 선택 구조입니다. 원본 코드는 변경하지 않고 이 차이를 명시합니다.</div>
+</section>
+
+<section class="step-card" id="step06"><span class="step">STEP 06</span><h2>6. Testbench 작성</h2>
+<pre class="codeblock-pre"><code>module tb_tristate_bus;
+
+reg [3:0] a;
+reg [3:0] b;
+reg en_a;
+reg en_b;
+wire [3:0] bus;
+
+p_tristate_bus dut(
+    .a(a),
+    .b(b),
+    .en_a(en_a),
+    .en_b(en_b),
+    .bus(bus)
+);
+
+initial begin
+    a = 4'b1010;
+    b = 4'b0101;
+
+    en_a = 0; en_b = 0; #10;
+    en_a = 1; en_b = 0; #10;
+    en_a = 0; en_b = 1; #10;
+    en_a = 0; en_b = 0; #10;
+    en_a = 1; en_b = 1; #10;
+
+    $finish;
+end
+
+endmodule</code></pre>
+<p>Testbench는 Z 상태, A 선택, B 선택, 둘 다 OFF, 둘 다 ON 순으로 입력 조건을 변경합니다.</p>
+</section>
+
+<section class="step-card" id="step07"><span class="step">STEP 07</span><h2>7. Waveform 관찰 기준</h2>
+<h3>원본 자료의 의도</h3>
+<div class="table-wrap"><table><thead><tr><th>EN_A</th><th>EN_B</th><th>원본 관찰 기준</th></tr></thead><tbody>
+<tr><td>0</td><td>0</td><td>ZZZZ</td></tr><tr><td>1</td><td>0</td><td>A 출력</td></tr><tr><td>0</td><td>1</td><td>B 출력</td></tr><tr><td>1</td><td>1</td><td>X 가능</td></tr>
+</tbody></table></div>
+<h3>주어진 RTL 코드 기준 예상 동작</h3>
+<div class="table-wrap"><table><thead><tr><th>EN_A</th><th>EN_B</th><th>코드 기준 BUS</th></tr></thead><tbody>
+<tr><td>0</td><td>0</td><td><code>4'bzzzz</code></td></tr>
+<tr><td>1</td><td>0</td><td><code>a</code></td></tr>
+<tr><td>0</td><td>1</td><td><code>b</code></td></tr>
+<tr><td>1</td><td>1</td><td><code>a</code> — <code>en_a</code> 우선</td></tr>
+</tbody></table></div>
+<div class="note"><strong>예상 동작:</strong> 위 두 번째 표는 코드를 실행한 실제 Waveform이 아니라 Verilog 조건 연산자의 우선순위를 기준으로 해석한 결과입니다.</div>
+</section>
+
+<section class="step-card" id="step08"><span class="step">STEP 08</span><h2>8. FPGA 내부 합성 구조</h2>
+<p>원본 자료의 중요한 포인트는 FPGA 내부에서는 실제 Tri-State Bus를 거의 사용하지 않고, Vivado가 내부 구조를 LUT·MUX 형태로 합성할 수 있다는 점입니다.</p>
+<div class="flow">Tri-State RTL 표현 → Synthesis → 내부 LUT / MUX 구조</div>
+<p>Vivado에서 다음을 확인합니다.</p>
+<ul>
+<li>Run Behavioral Simulation — Z 상태와 선택 동작 확인</li>
+<li>RTL Analysis → Open Elaborated Design</li>
+<li>RTL Schematic에서 Enable과 Shared Bus 연결 구조 확인</li>
+<li>실제 Tri-State 구조인지 MUX 구조인지 비교</li>
+</ul>
+<div class="stage-flow"><span class="stage">Tri-State</span><span class="arrow">→</span><span class="stage">Shared Bus</span><span class="arrow">→</span><span class="stage">Datapath</span><span class="arrow">→</span><span class="stage">CPU 구조</span></div>
+</section>
+
+<section class="step-card summary"><h2>핵심 정리</h2><ul>
+<li>Tri-State Buffer는 0, 1, Z의 세 가지 출력 상태를 표현합니다.</li>
+<li>Z는 Bus를 구동하지 않는 High Impedance 상태입니다.</li>
+<li>Shared Bus에서는 Enable 신호로 어떤 데이터 소스가 Bus를 사용할지 제어합니다.</li>
+<li>X는 값이 결정되지 않는 Unknown 상태이며 Multiple Driver나 충돌 상황에서 나타날 수 있습니다.</li>
+<li>원본 RTL의 중첩 조건 연산자는 실제로 <code>en_a</code> 우선 선택 구조이므로, 두 Enable이 동시에 1일 때 X가 아니라 A를 선택합니다.</li>
+<li>FPGA 내부 Tri-State 표현은 합성 후 LUT·MUX 구조로 구현될 수 있으므로 RTL Schematic 확인이 중요합니다.</li>
+</ul></section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="12_combinational_mini_project.html">← 이전: 12. Mini Project</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <a class="next" href="14_sequential_logic_latch.html">다음: 14. Latch →</a>
+</nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+<script>(()=>{const links=[...document.querySelectorAll('.timeline a')];const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);if(!links.length||!targets.length||!('IntersectionObserver'in window))return;const activate=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id));const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top));if(visible.length)activate(visible[0].target.id);},{rootMargin:'-12% 0px -78% 0px',threshold:[0,1]});targets.forEach(t=>observer.observe(t));activate(targets[0].id);})();</script>
+</body></html>

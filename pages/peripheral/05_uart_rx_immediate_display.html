@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="UART RX+TX 통합 구조에서 LF를 기다리지 않고 rx_valid 발생 시 수신 1문자를 LED에 즉시 표시하도록 Basys3 Top의 RX 표시 Register만 수정하는 RTL 실습" name="description"/>
+<title>05. UART RX 1문자 즉시 표시 · RX Display Register 수정</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+      <strong>05. UART RX 1문자 즉시 표시</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">RTL 주변기기 회로설계 · 05</p>
+    <h1>UART RX 1문자 즉시 표시 · RX Display Register 수정</h1>
+    <p class="hero-desc">
+      기존 RX+TX 통합 구조는 그대로 유지하고,
+      <code>basys3_uart_rx_tx_top.v</code>의 RX 표시 Register만 수정합니다.
+      이제 LF를 기다리지 않고 <code>rx_valid</code>가 발생하면 최근 수신 문자를 LED에 즉시 표시합니다.
+    </p>
+
+    <div class="hero-meta">
+      <span class="chip">Minimal Change</span>
+      <span class="chip">rx_valid</span>
+      <span class="chip">Immediate Display</span>
+      <span class="chip">LF Frame</span>
+      <span class="chip">Basys3 LED</span>
+    </div>
+
+    <div class="hero-brief">
+      <article><h2>기존</h2><p><code>line_frame_valid</code>, 즉 LF가 들어와야 수신 문자 표시가 갱신되었습니다.</p></article>
+      <article><h2>변경</h2><p><code>rx_valid</code> 발생 즉시 <code>rx_data</code>를 LED 표시 Register에 저장합니다.</p></article>
+      <article><h2>유지</h2><p><code>frame_valid_latched</code>는 계속 LF 기준 Frame 완료 표시로 사용합니다.</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">RX DISPLAY CHANGE</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. 문제 확인</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>과제 범위</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>기존 동작</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>수정 후 동작</span></a></li>
+  </ol>
+
+  <p class="phase">B. 코드 수정</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>수정하지 않음</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>Register 수정</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>핵심 차이</span></a></li>
+  </ol>
+
+  <p class="phase">C. 동작 확인</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>A / ABC / LF</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>LED · 검증 메모</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>변경 전후 흐름</h2>
+  <div class="stage-flow">
+    <span class="stage">기존<br/>rx_data</span><span class="arrow">→</span>
+    <span class="stage">Line Buffer</span><span class="arrow">→</span>
+    <span class="stage">LF</span><span class="arrow">→</span>
+    <span class="stage">LED 갱신</span>
+  </div>
+  <div class="stage-flow" style="margin-top:10px">
+    <span class="stage">변경<br/>rx_data</span><span class="arrow">→</span>
+    <span class="stage">rx_valid</span><span class="arrow">→</span>
+    <span class="stage">LED 즉시 갱신</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. 과제 범위 — Top의 RX 표시 Register만 수정</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>과제</td><td>UART RX 1문자 즉시 표시 기능 추가</td></tr>
+        <tr><td>수정 파일</td><td><code>basys3_uart_rx_tx_top.v</code></td></tr>
+        <tr><td>수정 위치</td><td>RX 표시 Register 블록</td></tr>
+        <tr><td>목적</td><td>LF 없이 문자 1개만 수신해도 LED[7:0] 즉시 갱신</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. 기존 동작의 문제</h2>
+
+  <div class="flow">
+    PC에서 'A' 전송
+    → rx_data = 0x41
+    → LF 없음
+    → line_frame_valid = 0
+    → LED 표시 Register 갱신 안 됨
+  </div>
+
+  <p>
+    기존 Chapter 04에서는 <code>display_last_data</code>를
+    <code>line_frame_valid</code> 시점에만 갱신했습니다.
+    따라서 Line Frame 종료 문자인 LF(0x0A)가 오기 전까지
+    한 문자 수신 결과를 바로 볼 수 없습니다.
+  </p>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. 수정 후 역할 분리</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>신호</th><th>역할</th></tr></thead>
+      <tbody>
+        <tr><td><code>rx_valid</code></td><td>새 수신 Byte가 있으면 LED[7:0] 즉시 갱신</td></tr>
+        <tr><td><code>rx_data</code></td><td>즉시 표시할 최근 수신 ASCII Byte</td></tr>
+        <tr><td><code>line_frame_valid</code></td><td>LF 기준 전체 Line Frame 완료 표시</td></tr>
+        <tr><td><code>frame_valid_latched</code></td><td>Frame 완료 상태를 LED로 잠시 유지</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flow">
+    Byte 단위 확인 → rx_valid<br/>
+    Line 단위 확인 → line_frame_valid
+  </div>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. 수정하지 않는 Core</h2>
+
+  <pre class="codeblock-pre"><code>uart_core.v
+uart_rx_fifo.v
+rx_bram_line_buffer.v
+uart_rx_core.v
+uart_tx_core.v
+uart_tx_fifo.v</code></pre>
+
+  <p>
+    UART 수신 알고리즘, FIFO, Line Buffer, TX Core를 다시 설계하지 않습니다.
+    정상 동작하는 기존 회로를 유지하고 표시 정책만 Top에서 변경합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. RX 표시 Register 수정</h2>
+
+  <pre class="codeblock-pre"><code>always @(posedge clk) begin
+    if (reset) begin
+        display_div         &lt;= 26'd0;
+        display_last_data   &lt;= 8'd0;
+        frame_valid_latched &lt;= 1'b0;
+    end
+    else begin
+        display_div &lt;= display_div + 1'b1;
+
+        // 수신 1Byte가 유효하면 즉시 표시
+        if (rx_valid) begin
+            display_last_data &lt;= rx_data;
+        end
+
+        // LF는 Frame 완료 표시만 담당
+        if (line_frame_valid) begin
+            frame_valid_latched &lt;= 1'b1;
+            display_div         &lt;= 26'd0;
+        end
+        else if (display_div[25]) begin
+            frame_valid_latched &lt;= 1'b0;
+        end
+    end
+end</code></pre>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. 핵심 변경점</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>구분</th><th>기존</th><th>수정</th></tr></thead>
+      <tbody>
+        <tr><td>문자 표시 기준</td><td><code>line_frame_valid</code></td><td><code>rx_valid</code></td></tr>
+        <tr><td>표시 데이터</td><td><code>line_last_data</code></td><td><code>rx_data</code></td></tr>
+        <tr><td>Frame 완료</td><td>LF 기준</td><td>LF 기준 유지</td></tr>
+        <tr><td>UART Core</td><td>기존</td><td>수정 없음</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. 예상 동작 확인</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>송신</th><th>LED[7:0]</th><th>LED8</th></tr></thead>
+      <tbody>
+        <tr><td><code>A</code></td><td><code>0x41</code></td><td>0</td></tr>
+        <tr><td><code>ABC</code></td><td><code>0x43</code></td><td>0</td></tr>
+        <tr><td><code>ABC + LF</code></td><td><code>0x43</code></td><td>1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    위 값은 원본 자료의 <strong>예상 결과</strong>입니다.
+    이번 생성 과정에서 Vivado 보드 실측 결과를 새로 만든 것은 아닙니다.
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. LED 표시 기준과 검증 메모</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>LED</th><th>이번 기능에서의 의미</th></tr></thead>
+      <tbody>
+        <tr><td>LED[7:0]</td><td>최근 수신 문자 ASCII 값</td></tr>
+        <tr><td>LED8</td><td>LF 기준 Frame 완료 표시</td></tr>
+        <tr><td>LED9</td><td>문자열 수신 중 상태</td></tr>
+        <tr><td>LED10</td><td>Overflow 또는 Discarding 상태</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">
+    <strong>검증 메모:</strong>
+    원본 05 자료의 LED 표에는 <code>LED[15:11]</code>을 “사용하지 않음”으로 적었지만,
+    같은 자료에서 명시한 수정 범위는 <strong>RX 표시 Register 블록 하나</strong>뿐입니다.
+    따라서 이번 구현에서는 Chapter 04의 기존 TX/RX 상태 LED11~LED15 연결을 임의로 삭제하지 않고 그대로 유지했습니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>기존 UART RX+TX 구조는 유지하고 Top의 RX 표시 Register만 수정합니다.</li>
+    <li><code>rx_valid</code> 발생 시 <code>rx_data</code>를 LED에 즉시 표시합니다.</li>
+    <li>LF는 더 이상 문자 표시 조건이 아니며 Line Frame 완료 조건으로만 사용합니다.</li>
+    <li><code>A</code> 한 글자만 수신해도 LED[7:0]에서 <code>0x41</code>을 바로 확인할 수 있습니다.</li>
+    <li>정상 Core를 불필요하게 수정하지 않고 표시 정책만 바꾸는 최소 수정 방식입니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="04_uart_rx_tx_integration.html">← 이전: 04. UART RX+TX 통합</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <span class="disabled next">06. 다음 UART 단계 준비 중 →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>
