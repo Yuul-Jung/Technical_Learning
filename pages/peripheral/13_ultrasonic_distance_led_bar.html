@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="초음파 거리값을 기존 LED Bar PWM_VALUE로 변환하여 led_pwm_controller를 재사용하는 RTL 실습" name="description"/>
+<title>13. 초음파 거리 기반 LED Bar 재사용 RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+      <strong>13. 초음파 거리 기반 LED Bar</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">RTL 주변기기 회로설계 · 13</p>
+    <h1>초음파 거리 기반 LED Bar 재사용 RTL 실습</h1>
+    <p class="hero-desc">
+      HC-SR04에서 측정한 <code>distance_cm</code>을 직접 LED Mask로 바꾸지 않습니다.
+      새로 추가한 <code>distance_to_pwm_value_controller.v</code>가 거리값을 기존
+      <code>pwm_value</code> 형식으로 변환하고, Chapter 10의 <code>led_pwm_controller.v</code>를 그대로 재사용합니다.
+    </p>
+    <div class="hero-meta">
+      <span class="chip">Module Reuse</span>
+      <span class="chip">CTRL[7]</span>
+      <span class="chip">distance_cm</span>
+      <span class="chip">PWM_VALUE</span>
+      <span class="chip">LED Bar</span>
+    </div>
+    <div class="hero-brief">
+      <article><h2>새 모듈</h2><p><code>distance_to_pwm_value_controller.v</code></p></article>
+      <article><h2>재사용</h2><p><code>led_pwm_controller.v</code>는 수정하지 않습니다.</p></article>
+      <article><h2>모드</h2><p><code>CTRL[7]</code>로 UART PWM / 거리 기반 LED Bar를 선택합니다.</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">DISTANCE LED BAR</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. 재사용 구조</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>과제 구조</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>수정 범위</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>거리 변환표</span></a></li>
+  </ol>
+
+  <p class="phase">B. Mode · Controller</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>CTRL[7]</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>변환 로직</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>Top 연결</span></a></li>
+  </ol>
+
+  <p class="phase">C. Board · Verification</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>moserial</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>Testbench</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>최종 재사용 구조</h2>
+  <div class="stage-flow">
+    <span class="stage">distance_cm</span><span class="arrow">→</span>
+    <span class="stage">distance_to_pwm_value_controller</span><span class="arrow">→</span>
+    <span class="stage">led_pwm_value_selected</span><span class="arrow">→</span>
+    <span class="stage">기존 led_pwm_controller</span><span class="arrow">→</span>
+    <span class="stage">LED[15:0]</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. 거리값을 LED Mask로 직접 바꾸지 않는다</h2>
+
+  <pre class="codeblock-pre"><code>잘못된 확장 방향
+distance_cm
+→ Top에서 거리 비교
+→ LED Mask 직접 생성
+→ LED
+
+이번 과제
+distance_cm
+→ distance_to_pwm_value_controller
+→ pwm_value
+→ 기존 led_pwm_controller
+→ LED Bar</code></pre>
+
+  <p>
+    핵심은 이미 완성된 LED Bar 회로의 인터페이스를 유지하는 것입니다.
+    새로운 센서 데이터를 기존 <code>pwm_value</code> 형식으로 변환하여 모듈을 재사용합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. 수정 및 추가 범위</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>구분</th><th>파일</th></tr></thead>
+      <tbody>
+        <tr><td>추가</td><td><code>distance_to_pwm_value_controller.v</code></td></tr>
+        <tr><td>연결만 수정</td><td><code>basys3_uart_led_pwm_cds_ultra_fnd_top.v</code></td></tr>
+        <tr><td>그대로 재사용</td><td><code>led_pwm_controller.v</code></td></tr>
+        <tr><td>수정 없음</td><td>UART, CdS, FND, Register Map, 초음파 거리계, XDC</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    Top Module에는 거리 비교, LED 개수 계산, LED Mask 계산을 넣지 않고 하위 모듈 연결만 추가합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. 거리 → PWM_VALUE 변환 기준</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>거리</th><th>led_pwm_value</th><th>기대 LED Bar</th></tr></thead>
+      <tbody>
+        <tr><td>10cm 미만</td><td><code>0xFF</code></td><td>16개</td></tr>
+        <tr><td>20cm 미만</td><td><code>0xE0</code></td><td>약 14개</td></tr>
+        <tr><td>30cm 미만</td><td><code>0xC0</code></td><td>약 12개</td></tr>
+        <tr><td>50cm 미만</td><td><code>0x80</code></td><td>약 8개</td></tr>
+        <tr><td>80cm 미만</td><td><code>0x40</code></td><td>약 4개</td></tr>
+        <tr><td>80cm 이상</td><td><code>0x10</code></td><td>약 1개</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flow">
+    손이 가까움 → 큰 pwm_value → LED 많이 ON
+    손이 멀어짐 → 작은 pwm_value → LED 적게 ON
+  </div>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. CTRL[7]로 LED Bar 입력 소스 선택</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>CTRL Bit</th><th>역할</th></tr></thead>
+      <tbody>
+        <tr><td><code>CTRL[0]</code></td><td>LED PWM Enable</td></tr>
+        <tr><td><code>CTRL[2]</code></td><td>초음파 거리계 Enable</td></tr>
+        <tr><td><code>CTRL[7]</code></td><td>거리 기반 LED Bar Mode</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>CTRL[7] = 0
+→ 기존 UART PWM_VALUE 기반 LED Bar
+
+CTRL[7] = 1
+→ 초음파 거리 기반 LED Bar</code></pre>
+
+  <p>
+    거리 기반 모드를 사용하려면 <code>CTRL[0]=1</code>, <code>CTRL[2]=1</code>,
+    <code>CTRL[7]=1</code>이므로 <code>CTRL=0x85</code>입니다.
+  </p>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. distance_to_pwm_value_controller</h2>
+
+  <pre class="codeblock-pre"><code>if (!distance_led_mode)
+    led_pwm_value = pwm_value_reg;
+
+else if (!dist_enable)
+    led_pwm_value = pwm_value_reg;
+
+else if (!distance_valid || timeout_error)
+    led_pwm_value = 8'h00;
+
+else if (distance_cm &lt; 10)
+    led_pwm_value = 8'hFF;
+
+else if (distance_cm &lt; 20)
+    led_pwm_value = 8'hE0;
+
+else if (distance_cm &lt; 30)
+    led_pwm_value = 8'hC0;
+
+else if (distance_cm &lt; 50)
+    led_pwm_value = 8'h80;
+
+else if (distance_cm &lt; 80)
+    led_pwm_value = 8'h40;
+
+else
+    led_pwm_value = 8'h10;</code></pre>
+
+  <div class="warn">
+    <strong>중요:</strong>
+    거리값이 아직 유효하지 않거나 Timeout이면 거리 기반 모드에서 LED Bar를 끄기 위해 <code>0x00</code>을 출력합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. Top Module은 연결만 변경</h2>
+
+  <pre class="codeblock-pre"><code>wire [7:0] led_pwm_value_selected;
+
+distance_to_pwm_value_controller u_distance_to_pwm_value_controller (
+    .ctrl_reg       (ctrl_reg),
+    .pwm_value_reg  (pwm_value_reg),
+    .distance_cm    (distance_cm),
+    .distance_valid (distance_valid),
+    .timeout_error  (distance_timeout),
+    .led_pwm_value  (led_pwm_value_selected)
+);
+
+led_pwm_controller u_led_pwm_controller (
+    ...
+    .pwm_value (led_pwm_value_selected),
+    .led       (led)
+);</code></pre>
+
+  <p>
+    기존 <code>led_pwm_controller.v</code> 내부 회로는 변경하지 않고 입력만
+    <code>pwm_value_reg</code>에서 <code>led_pwm_value_selected</code>로 바꿉니다.
+  </p>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. moserial 보드 확인</h2>
+
+  <pre class="codeblock-pre"><code>010085
+
+CMD  = 0x01
+ADDR = 0x00
+DATA = 0x85
+
+CTRL[0] = 1 → LED PWM ON
+CTRL[2] = 1 → 초음파 ON
+CTRL[7] = 1 → 거리 기반 LED Bar Mode</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>실제 거리</th><th>기대 LED Bar</th></tr></thead>
+      <tbody>
+        <tr><td>약 5cm</td><td>거의 전체 ON</td></tr>
+        <tr><td>약 15cm</td><td>많이 ON</td></tr>
+        <tr><td>약 25cm</td><td>약 12개 ON</td></tr>
+        <tr><td>약 40cm</td><td>약 8개 ON</td></tr>
+        <tr><td>약 60cm</td><td>약 4개 ON</td></tr>
+        <tr><td>약 100cm</td><td>약 1개 ON</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    기존 UART 직접 제어 모드로 돌아갈 때는 <code>010001</code>을 전송한 뒤
+    <code>010180</code>처럼 <code>PWM_VALUE</code>를 다시 직접 설정할 수 있습니다.
+  </p>
+
+  <div class="note">
+    위 내용은 참고자료의 보드 확인 기준이며 이번 생성 과정에서 실제 Basys3 측정 결과를 새로 만든 것은 아닙니다.
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. 하위 모듈 Testbench</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>CTRL</th><th>거리</th><th>Valid</th><th>Timeout</th><th>기대값</th></tr></thead>
+      <tbody>
+        <tr><td><code>01</code></td><td>9</td><td>1</td><td>0</td><td>기존 PWM_VALUE</td></tr>
+        <tr><td><code>81</code></td><td>9</td><td>1</td><td>0</td><td>기존 PWM_VALUE</td></tr>
+        <tr><td><code>84</code></td><td>9</td><td>1</td><td>0</td><td><code>FF</code></td></tr>
+        <tr><td><code>84</code></td><td>15</td><td>1</td><td>0</td><td><code>E0</code></td></tr>
+        <tr><td><code>84</code></td><td>25</td><td>1</td><td>0</td><td><code>C0</code></td></tr>
+        <tr><td><code>84</code></td><td>40</td><td>1</td><td>0</td><td><code>80</code></td></tr>
+        <tr><td><code>84</code></td><td>60</td><td>1</td><td>0</td><td><code>40</code></td></tr>
+        <tr><td><code>84</code></td><td>100</td><td>1</td><td>0</td><td><code>10</code></td></tr>
+        <tr><td><code>84</code></td><td>25</td><td>0</td><td>0</td><td><code>00</code></td></tr>
+        <tr><td><code>84</code></td><td>25</td><td>1</td><td>1</td><td><code>00</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">
+    <strong>검증 메모:</strong>
+    참고자료에는 10개 PASS와 <code>ALL TESTS PASSED</code>라는 기대 출력이 제시되어 있습니다.
+    현재 환경에서는 Verilog Simulator를 실행하지 않았으므로 실제 Simulation Output으로 표시하지 않습니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>기존 LED Bar 모듈을 수정하지 않고 초음파 거리값을 <code>pwm_value</code>로 변환해 재사용합니다.</li>
+    <li><code>CTRL[7]</code>이 0이면 기존 UART PWM_VALUE, 1이면 거리 기반 값을 선택합니다.</li>
+    <li>거리 기반 모드는 <code>CTRL[0]</code>, <code>CTRL[2]</code>, <code>CTRL[7]</code>을 함께 사용합니다.</li>
+    <li>가까울수록 큰 PWM_VALUE를 만들어 LED Bar가 길어지고 밝아집니다.</li>
+    <li>Invalid 또는 Timeout에서는 LED Bar를 0으로 만듭니다.</li>
+    <li>Top Module은 거리 판단 없이 모듈 연결만 담당합니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="12_fnd_distance_status.html">← 이전: 12. FND 거리 상태 문자</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <a class="next" href="14_led_breathing_mode.html">다음: 14. LED Breathing Mode →</a>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="UART Register Map 기반 LED, CdS, HC-SR04, XADC, FND, L298 모터를 하나의 Basys3 시스템으로 통합하는 종합 RTL 실습" name="description"/>
+<title>17. 종합과제 · 모터 + XADC + 초음파 + CdS + LED RTL 통합</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb">
+<a href="../../index.html">홈</a><span class="sep">/</span>
+<span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+<strong>17. 종합과제</strong>
+</div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero">
+<div aria-hidden="true" class="hero-grid"></div>
+<div class="hero-inner">
+<p class="hero-kicker">RTL 주변기기 회로설계 · 17</p>
+<h1>종합과제 · 모터 + XADC + 초음파 + CdS + LED RTL 통합</h1>
+<p class="hero-desc">
+지금까지 만든 UART Register Map, LED PWM/Bar, CdS, HC-SR04, FND, XADC, L298 Motor 기능을
+하나의 Basys3 시스템으로 묶습니다. 새 기능을 다시 만드는 단계가 아니라
+기존 모듈을 유지하면서 Top은 Shell/Wrapper로 연결하고, 파일 구성·검증·보드 확인 절차를 완성하는 종합 단계입니다.
+</p>
+
+<div class="hero-meta">
+<span class="chip">UART Register Map</span>
+<span class="chip">LED PWM / Bar</span>
+<span class="chip">CdS</span>
+<span class="chip">HC-SR04</span>
+<span class="chip">XADC</span>
+<span class="chip">L298 Motor</span>
+</div>
+
+<div class="hero-brief">
+<article><h2>핵심 원칙</h2><p>기존 기능 유지 + L298 통합 + Top 연결 중심</p></article>
+<article><h2>검증</h2><p>모터 Controller 단위 Test + XADC 구간 Test를 우선합니다.</p></article>
+<article><h2>배포</h2><p>재사용 RTL을 Chapter 17 소스 폴더에 한 번에 모았습니다.</p></article>
+</div>
+</div>
+</header>
+
+<div class="wrap">
+
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">INTEGRATED PROJECT</p>
+<p class="nav-help">STEP 01 → 09</p>
+
+<p class="phase">A. Architecture</p>
+<ol class="timeline">
+<li><a href="#step01"><span class="n">01</span><span>종합 구조</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Register Map</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>CTRL Bit</span></a></li>
+</ol>
+
+<p class="phase">B. Source · Top</p>
+<ol class="timeline">
+<li><a href="#step04"><span class="n">04</span><span>파일 구성</span></a></li>
+<li><a href="#step05"><span class="n">05</span><span>Top 원칙</span></a></li>
+<li><a href="#step06"><span class="n">06</span><span>하드웨어 연결</span></a></li>
+</ol>
+
+<p class="phase">C. Verification · Board</p>
+<ol class="timeline">
+<li><a href="#step07"><span class="n">07</span><span>Vivado 절차</span></a></li>
+<li><a href="#step08"><span class="n">08</span><span>moserial 확인</span></a></li>
+<li><a href="#step09"><span class="n">09</span><span>검증 메모</span></a></li>
+</ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+<h2>전체 시스템 구조</h2>
+<div class="stage-flow">
+<span class="stage">PC / moserial</span><span class="arrow">→</span>
+<span class="stage">UART</span><span class="arrow">→</span>
+<span class="stage">Register Map</span><span class="arrow">→</span>
+<span class="stage">CTRL / PWM / DIST</span><span class="arrow">→</span>
+<span class="stage">LED · FND · Motor</span>
+</div>
+<div class="stage-flow" style="margin-top:10px">
+<span class="stage">CdS</span><span class="arrow">→</span>
+<span class="stage">낮/밤</span>
+<span class="stage">HC-SR04</span><span class="arrow">→</span>
+<span class="stage">거리</span>
+<span class="stage">XADC</span><span class="arrow">→</span>
+<span class="stage">0~9 Volume</span>
+</div>
+</div>
+
+<section class="step-card" id="step01">
+<span class="step">STEP 01</span>
+<h2>1. 종합과제의 목적</h2>
+
+<pre class="codeblock-pre"><code>기존 기능
+├─ UART RX/TX
+├─ 3Byte Register Write
+├─ LED PWM / LED Bar
+├─ CdS 낮/밤 판단
+├─ HC-SR04 거리 측정
+├─ FND 상태/거리 표시
+├─ XADC Volume 표시
+└─ L298 DC Motor 제어
+
+종합 단계
+→ 기능을 삭제하지 않음
+→ 모듈별 역할을 유지
+→ Top은 연결만 담당
+→ Vivado Design Sources / Simulation Sources를 정리
+→ 보드 확인 절차까지 연결</code></pre>
+
+<div class="note">
+이번 단계는 새로운 알고리즘을 추가하기보다 지금까지 만든 모듈이 하나의 시스템 안에서 충돌 없이 동작하도록 구조와 검증 순서를 정리하는 단계입니다.
+</div>
+</section>
+
+<section class="step-card" id="step02">
+<span class="step">STEP 02</span>
+<h2>2. Register Map</h2>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Address</th><th>Register</th><th>기능</th></tr></thead>
+<tbody>
+<tr><td><code>0x00</code></td><td><code>CTRL</code></td><td>각 주변기기 Enable</td></tr>
+<tr><td><code>0x01</code></td><td><code>PWM_VALUE</code></td><td>LED PWM / LED Bar 값</td></tr>
+<tr><td><code>0x02</code></td><td><code>DIST_LIMIT_CM</code></td><td>모터 최고 속도 도달 거리</td></tr>
+<tr><td><code>0x10</code></td><td><code>SPI0_CTRL</code></td><td>예약</td></tr>
+<tr><td><code>0x20</code></td><td><code>I2C0_CTRL</code></td><td>예약</td></tr>
+</tbody>
+</table></div>
+
+<pre class="codeblock-pre"><code>01 00 0E
+│  │  └─ DATA = CTRL
+│  └──── ADDR = 0x00
+└─────── CMD  = Register Write</code></pre>
+</section>
+
+<section class="step-card" id="step03">
+<span class="step">STEP 03</span>
+<h2>3. CTRL Register 누적 기준</h2>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Bit</th><th>기능</th><th>상태</th></tr></thead>
+<tbody>
+<tr><td><code>CTRL[0]</code></td><td>LED PWM Enable</td><td>사용</td></tr>
+<tr><td><code>CTRL[1]</code></td><td>CdS Enable</td><td>사용</td></tr>
+<tr><td><code>CTRL[2]</code></td><td>HC-SR04 Enable</td><td>사용</td></tr>
+<tr><td><code>CTRL[3]</code></td><td>L298 Motor Enable</td><td>사용</td></tr>
+<tr><td><code>CTRL[4]</code></td><td>SPI 예약</td><td>예약</td></tr>
+<tr><td><code>CTRL[5]</code></td><td>I2C 예약</td><td>예약</td></tr>
+<tr><td><code>CTRL[6]</code></td><td>XADC Volume 표시</td><td>사용</td></tr>
+<tr><td><code>CTRL[7]</code></td><td>거리 기반 LED Bar Mode</td><td>누적 사이트에서 사용</td></tr>
+</tbody>
+</table></div>
+
+<div class="warn">
+<strong>누적 구조 유지:</strong>
+종합 참고자료에서는 <code>CTRL[7]</code>을 Reserved로 표기하지만,
+Chapter 13에서 이미 거리 기반 LED Bar Mode로 사용했습니다.
+기존 정상 기능을 제거하지 않고 누적 사이트 기준을 유지합니다.
+</div>
+</section>
+
+<section class="step-card" id="step04">
+<span class="step">STEP 04</span>
+<h2>4. Chapter 17 통합 소스 폴더</h2>
+
+<pre class="codeblock-pre"><code>code/peripheral/ch17_integrated_project/
+├─ rtl/
+│  ├─ comm/uart/
+│  │  ├─ uart_core.v
+│  │  ├─ uart_rx_core.v
+│  │  ├─ uart_rx_sync.v
+│  │  ├─ uart_baud_tick_gen.v
+│  │  ├─ uart_rx_fsm.v
+│  │  ├─ uart_rx_fifo.v
+│  │  ├─ uart_tx_core.v
+│  │  ├─ uart_tx_fifo.v
+│  │  ├─ uart_tx_sender.v
+│  │  └─ uart_tx_fsm.v
+│  ├─ controllers/
+│  │  ├─ uart_reg_write_controller.v
+│  │  ├─ simple_register_map.v
+│  │  ├─ led_pwm_controller.v
+│  │  ├─ cds_input_filter.v
+│  │  ├─ fnd_status_3digit_display.v
+│  │  ├─ distance_to_pwm_value_controller.v
+│  │  ├─ ultrasonic_distance_meter.v
+│  │  ├─ xadc_analog_reader.v
+│  │  ├─ xadc_volume_level_controller.v
+│  │  ├─ fnd_status_volume_selector.v
+│  │  └─ l298_distance_motor_controller.v
+│  └─ top/
+│     └─ basys3_uart_led_pwm_cds_ultra_fnd_top.v
+├─ constraints/
+│  └─ project_specific_constraints.xdc
+├─ tb/controllers/
+│  ├─ tb_l298_distance_motor_controller.v
+│  └─ tb_xadc_volume_level_controller.v
+└─ README.md</code></pre>
+
+<div class="note">
+XADC의 <code>xadc_wiz_0</code>는 직접 작성한 RTL이 아니라 Vivado IP Catalog에서 생성해야 하므로 소스 폴더에 가짜 Stub을 넣지 않았습니다.
+</div>
+</section>
+
+<section class="step-card" id="step05">
+<span class="step">STEP 05</span>
+<h2>5. Top Module은 Shell / Wrapper</h2>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Top에 허용</th><th>Top에 넣지 않음</th></tr></thead>
+<tbody>
+<tr><td>보드 Port 선언</td><td>거리 비교</td></tr>
+<tr><td>wire 선언</td><td>모터 속도 계산</td></tr>
+<tr><td>하위 모듈 Instance</td><td>모터 방향 판단</td></tr>
+<tr><td>Port 연결</td><td>FND 표시 우선순위 판단</td></tr>
+<tr><td>상수·bit-select 연결</td><td>PWM Duty 계산</td></tr>
+</tbody>
+</table></div>
+
+<pre class="codeblock-pre"><code>ctrl_reg[1] → CdS
+ctrl_reg[2] → HC-SR04
+ctrl_reg[3] → L298 Motor
+ctrl_reg[6] → XADC Volume
+ctrl_reg[7] → Distance LED Bar Mode</code></pre>
+</section>
+
+<section class="step-card" id="step06">
+<span class="step">STEP 06</span>
+<h2>6. 보드 연결과 전기적 확인</h2>
+
+<div class="table-wrap"><table>
+<thead><tr><th>기능</th><th>Port</th><th>Basys3</th><th>Pin</th></tr></thead>
+<tbody>
+<tr><td>CdS</td><td><code>cds_in</code></td><td>JA1</td><td>J1</td></tr>
+<tr><td>HC-SR04 Trigger</td><td><code>us_trig</code></td><td>JA2</td><td>L2</td></tr>
+<tr><td>HC-SR04 Echo</td><td><code>us_echo</code></td><td>JA3</td><td>J2</td></tr>
+<tr><td>L298 ENA</td><td><code>motor_ena_pwm</code></td><td>JB1</td><td>A14</td></tr>
+<tr><td>L298 IN1</td><td><code>motor_in1</code></td><td>JB2</td><td>A16</td></tr>
+<tr><td>L298 IN2</td><td><code>motor_in2</code></td><td>JB3</td><td>B15</td></tr>
+<tr><td>XADC +</td><td><code>vauxp6</code></td><td>XA1_P</td><td>J3</td></tr>
+<tr><td>XADC -</td><td><code>vauxn6</code></td><td>XA1_N</td><td>K3</td></tr>
+</tbody>
+</table></div>
+
+<ul>
+<li>HC-SR04 Echo 5V는 Basys3 입력에 직접 연결하지 않습니다.</li>
+<li>XADC 입력은 0~1V 범위를 넘기지 않습니다.</li>
+<li>Basys3에서 DC Motor를 직접 구동하지 않고 L298과 외부 모터 전원을 사용합니다.</li>
+<li>PC817 절연 회로를 사용한다면 GND 분리와 출력 반전 특성을 실제 회로 기준으로 확인합니다.</li>
+</ul>
+</section>
+
+<section class="step-card" id="step07">
+<span class="step">STEP 07</span>
+<h2>7. Vivado 구성 순서</h2>
+
+<pre class="codeblock-pre"><code>1. Chapter 17 rtl/ 파일을 Design Sources에 추가
+2. Vivado IP Catalog → XADC Wizard
+3. Component Name = xadc_wiz_0
+4. VAUX6 / Continuous / DRP / 100 MHz
+5. Generate Output Products
+6. xadc_wiz_0.xci가 Design Sources에 있는지 확인
+7. 기존 Basys-3-Master.xdc에 project_specific_constraints.xdc 항목 반영
+8. tb_l298_distance_motor_controller.v를 Simulation Sources에 추가
+9. tb_xadc_volume_level_controller.v를 Simulation Sources에 추가
+10. Synthesis
+11. Implementation
+12. Bitstream
+13. 보드 전압/배선 확인
+14. Program Device
+15. moserial HEX 명령 확인</code></pre>
+
+<div class="note">
+이번 환경에서는 Vivado Simulation과 Synthesis를 직접 실행하지 않았으므로 PASS/Timing 결과를 실제 출력처럼 만들지 않습니다.
+</div>
+</section>
+
+<section class="step-card" id="step08">
+<span class="step">STEP 08</span>
+<h2>8. moserial 종합 확인 명령</h2>
+
+<div class="table-wrap"><table>
+<thead><tr><th>HEX</th><th>기능</th><th>예상 동작</th></tr></thead>
+<tbody>
+<tr><td><code>010000</code></td><td>전체 OFF</td><td>FND ----, Motor 정지</td></tr>
+<tr><td><code>010040</code></td><td>XADC Volume</td><td>FND 0--- ~ 9---</td></tr>
+<tr><td><code>010004</code></td><td>초음파</td><td>거리 표시, Motor 정지</td></tr>
+<tr><td><code>010044</code></td><td>Volume + 초음파</td><td>Volume + 거리 표시</td></tr>
+<tr><td><code>010008</code></td><td>Motor만 Enable</td><td>조건 부족으로 정지</td></tr>
+<tr><td><code>01000C</code></td><td>초음파 + Motor</td><td>CdS가 없어 정지</td></tr>
+<tr><td><code>010264</code></td><td>DIST_LIMIT_CM=100</td><td>최고 속도 기준거리 설정</td></tr>
+<tr><td><code>01000E</code></td><td>CdS + 초음파 + Motor</td><td>거리/낮밤 기반 Motor 제어</td></tr>
+<tr><td><code>01000F</code></td><td>LED + CdS + 초음파 + Motor</td><td>통합 제어</td></tr>
+<tr><td><code>01004E</code></td><td>Motor + XADC 표시 요청</td><td>CdS가 최상위 FND 자리를 우선</td></tr>
+</tbody>
+</table></div>
+
+<div class="note">
+위 내용은 참고자료의 보드 확인 절차와 누적 사이트 기능을 결합한 예상 동작 기준입니다.
+실제 보드 측정값으로 표시하지 않습니다.
+</div>
+</section>
+
+<section class="step-card" id="step09">
+<span class="step">STEP 09</span>
+<h2>9. 누적 프로젝트 검증 메모</h2>
+
+<div class="warn">
+<strong>CTRL[7]:</strong>
+종합 참고자료는 Reserved로 표기하지만 Chapter 13의 거리 기반 LED Bar 기능을 유지하기 위해 계속 사용합니다.
+</div>
+
+<div class="warn">
+<strong>FND 거리 상태:</strong>
+종합 참고자료의 초음파 예시는 <code>-023</code>, <code>-120</code>이지만
+Chapter 12에서 이미 <code>n023 / -050 / F120</code> 상태 문자를 추가했습니다.
+누적 사이트에서는 Chapter 12 기능을 유지합니다.
+</div>
+
+<div class="warn">
+<strong>XADC 범위:</strong>
+참고 회로의 약 0.7V 제한과 0~1V 전체를 0~9로 나눈 변환표 사이에는 범위 차이가 있습니다.
+회로를 그대로 쓰면 실제 Volume 최대 숫자가 9까지 도달하지 않을 수 있으므로 보드 측정으로 검증합니다.
+</div>
+
+<div class="warn">
+<strong>PC817:</strong>
+절연형 PC817 회로에서는 GND1/GND2 분리와 Open-Collector 출력 반전 가능성을 확인합니다.
+직접 연결형 L298 구성의 공통 GND 조건과 혼용하지 않습니다.
+</div>
+
+<div class="warn">
+<strong>Simulation:</strong>
+현재 생성 환경에는 Verilog Simulator가 없어
+<code>PASS: l298_distance_motor_controller test completed.</code> 등의 문구를 실제 실행 결과로 표시하지 않습니다.
+</div>
+</section>
+
+<section class="step-card summary">
+<h2>핵심 정리</h2>
+<ul>
+<li>Chapter 17은 새 기능 추가보다 기존 주변기기를 하나의 프로젝트로 통합하는 종합 단계입니다.</li>
+<li>UART Register Map이 전체 시스템의 제어 중심입니다.</li>
+<li>Top은 Shell/Wrapper로 유지하고 기능 판단은 각 Controller에 둡니다.</li>
+<li>CdS, HC-SR04, XADC, L298, LED/FND 기능을 동시에 유지합니다.</li>
+<li>XADC Wizard는 Vivado IP로 생성하고 <code>xadc_wiz_0.xci</code>를 Design Sources에 포함합니다.</li>
+<li>모터·HC-SR04·XADC는 보드 연결 전에 전압과 인터페이스 회로를 반드시 확인합니다.</li>
+<li>Chapter 13~16에서 이미 확장한 기능은 종합 참고자료와 표기가 다르더라도 누적 사이트에서 삭제하지 않습니다.</li>
+</ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+<a href="16_l298_motor_ultrasonic_cds.html">← 이전: 16. L298 모터 제어</a>
+<a class="home" href="../../index.html">🏠 홈</a>
+<span class="disabled next">18. 다음 주변기기 단계 준비 중 →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>

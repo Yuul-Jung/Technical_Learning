@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Basys3 XADC Wizard VAUX6를 이용하여 0~1V 아날로그 입력을 12-bit Raw 값으로 읽고 0~9 Volume 값으로 변환해 FND에 표시하는 RTL 실습" name="description"/>
+<title>15. XADC 아날로그 입력 · 포텐셔미터 RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+      <strong>15. XADC 아날로그 입력</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">RTL 주변기기 회로설계 · 15</p>
+    <h1>XADC 아날로그 입력 · 포텐셔미터 RTL 실습</h1>
+    <p class="hero-desc">
+      Basys3 내부 XADC(엑스에이디씨, 아날로그-디지털 변환기)의
+      VAUX6 채널을 사용하여 0~1V 아날로그 입력을 12-bit Raw 값으로 읽고,
+      이를 0~9 구간으로 변환해 FND 최상위 자리에 표시합니다.
+      CdS가 켜져 있으면 CdS 표시가 Volume보다 우선합니다.
+    </p>
+
+    <div class="hero-meta">
+      <span class="chip">XADC Wizard</span>
+      <span class="chip">VAUX6</span>
+      <span class="chip">12-bit Raw</span>
+      <span class="chip">0~9 Volume</span>
+      <span class="chip">CTRL[6]</span>
+    </div>
+
+    <div class="hero-brief">
+      <article><h2>Input</h2><p><code>vauxp6 / vauxn6</code>로 0~1V 아날로그 입력을 받습니다.</p></article>
+      <article><h2>Reader</h2><p><code>do_out[15:4]</code>를 12-bit <code>xadc_raw</code>로 저장합니다.</p></article>
+      <article><h2>Display</h2><p><code>xadc_raw</code>를 0~9로 변환하여 FND 최상위 자리에 표시합니다.</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">XADC FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. 구조 · 안전</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>전체 구조</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>CTRL · 우선순위</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>입력 전압</span></a></li>
+  </ol>
+
+  <p class="phase">B. Vivado · RTL</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>XADC Wizard</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>Analog Reader</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>0~9 변환</span></a></li>
+  </ol>
+
+  <p class="phase">C. Integration · Verification</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>Top · XDC</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>검증 메모</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>전체 데이터 흐름</h2>
+  <div class="stage-flow">
+    <span class="stage">0~1V</span><span class="arrow">→</span>
+    <span class="stage">VAUX6</span><span class="arrow">→</span>
+    <span class="stage">xadc_wiz_0</span><span class="arrow">→</span>
+    <span class="stage">12-bit xadc_raw</span><span class="arrow">→</span>
+    <span class="stage">0~9 volume_digit</span><span class="arrow">→</span>
+    <span class="stage">FND</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. Chapter 15 목표와 파일 구조</h2>
+
+  <pre class="codeblock-pre"><code>vauxp6 / vauxn6
+→ xadc_wiz_0
+→ do_out[15:0]
+→ xadc_analog_reader
+→ xadc_raw[11:0]
+→ xadc_volume_level_controller
+→ volume_digit[3:0]
+→ FND 최상위 자리</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>구분</th><th>파일</th></tr></thead>
+      <tbody>
+        <tr><td>신규</td><td><code>xadc_analog_reader.v</code></td></tr>
+        <tr><td>신규</td><td><code>xadc_volume_level_controller.v</code></td></tr>
+        <tr><td>구조화 추가</td><td><code>fnd_status_volume_selector.v</code></td></tr>
+        <tr><td>수정</td><td><code>basys3_uart_led_pwm_cds_ultra_fnd_top.v</code></td></tr>
+        <tr><td>XDC 추가 항목</td><td><code>xadc_vaux6_constraints_snippet.xdc</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    <code>xadc_wiz_0</code> 자체는 RTL 파일을 직접 작성하는 것이 아니라
+    Vivado XADC Wizard가 생성하는 IP(아이피, 재사용 회로 블록)입니다.
+  </p>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. CTRL[6]과 FND 표시 우선순위</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>CTRL Bit</th><th>기능</th></tr></thead>
+      <tbody>
+        <tr><td><code>CTRL[0]</code></td><td>LED PWM Enable</td></tr>
+        <tr><td><code>CTRL[1]</code></td><td>CdS Enable</td></tr>
+        <tr><td><code>CTRL[2]</code></td><td>초음파 거리계 Enable</td></tr>
+        <tr><td><code>CTRL[6]</code></td><td>XADC Volume 표시 Enable</td></tr>
+        <tr><td><code>CTRL[7]</code></td><td>누적 사이트에서는 Chapter 13의 거리 기반 LED Bar Mode 유지</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>CdS ON
+→ 최상위 자리 = L 또는 d
+
+CdS OFF + Volume ON
+→ 최상위 자리 = 0~9
+
+CdS OFF + Volume OFF
+→ 기존 거리 상태 n / - / F 또는 -</code></pre>
+
+  <div class="flow">
+    CdS
+    → Volume
+    → Distance Status
+    → Dash
+  </div>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. XADC 입력은 반드시 0~1V</h2>
+
+  <div class="warn">
+    <strong>전압 주의:</strong>
+    XADC 입력은 0~1V 범위로 제한합니다.
+    3.3V를 JXADC 아날로그 입력에 직접 연결하지 않습니다.
+    보드 연결 전 멀티미터로 최대 전압을 먼저 확인합니다.
+  </div>
+
+  <figure style="margin:24px 0">
+    <img src="../../images/peripheral/xadc_potentiometer_input_circuit.png"
+         alt="Basys3 XADC 포텐셔미터 입력 제한 회로"
+         style="width:100%;height:auto;border-radius:12px;border:1px solid #ddd">
+    <figcaption style="margin-top:8px">
+      업로드 참고자료의 XADC 입력 제한 회로: 3.3V → 저항·다이오드 제한 → 포텐셔미터 → XA1_P
+    </figcaption>
+  </figure>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>기능</th><th>Basys3</th><th>FPGA Package Pin</th><th>Top 포트</th></tr></thead>
+      <tbody>
+        <tr><td>XADC +</td><td>XA1_P</td><td>J3</td><td><code>vauxp6</code></td></tr>
+        <tr><td>XADC -</td><td>XA1_N</td><td>K3</td><td><code>vauxn6</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. Vivado XADC Wizard 설정</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>항목</th><th>설정</th></tr></thead>
+      <tbody>
+        <tr><td>Component Name</td><td><code>xadc_wiz_0</code></td></tr>
+        <tr><td>Interface</td><td>DRP</td></tr>
+        <tr><td>Channel Selection</td><td>Single Channel</td></tr>
+        <tr><td>Channel</td><td>VAUX6</td></tr>
+        <tr><td>Mode</td><td>Continuous Mode</td></tr>
+        <tr><td>DCLK</td><td>100 MHz</td></tr>
+        <tr><td>Alarm</td><td>사용 안 함</td></tr>
+        <tr><td>External MUX</td><td>사용 안 함</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>Vivado
+→ IP Catalog
+→ XADC Wizard
+→ xadc_wiz_0 생성
+→ VAUX6
+→ Continuous Mode
+→ Generate Output Products</code></pre>
+
+  <div class="note">
+    생성 후 <code>xadc_wiz_0.xci</code>가 Design Sources에 포함되어야 하며,
+    자동 생성된 Instantiation Template의 포트명을 실제 Vivado 버전에서 확인합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. xadc_analog_reader — 16-bit 출력에서 12-bit Raw 추출</h2>
+
+  <pre class="codeblock-pre"><code>localparam [6:0] XADC_ADDR_VAUX6 = 7'h16;
+
+assign daddr_in = XADC_ADDR_VAUX6;
+
+xadc_wiz_0 u_xadc_wiz_0 (
+    .daddr_in (daddr_in),
+    .dclk_in  (clk),
+    .den_in   (eoc_out),
+    ...
+    .do_out   (do_out),
+    .drdy_out (drdy_out),
+    .eoc_out  (eoc_out)
+);</code></pre>
+
+  <pre class="codeblock-pre"><code>if (drdy_out) begin
+    xadc_raw   &lt;= do_out[15:4];
+    xadc_valid &lt;= 1'b1;
+end</code></pre>
+
+  <div class="flow">
+    XADC do_out[15:0]
+    → 상위 12bit do_out[15:4]
+    → xadc_raw[11:0]
+  </div>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. xadc_raw를 0~9 Volume 값으로 변환</h2>
+
+  <p>
+    12-bit XADC Raw 범위는 0~4095입니다.
+    곱셈 대신 비교 구간을 사용하여 10단계로 나눕니다.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>xadc_raw</th><th>volume_digit</th><th>전압 기준</th></tr></thead>
+      <tbody>
+        <tr><td>0~409</td><td>0</td><td>약 0~0.1V</td></tr>
+        <tr><td>410~819</td><td>1</td><td>약 0.1~0.2V</td></tr>
+        <tr><td>820~1228</td><td>2</td><td>약 0.2~0.3V</td></tr>
+        <tr><td>1229~1638</td><td>3</td><td>약 0.3~0.4V</td></tr>
+        <tr><td>1639~2047</td><td>4</td><td>약 0.4~0.5V</td></tr>
+        <tr><td>2048~2457</td><td>5</td><td>약 0.5~0.6V</td></tr>
+        <tr><td>2458~2866</td><td>6</td><td>약 0.6~0.7V</td></tr>
+        <tr><td>2867~3276</td><td>7</td><td>약 0.7~0.8V</td></tr>
+        <tr><td>3277~3685</td><td>8</td><td>약 0.8~0.9V</td></tr>
+        <tr><td>3686~4095</td><td>9</td><td>약 0.9~1.0V</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. Top 연결과 XDC</h2>
+
+  <pre class="codeblock-pre"><code>CTRL[6]
+→ volume_mode_en
+
+xadc_analog_reader
+→ xadc_raw
+
+xadc_volume_level_controller
+→ volume_digit
+
+fnd_status_volume_selector
+→ CdS > Volume > Distance Status
+
+fnd_status_3digit_display
+→ FND</code></pre>
+
+  <pre class="codeblock-pre"><code>## XA1_P
+set_property PACKAGE_PIN J3 [get_ports vauxp6]
+set_property IOSTANDARD LVCMOS33 [get_ports vauxp6]
+
+## XA1_N
+set_property PACKAGE_PIN K3 [get_ports vauxn6]
+set_property IOSTANDARD LVCMOS33 [get_ports vauxn6]</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>HEX 명령</th><th>의미</th><th>표시</th></tr></thead>
+      <tbody>
+        <tr><td><code>010000</code></td><td>전체 OFF</td><td><code>----</code></td></tr>
+        <tr><td><code>010002</code></td><td>CdS</td><td><code>L---</code> / <code>d---</code></td></tr>
+        <tr><td><code>010004</code></td><td>초음파</td><td>거리 표시</td></tr>
+        <tr><td><code>010040</code></td><td>Volume</td><td><code>0---</code> ~ <code>9---</code></td></tr>
+        <tr><td><code>010044</code></td><td>Volume + 초음파</td><td><code>0xxx</code> ~ <code>9xxx</code></td></tr>
+        <tr><td><code>010046</code></td><td>CdS + Volume + 초음파</td><td><code>Lxxx</code> / <code>dxxx</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. 검증 메모와 소스 간 차이</h2>
+
+  <div class="warn">
+    <strong>검증 메모 1 — 입력 회로와 0~9 표시 범위:</strong><br/>
+    참고자료 회로는 다이오드로 입력 상한을 약 <code>0.7V</code>로 제한하고,
+    포텐셔미터 출력도 <code>0~0.7V</code>라고 설명합니다.
+    동시에 Volume 변환표는 <code>0~1.0V → 0~9</code>를 사용합니다.
+    12-bit Full Scale을 1V로 보면 0.7V는 약 <code>2866.5</code>이므로
+    제공된 비교식에서는 대략 <code>volume_digit=6</code> 부근까지가 됩니다.
+    따라서 해당 회로를 그대로 사용하면서 9까지 표시된다고 단정할 수 없습니다.
+    원본 코드와 회로는 임의 수정하지 않고 이 차이를 명시합니다.
+  </div>
+
+  <div class="warn">
+    <strong>검증 메모 2 — CTRL[7]:</strong><br/>
+    이번 XADC 참고자료에는 <code>CTRL[7]</code>이 Reserved로 적혀 있지만,
+    누적 홈페이지의 Chapter 13에서는 이미 <code>CTRL[7]</code>을
+    거리 기반 LED Bar Mode로 사용했습니다.
+    기존 정상 기능을 제거하지 않고 <code>CTRL[7]</code> 용도를 유지했습니다.
+    XADC는 <code>CTRL[6]</code>만 사용하므로 두 기능은 직접 충돌하지 않습니다.
+  </div>
+
+  <div class="warn">
+    <strong>검증 메모 3 — 초음파 단독 FND:</strong><br/>
+    이번 XADC 참고자료는 초음파 단독 표시를 <code>-023</code>, <code>-120</code>으로 제시하지만,
+    Chapter 12에서 이미 거리 상태 문자 <code>n / - / F</code>를 추가했습니다.
+    따라서 누적 사이트는 Chapter 12 기능을 유지합니다.
+    CdS 또는 Volume이 활성화되면 그 값이 최상위 자리를 우선 사용합니다.
+  </div>
+
+  <div class="note">
+    현재 환경에는 Verilog Simulator가 없어 Testbench를 실제 실행한 Output은 제공하지 않았습니다.
+    <code>tb_xadc_volume_level_controller.v</code>는 Raw 구간 경계값을 확인하기 위한 단위 Testbench입니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li><code>CTRL[6]</code>으로 XADC Volume 표시를 켭니다.</li>
+    <li>Vivado XADC Wizard에서 <code>xadc_wiz_0</code>, VAUX6, Continuous Mode를 생성합니다.</li>
+    <li><code>do_out[15:4]</code>를 12-bit <code>xadc_raw</code>로 사용합니다.</li>
+    <li><code>xadc_raw</code>를 비교 구간 방식으로 0~9 숫자로 변환합니다.</li>
+    <li>FND 최상위 자리 우선순위는 CdS → Volume → 기존 거리 상태입니다.</li>
+    <li>XADC 입력은 반드시 0~1V 범위에서 사용하며 연결 전 멀티미터로 확인합니다.</li>
+    <li>참고자료의 0.7V 제한 회로와 0~9 전체 표시 기대값 사이에는 범위 불일치가 있으므로 별도 검증이 필요합니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="14_led_breathing_mode.html">← 이전: 14. LED Breathing Mode</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <a class="next" href="16_l298_motor_ultrasonic_cds.html">다음: 16. L298 모터 제어 →</a>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>

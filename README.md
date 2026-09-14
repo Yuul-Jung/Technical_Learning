@@ -47,6 +47,12 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 09. UART Register Map · CdS + LED PWM + FND RTL 실습
 10. PWM_VALUE 기반 LED Bar Dimming RTL 실습
 11. HC-SR04 초음파 거리계 · UART Register Map RTL 실습
+12. FND 초음파 거리 상태 문자 · n / - / F RTL 실습
+13. 초음파 거리 기반 LED Bar 재사용 RTL 실습
+14. LED Breathing Mode · PWM_VALUE 0xFE RTL 실습
+15. XADC 아날로그 입력 · 포텐셔미터 RTL 실습
+16. L298 모터 + 초음파 + CdS 통합 RTL 실습
+17. 종합과제 · 모터 + XADC + 초음파 + CdS + LED RTL 통합
 
 > UART부터는 Digital / FPGA 기초 번호와 분리하여 `01`부터 별도 번호 체계로 관리합니다.
 
@@ -73,7 +79,13 @@ Technical_Learning/
 │       ├── 08_uart_register_map_led_pwm.html
 │       ├── 09_uart_cds_led_pwm_fnd.html
 │       ├── 10_pwm_value_led_bar_dimming.html
-│       └── 11_hcsr04_ultrasonic_register_map.html
+│       ├── 11_hcsr04_ultrasonic_register_map.html
+│       ├── 12_fnd_distance_status.html
+│       ├── 13_ultrasonic_distance_led_bar.html
+│       ├── 14_led_breathing_mode.html
+│       ├── 15_xadc_potentiometer.html
+│       ├── 16_l298_motor_ultrasonic_cds.html
+│       └── 17_integrated_motor_xadc_ultrasonic_cds_led.html
 ├── images/
 ├── code/
 │   ├── fpga/
@@ -91,7 +103,13 @@ Technical_Learning/
 │       ├── ch08_uart_register_map_led_pwm/
 │       ├── ch09_uart_cds_led_fnd/
 │       ├── ch10_pwm_value_led_bar/
-│       └── ch11_hcsr04_ultrasonic/
+│       ├── ch11_hcsr04_ultrasonic/
+│       ├── ch12_fnd_distance_status/
+│       ├── ch13_ultrasonic_led_bar_reuse/
+│       ├── ch14_led_breathing_mode/
+│       ├── ch15_xadc_volume/
+│       ├── ch16_l298_motor_control/
+│       └── ch17_integrated_project/
 ├── css/
 │   └── style.css
 └── README.md

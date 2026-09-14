@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="CdS 낮/밤 판단과 HC-SR04 거리값으로 L298 DC 모터의 방향과 PWM 속도를 제어하는 UART Register Map RTL 실습" name="description"/>
+<title>16. L298 모터 + 초음파 + CdS 통합 RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+      <strong>16. L298 모터 제어</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">RTL 주변기기 회로설계 · 16</p>
+    <h1>L298 모터 + 초음파 + CdS 통합 RTL 실습</h1>
+    <p class="hero-desc">
+      기존 UART Register Map에 <code>CTRL[3]</code> 모터 Enable을 추가합니다.
+      CdS는 낮/밤에 따른 회전 방향을 결정하고, HC-SR04 거리값은 PWM Duty를 결정합니다.
+      10cm 이하는 안전 정지, <code>DIST_LIMIT_CM</code> 이상 또는 물체 없음은 최고 속도로 동작합니다.
+    </p>
+
+    <div class="hero-meta">
+      <span class="chip">L298</span>
+      <span class="chip">CTRL[3]</span>
+      <span class="chip">DIST_LIMIT_CM</span>
+      <span class="chip">CdS Direction</span>
+      <span class="chip">Distance PWM</span>
+      <span class="chip">PC817</span>
+    </div>
+
+    <div class="hero-brief">
+      <article><h2>낮 / 밝음</h2><p>배기 · 역회전 · <code>IN1=0, IN2=1</code></p></article>
+      <article><h2>밤 / 어두움</h2><p>흡기 · 정회전 · <code>IN1=1, IN2=0</code></p></article>
+      <article><h2>거리</h2><p>10cm 이하 정지, 이후 거리 비례 속도, 기준거리 이상 최고속도</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">L298 MOTOR FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. Register · Structure</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>전체 구조</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>Register Map</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>낮/밤 방향</span></a></li>
+  </ol>
+
+  <p class="phase">B. Distance · PWM</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>거리 속도</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>no_object</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>L298 Controller</span></a></li>
+  </ol>
+
+  <p class="phase">C. Hardware · Verification</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>PC817 · XDC</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>Testbench · 검증</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>전체 제어 흐름</h2>
+  <div class="stage-flow">
+    <span class="stage">UART Register Map</span><span class="arrow">→</span>
+    <span class="stage">CTRL / DIST_LIMIT_CM</span><span class="arrow">→</span>
+    <span class="stage">CdS + distance_cm</span><span class="arrow">→</span>
+    <span class="stage">L298 Controller</span><span class="arrow">→</span>
+    <span class="stage">ENA PWM + IN1/IN2</span><span class="arrow">→</span>
+    <span class="stage">DC Motor</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. 기존 기능에 L298 모터 제어만 추가</h2>
+
+  <pre class="codeblock-pre"><code>PC / moserial
+→ UART 수신
+→ Register 저장
+→ CdS 낮/밤 판단
+→ 초음파 거리 판단
+→ l298_distance_motor_controller
+→ motor_ena_pwm
+→ motor_in1 / motor_in2
+→ L298 Driver
+→ DC Motor</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>기능</th><th>처리</th></tr></thead>
+      <tbody>
+        <tr><td>UART Register Map</td><td>기존 유지</td></tr>
+        <tr><td>LED PWM / LED Bar</td><td>기존 유지</td></tr>
+        <tr><td>CdS</td><td>기존 유지 · 모터 방향 판단에 사용</td></tr>
+        <tr><td>HC-SR04</td><td><code>no_object</code> 상태 출력 추가</td></tr>
+        <tr><td>XADC</td><td>누적 사이트 Chapter 15 기능 유지</td></tr>
+        <tr><td>L298 Motor</td><td>신규 Controller + Top 출력 3개 추가</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. Register Map과 CTRL[3]</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Address / Bit</th><th>기능</th><th>이번 단계</th></tr></thead>
+      <tbody>
+        <tr><td><code>0x00 / CTRL[0]</code></td><td>LED PWM Enable</td><td>유지</td></tr>
+        <tr><td><code>0x00 / CTRL[1]</code></td><td>CdS Enable</td><td>모터 방향 조건</td></tr>
+        <tr><td><code>0x00 / CTRL[2]</code></td><td>초음파 Enable</td><td>거리 측정 조건</td></tr>
+        <tr><td><code>0x00 / CTRL[3]</code></td><td>L298 Motor Enable</td><td>추가</td></tr>
+        <tr><td><code>0x02</code></td><td>DIST_LIMIT_CM</td><td>최고 속도 도달 거리</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>UART HEX</th><th>의미</th></tr></thead>
+      <tbody>
+        <tr><td><code>010000</code></td><td>전체 OFF</td></tr>
+        <tr><td><code>010264</code></td><td><code>DIST_LIMIT_CM=100cm</code></td></tr>
+        <tr><td><code>010004</code></td><td>초음파만 ON</td></tr>
+        <tr><td><code>01000E</code></td><td>CdS + 초음파 + 모터 ON</td></tr>
+        <tr><td><code>01000F</code></td><td>LED + CdS + 초음파 + 모터 ON</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    누적 사이트에서는 Chapter 15의 <code>CTRL[6]</code> XADC와 Chapter 13의 <code>CTRL[7]</code> 거리 기반 LED Bar 기능도 그대로 유지합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. CdS 낮/밤에 따른 모터 방향</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>CdS 상태</th><th>cds_is_light</th><th>의미</th><th>모터</th><th>IN1</th><th>IN2</th></tr></thead>
+      <tbody>
+        <tr><td>낮 / 밝음</td><td>1</td><td>환기</td><td>배기 · 역회전</td><td>0</td><td>1</td></tr>
+        <tr><td>밤 / 어두움</td><td>0</td><td>외기 유입</td><td>흡기 · 정회전</td><td>1</td><td>0</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>if (motor_duty == 8'h00) begin
+    motor_in1 = 1'b0;
+    motor_in2 = 1'b0;
+end
+else if (cds_is_light) begin
+    motor_in1 = 1'b0;
+    motor_in2 = 1'b1;
+end
+else begin
+    motor_in1 = 1'b1;
+    motor_in2 = 1'b0;
+end</code></pre>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. 초음파 거리 → Motor PWM Duty</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>거리 상태</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td>측정 전</td><td>정지</td></tr>
+        <tr><td>0~10cm</td><td>안전 정지</td></tr>
+        <tr><td>10cm 초과 ~ DIST_LIMIT_CM 미만</td><td>거리 비례 속도</td></tr>
+        <tr><td>DIST_LIMIT_CM 이상</td><td>최고 속도</td></tr>
+        <tr><td>물체 없음</td><td>최고 속도</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>effective_distance_cm =
+    distance_cm - STOP_DISTANCE_CM;
+
+duty_calc =
+    (effective_distance_cm * 8'd255) /
+    speed_range_cm;</code></pre>
+
+  <p><code>DIST_LIMIT_CM=100cm</code>, 정지 기준 10cm라면 속도 계산 범위는 90cm입니다.</p>
+
+  <div class="flow">
+    20cm
+    → (20 - 10) × 255 ÷ 90
+    → 약 28 / 255
+    → 약 11% Duty
+
+    50cm
+    → (50 - 10) × 255 ÷ 90
+    → 약 113 / 255
+    → 약 44% Duty
+
+    100cm 이상
+    → 255 / 255
+    → 최고 속도
+  </div>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. timeout_error 대신 no_object 상태를 추가</h2>
+
+  <p>
+    기존 <code>timeout_error</code>는 1Clock Pulse이므로 지속적인 모터 제어 상태로 사용하기 어렵습니다.
+    따라서 초음파 거리계에 <code>no_object</code> 상태 출력을 추가합니다.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>신호</th><th>의미</th></tr></thead>
+      <tbody>
+        <tr><td><code>distance_valid=1</code></td><td>정상 거리값 유효</td></tr>
+        <tr><td><code>no_object=1</code></td><td>Echo Timeout · 물체 없음</td></tr>
+        <tr><td><code>distance_valid=0, no_object=0</code></td><td>측정 전 또는 측정 중</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>// 정상 측정
+distance_valid &lt;= 1'b1;
+no_object      &lt;= 1'b0;
+
+// Echo Timeout
+distance_valid &lt;= 1'b0;
+no_object      &lt;= 1'b1;
+timeout_error  &lt;= 1'b1;</code></pre>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. l298_distance_motor_controller</h2>
+
+  <pre class="codeblock-pre"><code>assign motor_base_enable =
+    motor_en &&
+    dist_en &&
+    cds_en;</code></pre>
+
+  <pre class="codeblock-pre"><code>if (!motor_base_enable)
+    motor_duty = 8'h00;
+
+else if (no_object)
+    motor_duty = 8'hFF;
+
+else if (!distance_valid)
+    motor_duty = 8'h00;
+
+else if (distance_cm &lt;= 10)
+    motor_duty = 8'h00;
+
+else if (distance_cm &gt;= max_speed_cm_safe)
+    motor_duty = 8'hFF;
+
+else
+    motor_duty = 거리 비례 계산값;</code></pre>
+
+  <div class="note">
+    <code>DIST_LIMIT_CM</code>이 10cm 이하로 잘못 설정되면 기본값 100cm를 사용하도록 보호 로직을 둡니다.
+  </div>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. L298 · PC817 절연 회로와 PMOD JB</h2>
+
+  <figure style="margin:24px 0">
+    <img src="../../images/peripheral/l298_pc817_isolation.png"
+         alt="PC817 포토커플러를 이용한 Basys3와 모터 제어부 절연 회로"
+         style="width:100%;height:auto;border-radius:12px;border:1px solid #ddd">
+    <figcaption style="margin-top:8px">
+      업로드 참고자료의 PC817 절연 회로: Basys3 측 GND1과 Motor 측 GND2를 분리한 구조
+    </figcaption>
+  </figure>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>기능</th><th>Top 포트</th><th>L298</th><th>PMOD</th><th>FPGA Pin</th></tr></thead>
+      <tbody>
+        <tr><td>속도 PWM</td><td><code>motor_ena_pwm</code></td><td>ENA</td><td>JB1</td><td>A14</td></tr>
+        <tr><td>방향 1</td><td><code>motor_in1</code></td><td>IN1</td><td>JB2</td><td>A16</td></tr>
+        <tr><td>방향 2</td><td><code>motor_in2</code></td><td>IN2</td><td>JB3</td><td>B15</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>set_property -dict { PACKAGE_PIN A14 IOSTANDARD LVCMOS33 } [get_ports {motor_ena_pwm}]
+set_property -dict { PACKAGE_PIN A16 IOSTANDARD LVCMOS33 } [get_ports {motor_in1}]
+set_property -dict { PACKAGE_PIN B15 IOSTANDARD LVCMOS33 } [get_ports {motor_in2}]</code></pre>
+
+  <div class="warn">
+    <strong>전기적 검증 메모 1 — GND 기준 충돌:</strong><br/>
+    참고자료 앞부분과 제공 회로도는 PC817을 사용하여 Basys3 측 <code>GND1</code>과
+    Motor 측 <code>GND2</code>를 완전히 분리한다고 설명합니다.
+    그러나 같은 참고자료 뒤쪽에는 “Basys3 GND와 L298 GND를 반드시 공통 연결”하라는 문장도 있습니다.
+    두 방식은 동시에 적용할 수 없습니다.
+    <strong>제공된 PC817 절연 회로를 사용한다면 GND1과 GND2를 연결하지 않는 구조가 회로도와 일치합니다.</strong>
+    공통 GND는 포토커플러를 쓰지 않는 직접 연결 방식에서 필요한 조건으로 구분해야 합니다.
+  </div>
+
+  <div class="warn">
+    <strong>전기적 검증 메모 2 — PC817 출력 반전:</strong><br/>
+    제공 회로도는 PC817의 Collector에 1kΩ Pull-up을 둔 Open-Collector 형태입니다.
+    이 구조는 FPGA 측 입력이 HIGH일 때 Motor 측 출력이 LOW가 되는 <strong>반전 특성</strong>을 가집니다.
+    반면 제공 RTL과 Testbench는 <code>motor_ena_pwm / motor_in1 / motor_in2</code>를
+    L298 입력의 논리값과 같은 극성으로 검증합니다.
+    따라서 실제 보드 제작 전에는 <strong>PC817 이후 신호 극성 또는 추가 반전 단계</strong>를 반드시 확인해야 합니다.
+    이번 자료에서는 원본 RTL을 임의 수정하지 않고 이 불일치를 검증 메모로 남깁니다.
+  </div>
+
+  <div class="note">
+    DC Motor는 Basys3에서 직접 구동하지 않습니다. 외부 모터 전원과 L298 Driver를 사용하며,
+    L298 ENA Jumper가 장착되어 있으면 외부 PWM 속도 제어가 동작하지 않을 수 있으므로 보드 구성에 맞게 확인합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. Testbench 검증 기준</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>조건</th><th>기대 결과</th></tr></thead>
+      <tbody>
+        <tr><td>Reset / Enable 조건 부족</td><td>정지</td></tr>
+        <tr><td><code>distance_valid=0, no_object=0</code></td><td>정지</td></tr>
+        <tr><td>5cm / 10cm</td><td>안전 정지</td></tr>
+        <tr><td>낮 + 20cm</td><td>역회전 · 저속 PWM</td></tr>
+        <tr><td>밤 + 50cm</td><td>정회전 · 중속 PWM</td></tr>
+        <tr><td>낮 + 100cm</td><td>역회전 · 최고 속도</td></tr>
+        <tr><td>밤 + 물체 없음</td><td>정회전 · 최고 속도</td></tr>
+        <tr><td>낮 + 물체 없음</td><td>역회전 · 최고 속도</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>PASS: l298_distance_motor_controller test completed.</code></pre>
+
+  <div class="warn">
+    <strong>실행 결과 구분:</strong>
+    위 PASS 문구는 참고자료에서 제시한 정상 종료 메시지입니다.
+    현재 생성 환경에는 Verilog Simulator가 설치되어 있지 않아 실제 Simulation Output으로 표시하지 않았습니다.
+    Testbench는 FPGA 측 논리 신호를 검증하며, PC817 이후 실제 극성은 별도 하드웨어 검증이 필요합니다.
+  </div>
+
+  <div class="note">
+    누적 사이트에서는 Chapter 15 XADC와 Chapter 13 거리 기반 LED Bar 기능도 유지합니다.
+    원본 모터 참고자료의 <code>CTRL[7:6] reserved</code> 표기는 이전 누적 기능과 충돌하므로 그대로 덮어쓰지 않았습니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li><code>CTRL[3]</code>은 L298 Motor Enable입니다.</li>
+    <li>CdS 밝음은 배기·역회전, 어두움은 흡기·정회전으로 사용합니다.</li>
+    <li>10cm 이하는 안전 정지하고, 이후 <code>DIST_LIMIT_CM</code>까지 거리 비례 PWM을 적용합니다.</li>
+    <li><code>DIST_LIMIT_CM</code> 이상 또는 <code>no_object=1</code>이면 최고 속도입니다.</li>
+    <li>초음파의 1Clock Timeout Pulse 대신 지속 상태 <code>no_object</code>를 추가합니다.</li>
+    <li>Top은 Motor Controller와 출력 Pin 연결만 추가합니다.</li>
+    <li>PC817 절연 회로의 GND 분리 여부와 출력 반전 특성은 실제 제작 전에 반드시 검증해야 합니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="15_xadc_potentiometer.html">← 이전: 15. XADC 아날로그 입력</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <a class="next" href="17_integrated_motor_xadc_ultrasonic_cds_led.html">다음: 17. 종합과제 →</a>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>

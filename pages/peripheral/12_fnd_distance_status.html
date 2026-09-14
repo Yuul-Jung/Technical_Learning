@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="초음파 거리값 앞에 n, -, F 상태 문자를 표시하는 FND RTL 실습" name="description"/>
+<title>12. FND 초음파 거리 상태 문자 · n / - / F RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb">
+<a href="../../index.html">홈</a><span class="sep">/</span>
+<span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+<strong>12. FND 거리 상태 문자</strong>
+</div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero">
+<div aria-hidden="true" class="hero-grid"></div>
+<div class="hero-inner">
+<p class="hero-kicker">RTL 주변기기 회로설계 · 12</p>
+<h1>FND 초음파 거리 상태 문자 · n / - / F RTL 실습</h1>
+<p class="hero-desc">
+Chapter 11에서 표시하던 초음파 거리값 앞에 상태 문자를 추가합니다.
+30cm 미만은 <code>n</code>, 30~99cm는 <code>-</code>, 100cm 이상은 <code>F</code>를 표시합니다.
+CdS의 <code>L</code>/<code>d</code>가 활성화되면 기존 CdS 표시가 우선합니다.
+</p>
+
+<div class="hero-meta">
+<span class="chip">FND</span>
+<span class="chip">BCD</span>
+<span class="chip">near / normal / far</span>
+<span class="chip">CdS Priority</span>
+<span class="chip">Top 수정 없음</span>
+</div>
+
+<div class="hero-brief">
+<article><h2>Near</h2><p><code>0~29cm → nxxx</code></p></article>
+<article><h2>Normal</h2><p><code>30~99cm → -xxx</code></p></article>
+<article><h2>Far</h2><p><code>100cm 이상 → Fxxx</code></p></article>
+</div>
+</div>
+</header>
+
+<div class="wrap">
+
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">FND DISTANCE STATUS</p>
+<p class="nav-help">STEP 01 → 08</p>
+
+<p class="phase">A. 표시 정책</p>
+<ol class="timeline">
+<li><a href="#step01"><span class="n">01</span><span>변경 목적</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>거리 구간</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>CdS 우선순위</span></a></li>
+</ol>
+
+<p class="phase">B. BCD · Segment</p>
+<ol class="timeline">
+<li><a href="#step04"><span class="n">04</span><span>BCD 비교</span></a></li>
+<li><a href="#step05"><span class="n">05</span><span>상태 선택</span></a></li>
+<li><a href="#step06"><span class="n">06</span><span>n / F Segment</span></a></li>
+</ol>
+
+<p class="phase">C. 보드 · 검증</p>
+<ol class="timeline">
+<li><a href="#step07"><span class="n">07</span><span>보드 확인</span></a></li>
+<li><a href="#step08"><span class="n">08</span><span>Testbench</span></a></li>
+</ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+<h2>표시 방식 변화</h2>
+<div class="stage-flow">
+<span class="stage">23cm</span><span class="arrow">→</span>
+<span class="stage">023 BCD</span><span class="arrow">→</span>
+<span class="stage">30cm 미만</span><span class="arrow">→</span>
+<span class="stage">n023</span>
+</div>
+<div class="stage-flow" style="margin-top:10px">
+<span class="stage">120cm</span><span class="arrow">→</span>
+<span class="stage">120 BCD</span><span class="arrow">→</span>
+<span class="stage">100cm 이상</span><span class="arrow">→</span>
+<span class="stage">F120</span>
+</div>
+</div>
+
+<section class="step-card" id="step01">
+<span class="step">STEP 01</span>
+<h2>1. 수정 범위 — FND 표시 모듈 하나만 변경</h2>
+
+<div class="table-wrap"><table>
+<thead><tr><th>구분</th><th>파일</th></tr></thead>
+<tbody>
+<tr><td>수정</td><td><code>fnd_status_3digit_display.v</code></td></tr>
+<tr><td>추가 검증</td><td><code>tb_fnd_status_3digit_display.v</code></td></tr>
+<tr><td>수정하지 않음</td><td>Top, 초음파 거리계, CdS, LED PWM, Register Map, UART Core, XDC</td></tr>
+</tbody>
+</table></div>
+
+<pre class="codeblock-pre"><code>기존
+23 cm  → -023
+50 cm  → -050
+120 cm → -120
+
+변경
+23 cm  → n023
+50 cm  → -050
+120 cm → F120</code></pre>
+
+<div class="note">
+하드웨어를 추가하는 것이 아니라 이미 계산된 거리값을 더 직관적으로 읽도록 표시 규칙만 확장합니다.
+</div>
+</section>
+
+<section class="step-card" id="step02">
+<span class="step">STEP 02</span>
+<h2>2. 거리 구간과 상태 문자</h2>
+
+<div class="table-wrap"><table>
+<thead><tr><th>거리</th><th>상태 문자</th><th>의미</th><th>예</th></tr></thead>
+<tbody>
+<tr><td>0~29cm</td><td><code>n</code></td><td>near · 가까움</td><td><code>n023</code></td></tr>
+<tr><td>30~99cm</td><td><code>-</code></td><td>normal · 보통</td><td><code>-050</code></td></tr>
+<tr><td>100cm 이상</td><td><code>F</code></td><td>far · 멀리 있음</td><td><code>F120</code></td></tr>
+</tbody>
+</table></div>
+
+<p>
+FND 자리 배치는 그대로 유지합니다.
+<code>an[3]</code>은 상태 문자, <code>an[2:0]</code>은 거리 백·십·일의 자리입니다.
+</p>
+</section>
+
+<section class="step-card" id="step03">
+<span class="step">STEP 03</span>
+<h2>3. CdS 상태 문자가 거리 상태보다 우선</h2>
+
+<div class="table-wrap"><table>
+<thead><tr><th>조건</th><th>FND 표시</th></tr></thead>
+<tbody>
+<tr><td>CdS 밝음 + 거리 23cm</td><td><code>L023</code></td></tr>
+<tr><td>CdS 어두움 + 거리 120cm</td><td><code>d120</code></td></tr>
+<tr><td>초음파만 + 거리 23cm</td><td><code>n023</code></td></tr>
+<tr><td>초음파만 + 거리 50cm</td><td><code>-050</code></td></tr>
+<tr><td>초음파만 + 거리 120cm</td><td><code>F120</code></td></tr>
+</tbody>
+</table></div>
+
+<div class="flow">
+status_code = L 또는 d
+→ CdS 문자 그대로 사용
+
+status_code = -
+→ 거리값을 보고 n / - / F 선택
+</div>
+</section>
+
+<section class="step-card" id="step04">
+<span class="step">STEP 04</span>
+<h2>4. BCD 값을 직접 비교</h2>
+
+<p>
+<code>value_bcd</code>는 이진수 거리값이 아니라 각 10진 자리를 4bit로 나눈 BCD입니다.
+123cm는 <code>12'h123</code>입니다.
+</p>
+
+<pre class="codeblock-pre"><code>assign distance_less_030 =
+    value_valid &&
+    (value_bcd[11:8] == 4'd0) &&
+    (value_bcd[7:4] &lt; 4'd3);
+
+assign distance_ge_100 =
+    value_valid &&
+    (value_bcd[11:8] != 4'd0);</code></pre>
+
+<div class="flow">
+12'h023
+→ 백의 자리 0
+→ 십의 자리 2
+→ 30cm 미만
+→ n
+
+12'h120
+→ 백의 자리 1
+→ 100cm 이상
+→ F
+</div>
+</section>
+
+<section class="step-card" id="step05">
+<span class="step">STEP 05</span>
+<h2>5. 최종 상태 문자 선택</h2>
+
+<pre class="codeblock-pre"><code>assign distance_status_code =
+    distance_less_030 ? CHAR_n :
+    distance_ge_100   ? CHAR_F :
+                        CHAR_DASH;
+
+assign status_digit =
+    status_valid ?
+    ((status_code == CHAR_DASH) ?
+        distance_status_code :
+        status_code) :
+    CHAR_DASH;</code></pre>
+
+<p>
+이 구조 때문에 기존 CdS <code>L</code>/<code>d</code> 로직을 건드리지 않고,
+거리 전용 상태에서만 <code>n/-/F</code>가 자동 선택됩니다.
+</p>
+</section>
+
+<section class="step-card" id="step06">
+<span class="step">STEP 06</span>
+<h2>6. FND Segment 코드에 n과 F 추가</h2>
+
+<pre class="codeblock-pre"><code>localparam CHAR_n = 4'hD;
+localparam CHAR_F = 4'hE;
+
+CHAR_n:
+    seg = 7'b0101011;
+
+CHAR_F:
+    seg = 7'b0001110;</code></pre>
+
+<div class="table-wrap"><table>
+<thead><tr><th>문자</th><th>Code</th><th>seg[6:0]</th></tr></thead>
+<tbody>
+<tr><td>L</td><td><code>4'hA</code></td><td><code>1000111</code></td></tr>
+<tr><td>d</td><td><code>4'hB</code></td><td><code>0100001</code></td></tr>
+<tr><td>-</td><td><code>4'hC</code></td><td><code>0111111</code></td></tr>
+<tr><td>n</td><td><code>4'hD</code></td><td><code>0101011</code></td></tr>
+<tr><td>F</td><td><code>4'hE</code></td><td><code>0001110</code></td></tr>
+</tbody>
+</table></div>
+
+<div class="note">
+Basys3 FND는 Active-Low(액티브 로우, 0일 때 켜지는 방식)이므로 Segment 패턴의 0이 해당 LED Segment를 켭니다.
+</div>
+</section>
+
+<section class="step-card" id="step07">
+<span class="step">STEP 07</span>
+<h2>7. moserial과 보드 확인</h2>
+
+<pre class="codeblock-pre"><code>010004
+
+CMD  = 0x01
+ADDR = 0x00
+DATA = 0x04
+
+CTRL[2] = 1
+→ 초음파 거리 표시 ON</code></pre>
+
+<div class="table-wrap"><table>
+<thead><tr><th>실제 거리</th><th>예상 FND</th></tr></thead>
+<tbody>
+<tr><td>약 20cm</td><td><code>n020</code></td></tr>
+<tr><td>약 50cm</td><td><code>-050</code></td></tr>
+<tr><td>약 120cm</td><td><code>F120</code></td></tr>
+</tbody>
+</table></div>
+
+<div class="note">
+위 항목은 업로드 참고자료의 보드 확인 기준입니다.
+이번 생성 과정에서 Basys3 실제 측정 Output을 새로 만들지는 않았습니다.
+</div>
+</section>
+
+<section class="step-card" id="step08">
+<span class="step">STEP 08</span>
+<h2>8. 하위 FND 모듈 Testbench</h2>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Test</th><th>status_code</th><th>value_bcd</th><th>기대 문자</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>-</code></td><td><code>023</code></td><td><code>n</code></td></tr>
+<tr><td>2</td><td><code>-</code></td><td><code>050</code></td><td><code>-</code></td></tr>
+<tr><td>3</td><td><code>-</code></td><td><code>120</code></td><td><code>F</code></td></tr>
+<tr><td>4</td><td><code>L</code></td><td><code>023</code></td><td><code>L</code></td></tr>
+<tr><td>5</td><td><code>d</code></td><td><code>120</code></td><td><code>d</code></td></tr>
+</tbody>
+</table></div>
+
+<pre class="codeblock-pre"><code>check_status_seg(CHAR_DASH, 12'h023, 1'b1, SEG_n);
+check_status_seg(CHAR_DASH, 12'h050, 1'b1, SEG_DASH);
+check_status_seg(CHAR_DASH, 12'h120, 1'b1, SEG_F);
+check_status_seg(CHAR_L,    12'h023, 1'b1, SEG_L);
+check_status_seg(CHAR_d,    12'h120, 1'b1, SEG_d);</code></pre>
+
+<div class="warn">
+<strong>검증 메모:</strong>
+참고자료는 기대 Simulation 출력으로 PASS 5개와 <code>ALL TESTS PASSED</code>를 제시합니다.
+현재 생성 환경에는 Verilog Simulator가 설치되어 있지 않으므로 실제 실행 결과가 아니라 <strong>기대 결과</strong>로 표시합니다.
+</div>
+</section>
+
+<section class="step-card summary">
+<h2>핵심 정리</h2>
+<ul>
+<li>초음파 거리 숫자 앞에 <code>n/-/F</code> 상태 문자를 추가합니다.</li>
+<li>30cm 미만은 <code>n</code>, 30~99cm는 <code>-</code>, 100cm 이상은 <code>F</code>입니다.</li>
+<li>거리 판단은 BCD 백·십의 자리를 직접 비교합니다.</li>
+<li>CdS <code>L/d</code>가 활성화되면 거리 상태 문자보다 우선합니다.</li>
+<li>Top Module과 초음파 거리계는 수정하지 않고 FND 표시 모듈 내부 규칙만 변경합니다.</li>
+<li>하위 FND Testbench로 표시 정책을 먼저 독립 검증할 수 있습니다.</li>
+</ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+<a href="11_hcsr04_ultrasonic_register_map.html">← 이전: 11. HC-SR04 초음파 거리계</a>
+<a class="home" href="../../index.html">🏠 홈</a>
+<a class="next" href="13_ultrasonic_distance_led_bar.html">다음: 13. 초음파 거리 기반 LED Bar →</a>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>
