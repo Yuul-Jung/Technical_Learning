@@ -17,6 +17,7 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 11. Verilog Testbench 기본 개념
 12. Selection · Conversion Logic RTL 실습
 13. 조합회로 응용 Mini Project
+14. Tri-State Buffer · Shared Bus RTL 실습
 
 ## 기본 구조
 
@@ -38,7 +39,8 @@ Technical_Learning/
 │       ├── 10_cla_adder_practical.html
 │       ├── 11_verilog_testbench_basics.html
 │       ├── 12_selection_conversion_logic.html
-│       └── 13_combinational_mini_project.html
+│       ├── 13_combinational_mini_project.html
+│       └── 14_tristate_shared_bus.html
 ├── images/
 ├── code/
 │   └── fpga/
@@ -49,7 +51,8 @@ Technical_Learning/
 │       ├── ch10_cla_practical/
 │       ├── ch11_testbench/
 │       ├── ch12_selection_conversion/
-│       └── ch13_combinational_project/
+│       ├── ch13_combinational_project/
+│       └── ch14_tristate_bus/
 ├── css/
 │   └── style.css
 └── README.md
