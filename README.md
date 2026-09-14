@@ -13,6 +13,8 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 7. Verilog 기본 문법과 로직게이트 실습
 8. Boolean Algebra · Karnaugh Map RTL 실습
 9. 조합회로 설계 실습 — Adder
+10. CLA Adder 원리와 FPGA 실무형 작성법
+11. Verilog Testbench 기본 개념
 
 ## 기본 구조
 
