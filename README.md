@@ -4,9 +4,14 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 
 ## 현재 공개 자료
 
-### 환경구축
+### 환경구축 및 하드웨어
 
 1. Ubuntu에서 AMD Vivado 2024.2 설치
+2. Basys3 회로도 읽기
+3. Basys3 하드웨어 매뉴얼
+4. XDC · Xilinx Design Constraints
+5. Basys3 다운로드/장치 인식
+6. Digilent Adept 구성과 역할
 
 ### Digital / FPGA
 
@@ -63,7 +68,12 @@ Technical_Learning/
 ├── index.html
 ├── pages/
 │   ├── environment/
-│   │   └── 01_ubuntu_vivado_install.html
+│   │   ├── 01_ubuntu_vivado_install.html
+│   │   ├── 02_basys3_schematic.html
+│   │   ├── 03_basys3_hardware_manual.html
+│   │   ├── 04_xdc_constraints.html
+│   │   ├── 05_basys3_device_recognition.html
+│   │   └── 06_digilent_adept.html
 │   ├── fpga/
 │   │   ├── 01_sw0_led.html
 │   │   ├── ...

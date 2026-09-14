@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Basys3 Schematic을 기준으로 PMOD, Switch, Button, VGA, JXADC, USB/JTAG, FPGA Bank와 전원 회로를 읽고 XDC와 RTL Port로 연결합니다." name="description"/>
+<title>02. Basys3 회로도 읽기</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb">
+<a href="../../index.html">홈</a><span class="sep">/</span>
+<span>환경구축 및 하드웨어</span><span class="sep">/</span>
+<strong>02. Basys3 회로도 읽기</strong>
+</div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero">
+<div aria-hidden="true" class="hero-grid"></div>
+<div class="hero-inner">
+<p class="hero-kicker">환경구축 및 하드웨어 · 02</p>
+<h1>Basys3 회로도 읽기</h1>
+<p class="hero-desc">Basys3 Schematic을 기준으로 PMOD, Switch, Button, VGA, JXADC, USB/JTAG, FPGA Bank와 전원 회로를 읽고 XDC와 RTL Port로 연결합니다.</p>
+<div class="hero-meta"><span class="chip">Basys3</span><span class="chip">Schematic</span><span class="chip">PMOD</span><span class="chip">JXADC</span><span class="chip">Artix-7</span></div>
+<div class="hero-brief"><article><h2>기준 문서</h2><p>공식 Digilent Basys3 회로도를 보드 연결의 기준으로 사용합니다.</p></article><article><h2>핵심 연결</h2><p>회로도 → Package Pin → XDC → Top Port 흐름으로 확인합니다.</p></article><article><h2>안전</h2><p>3.3V I/O와 Analog/XADC 입력 범위를 구분합니다.</p></article></div>
+</div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">HARDWARE FLOW</p>
+<p class="nav-help">CHAPTER 02</p>
+<p class="phase">A. 회로도 기초</p><ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>문서 역할</span></a></li><li><a href="#step02"><span class="n">02</span><span>주요 블록</span></a></li><li><a href="#step03"><span class="n">03</span><span>PMOD/I/O</span></a></li></ol><p class="phase">B. XDC 연결</p><ol class="timeline"><li><a href="#step04"><span class="n">04</span><span>Pin → XDC</span></a></li><li><a href="#step05"><span class="n">05</span><span>읽는 순서</span></a></li><li><a href="#step06"><span class="n">06</span><span>실습 활용</span></a></li></ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+<h2>회로도를 먼저 보는 이유</h2>
+<div class="stage-flow">
+<span class="stage">보드 기능</span><span class="arrow">→</span>
+<span class="stage">회로 블록</span><span class="arrow">→</span>
+<span class="stage">FPGA Pin</span><span class="arrow">→</span>
+<span class="stage">XDC</span><span class="arrow">→</span>
+<span class="stage">RTL Port</span>
+</div>
+</div>
+
+<section class="step-card" id="step01">
+<span class="step">STEP 01</span>
+<h2>1. Basys3 회로도 문서의 역할</h2>
+<p>
+Basys3 회로도는 보드의 스위치, 버튼, LED, PMOD, XADC, VGA, USB, Flash, 전원 회로가
+Artix-7 FPGA의 어떤 Bank와 Package Pin에 연결되어 있는지 확인하는 기준 문서입니다.
+</p>
+<div class="note">
+보드 실습에서 핀 번호를 임의로 외우기보다 <strong>회로도 → XDC → RTL Port</strong> 순서로 확인하는 습관을 만듭니다.
+</div>
+<p>
+<a href="https://digilent.com/reference/_media/basys3:basys3_sch.pdf" target="_blank" rel="noopener">
+공식 Digilent Basys3 Schematic PDF 열기
+</a>
+</p>
+</section>
+
+<section class="step-card" id="step02">
+<span class="step">STEP 02</span>
+<h2>2. 회로도에서 먼저 찾을 블록</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>블록</th><th>확인 내용</th><th>실습 연결</th></tr></thead>
+<tbody>
+<tr><td>PMOD JA/JB/JC</td><td>각 PMOD 신호, 직렬 저항, 보호 소자, 3.3V/GND</td><td>센서, Motor, SPI/UART 확장</td></tr>
+<tr><td>JXADC</td><td>차동 Analog 입력 P/N</td><td>XADC 실습</td></tr>
+<tr><td>Switch / Button</td><td>Pull-up/Pull-down과 FPGA 신호</td><td>기본 입력 실습</td></tr>
+<tr><td>LED / 7-Segment</td><td>출력 신호와 구동 구조</td><td>LED/FND 실습</td></tr>
+<tr><td>VGA</td><td>RGB 저항 DAC, HS/VS</td><td>VGA 출력 실습</td></tr>
+<tr><td>USB / JTAG / Flash</td><td>Programming 경로</td><td>Bitstream Download</td></tr>
+<tr><td>FPGA Banks</td><td>Artix-7 Bank별 I/O</td><td>XDC Pin Assignment</td></tr>
+<tr><td>Power</td><td>VCCINT/VCCAUX/VCCO 및 보드 전원</td><td>전원·I/O 전압 이해</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section class="step-card" id="step03">
+<span class="step">STEP 03</span>
+<h2>3. PMOD / I/O 회로 읽기</h2>
+<pre class="codeblock-pre"><code>외부 PMOD Pin
+→ 보호/직렬 저항
+→ FPGA I/O Net
+→ Artix-7 Package Pin
+→ XDC PACKAGE_PIN
+→ Verilog Top Port</code></pre>
+<p>
+공식 회로도의 PMOD/I/O Sheet에는 JA, JB, JC, JXADC와 16개 Switch, 5개 Push Button이 함께 정리되어 있습니다.
+PMOD 디지털 I/O는 3.3V 기준이며, JXADC는 일반 PMOD와 다른 Analog 입력 용도입니다.
+</p>
+</section>
+
+<section class="step-card" id="step04">
+<span class="step">STEP 04</span>
+<h2>4. 회로도와 XDC 연결 예</h2>
+<pre class="codeblock-pre"><code>SW0
+→ Basys3 회로도에서 SW0 Net 확인
+→ FPGA Package Pin V17
+→ XDC
+
+set_property PACKAGE_PIN V17 [get_ports {sw[0]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {sw[0]}]</code></pre>
+<div class="warn">
+<strong>주의:</strong> 회로도의 Net 이름과 RTL Port 이름이 항상 동일한 것은 아닙니다.
+Vivado에서 실제 사용하는 이름은 XDC의 <code>get_ports</code>와 Top Module Port 이름이 정확히 일치해야 합니다.
+</div>
+</section>
+
+<section class="step-card" id="step05">
+<span class="step">STEP 05</span>
+<h2>5. 회로도 Sheet를 볼 때의 순서</h2>
+<ol>
+<li>사용하려는 커넥터나 주변장치를 찾습니다.</li>
+<li>Net 이름과 전압 기준을 확인합니다.</li>
+<li>FPGA Bank와 Package Pin을 확인합니다.</li>
+<li>Digilent Master XDC의 해당 항목과 대조합니다.</li>
+<li>Top Module Port 이름으로 XDC를 맞춥니다.</li>
+<li>외부 5V 장치라면 Level Shifting 필요 여부를 별도로 확인합니다.</li>
+</ol>
+</section>
+
+<section class="step-card" id="step06">
+<span class="step">STEP 06</span>
+<h2>6. 실습에서 자주 확인하는 회로</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>실습</th><th>회로도 확인 항목</th></tr></thead>
+<tbody>
+<tr><td>SW → LED</td><td>SW0, LED0 Package Pin</td></tr>
+<tr><td>UART</td><td>USB-UART Bridge와 RsRx/RsTx</td></tr>
+<tr><td>HC-SR04</td><td>PMOD 3.3V I/O, Echo 5V 인터페이스</td></tr>
+<tr><td>L298</td><td>PMOD JB 출력 전압과 외부 Driver 분리</td></tr>
+<tr><td>XADC</td><td>JXADC P/N, Analog 입력 범위</td></tr>
+<tr><td>VGA</td><td>RGB 저항 DAC와 HS/VS</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section class="step-card summary">
+<h2>핵심 정리</h2>
+<ul>
+<li>회로도는 보드의 실제 전기 연결을 확인하는 기준 문서입니다.</li>
+<li>Pin 정보는 회로도와 Master XDC를 함께 확인합니다.</li>
+<li>PMOD는 3.3V 디지털 I/O, JXADC는 Analog 입력이라는 차이를 구분합니다.</li>
+<li>외부 장치 연결 전에는 전압과 방향을 먼저 확인합니다.</li>
+</ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+<a href="01_ubuntu_vivado_install.html">← 이전: 01. Vivado 설치</a>
+<a class="home" href="../../index.html">🏠 홈</a>
+<a class="next" href="03_basys3_hardware_manual.html">다음: 03. Basys3 하드웨어 매뉴얼 →</a>
+</nav>
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+</body>
+</html>

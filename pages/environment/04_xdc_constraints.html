@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Vivado에서 FPGA Pin Assignment와 Clock/Timing 조건을 정의하는 XDC의 역할, Basys3 실제 예제와 Master XDC 사용법을 정리합니다." name="description"/>
+<title>04. XDC · Xilinx Design Constraints</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb">
+<a href="../../index.html">홈</a><span class="sep">/</span>
+<span>환경구축 및 하드웨어</span><span class="sep">/</span>
+<strong>04. XDC · Xilinx Design Constraints</strong>
+</div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero">
+<div aria-hidden="true" class="hero-grid"></div>
+<div class="hero-inner">
+<p class="hero-kicker">환경구축 및 하드웨어 · 04</p>
+<h1>XDC · Xilinx Design Constraints</h1>
+<p class="hero-desc">Vivado에서 FPGA Pin Assignment와 Clock/Timing 조건을 정의하는 XDC의 역할, Basys3 실제 예제와 Master XDC 사용법을 정리합니다.</p>
+<div class="hero-meta"><span class="chip">XDC</span><span class="chip">PACKAGE_PIN</span><span class="chip">IOSTANDARD</span><span class="chip">create_clock</span><span class="chip">Basys3</span></div>
+<div class="hero-brief"><article><h2>Pin</h2><p>RTL Port를 FPGA Package Pin에 연결합니다.</p></article><article><h2>Timing</h2><p>Clock Period와 설계 Timing 조건을 정의합니다.</p></article><article><h2>실습</h2><p>Basys-3-Master.xdc에서 필요한 줄만 활성화합니다.</p></article></div>
+</div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">HARDWARE FLOW</p>
+<p class="nav-help">CHAPTER 04</p>
+<p class="phase">A. XDC 개념</p><ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>정의</span></a></li><li><a href="#step02"><span class="n">02</span><span>두 역할</span></a></li><li><a href="#step03"><span class="n">03</span><span>SW/LED 예제</span></a></li><li><a href="#step04"><span class="n">04</span><span>Clock</span></a></li></ol><p class="phase">B. Vivado 적용</p><ol class="timeline"><li><a href="#step05"><span class="n">05</span><span>Master XDC</span></a></li><li><a href="#step06"><span class="n">06</span><span>오류</span></a></li><li><a href="#step07"><span class="n">07</span><span>설계 흐름</span></a></li></ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+<h2>XDC의 역할</h2>
+<div class="stage-flow">
+<span class="stage">RTL Port</span><span class="arrow">→</span>
+<span class="stage">get_ports</span><span class="arrow">→</span>
+<span class="stage">PACKAGE_PIN</span><span class="arrow">→</span>
+<span class="stage">IOSTANDARD</span><span class="arrow">→</span>
+<span class="stage">Physical Pin</span>
+</div>
+</div>
+
+<section class="step-card" id="step01">
+<span class="step">STEP 01</span>
+<h2>1. XDC 한 줄 정의</h2>
+<p><strong>FPGA 내부 신호를 실제 보드 핀에 연결하고, Clock과 Timing 조건을 정의하는 파일</strong>입니다.</p>
+<p>XDC는 Xilinx Design Constraints의 약자이며 Vivado에서 사용하는 Tcl 기반 Constraint 형식입니다.</p>
+</section>
+
+<section class="step-card" id="step02">
+<span class="step">STEP 02</span>
+<h2>2. XDC의 두 가지 핵심 역할</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>역할</th><th>예</th></tr></thead>
+<tbody>
+<tr><td>Pin Constraint</td><td>SW0 → V17, LED0 → U16</td></tr>
+<tr><td>Timing Constraint</td><td>100MHz Clock → Period 10ns</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section class="step-card" id="step03">
+<span class="step">STEP 03</span>
+<h2>3. SW0 → LED0 실제 예</h2>
+<pre class="codeblock-pre"><code>## Switch SW0
+set_property PACKAGE_PIN V17 [get_ports {sw[0]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {sw[0]}]
+
+## LED0
+set_property PACKAGE_PIN U16 [get_ports {led[0]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {led[0]}]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>문법</th><th>의미</th></tr></thead>
+<tbody>
+<tr><td><code>PACKAGE_PIN</code></td><td>FPGA Package의 실제 Pin 위치</td></tr>
+<tr><td><code>IOSTANDARD</code></td><td>I/O 전압·전기 규격</td></tr>
+<tr><td><code>get_ports</code></td><td>Top Module 외부 Port 선택</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section class="step-card" id="step04">
+<span class="step">STEP 04</span>
+<h2>4. 100MHz Clock Constraint</h2>
+<pre class="codeblock-pre"><code>set_property -dict { PACKAGE_PIN W5 IOSTANDARD LVCMOS33 } [get_ports clk]
+
+create_clock -add -name sys_clk_pin \
+    -period 10.00 -waveform {0 5} [get_ports clk]</code></pre>
+<div class="flow">
+100 MHz
+→ 1 / 100,000,000 s
+→ 10 ns
+→ create_clock -period 10.00
+</div>
+</section>
+
+<section class="step-card" id="step05">
+<span class="step">STEP 05</span>
+<h2>5. Basys-3-Master.xdc 사용 원칙</h2>
+<ol>
+<li>Digilent의 Basys-3-Master.xdc를 프로젝트에 추가합니다.</li>
+<li>사용하는 Pin의 주석만 해제합니다.</li>
+<li><code>get_ports</code> 이름을 Top Module Port와 정확히 맞춥니다.</li>
+<li>사용하지 않는 Pin은 계속 주석 상태로 둡니다.</li>
+<li>Clock은 Pin뿐 아니라 <code>create_clock</code>도 함께 설정합니다.</li>
+</ol>
+<p>
+<a href="https://github.com/Digilent/digilent-xdc/blob/master/Basys-3-Master.xdc" target="_blank" rel="noopener">
+Digilent Basys-3-Master.xdc 열기
+</a>
+</p>
+</section>
+
+<section class="step-card" id="step06">
+<span class="step">STEP 06</span>
+<h2>6. 자주 발생하는 오류</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>오류</th><th>원인</th><th>확인</th></tr></thead>
+<tbody>
+<tr><td>Unconstrained Port</td><td>Pin Constraint 누락</td><td>Top Port와 XDC 대조</td></tr>
+<tr><td>Port Not Found</td><td>이름 불일치</td><td><code>get_ports</code> 이름 확인</td></tr>
+<tr><td>Pin Conflict</td><td>같은 Package Pin 중복</td><td>XDC 중복 검색</td></tr>
+<tr><td>DRC IOSTANDARD</td><td>I/O Standard 누락/부적절</td><td>LVCMOS33 등 확인</td></tr>
+<tr><td>Timing 미정의</td><td>Clock Constraint 없음</td><td><code>create_clock</code> 확인</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section class="step-card" id="step07">
+<span class="step">STEP 07</span>
+<h2>7. Vivado 흐름에서 XDC 위치</h2>
+<pre class="codeblock-pre"><code>RTL 작성
+→ XDC 작성/확인
+→ Synthesis
+→ Implementation
+→ Timing / DRC 확인
+→ Bitstream
+→ Program Device</code></pre>
+</section>
+
+<section class="step-card summary">
+<h2>핵심 정리</h2>
+<ul>
+<li>XDC는 HDL과 실제 보드 하드웨어를 연결합니다.</li>
+<li>Pin Assignment와 Timing Constraint가 핵심입니다.</li>
+<li>Top Port 이름과 <code>get_ports</code> 이름은 반드시 같아야 합니다.</li>
+<li>Basys3에서는 Digilent Master XDC를 기준으로 필요한 항목만 활성화합니다.</li>
+</ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+<a href="03_basys3_hardware_manual.html">← 이전: 03. 하드웨어 매뉴얼</a>
+<a class="home" href="../../index.html">🏠 홈</a>
+<a class="next" href="05_basys3_device_recognition.html">다음: 05. 보드/다운로드 인식 →</a>
+</nav>
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+</body>
+</html>

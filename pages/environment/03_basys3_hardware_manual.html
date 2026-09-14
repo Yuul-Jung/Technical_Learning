@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Digilent Basys3 Reference Manual을 기준으로 Artix-7 자원, 보드 I/O, 전원, Programming 방식과 확장 인터페이스를 정리합니다." name="description"/>
+<title>03. Basys3 하드웨어 매뉴얼</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb">
+<a href="../../index.html">홈</a><span class="sep">/</span>
+<span>환경구축 및 하드웨어</span><span class="sep">/</span>
+<strong>03. Basys3 하드웨어 매뉴얼</strong>
+</div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero">
+<div aria-hidden="true" class="hero-grid"></div>
+<div class="hero-inner">
+<p class="hero-kicker">환경구축 및 하드웨어 · 03</p>
+<h1>Basys3 하드웨어 매뉴얼</h1>
+<p class="hero-desc">Digilent Basys3 Reference Manual을 기준으로 Artix-7 자원, 보드 I/O, 전원, Programming 방식과 확장 인터페이스를 정리합니다.</p>
+<div class="hero-meta"><span class="chip">Basys3</span><span class="chip">XC7A35T</span><span class="chip">Reference Manual</span><span class="chip">PMOD</span><span class="chip">USB-JTAG</span></div>
+<div class="hero-brief"><article><h2>FPGA</h2><p>Artix-7 35T의 Logic, BRAM, DSP, XADC 자원을 확인합니다.</p></article><article><h2>보드 I/O</h2><p>Switch, LED, Button, FND, VGA, PMOD, USB-UART를 한 번에 정리합니다.</p></article><article><h2>Programming</h2><p>JTAG와 SPI Flash의 차이를 구분합니다.</p></article></div>
+</div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">HARDWARE FLOW</p>
+<p class="nav-help">CHAPTER 03</p>
+<p class="phase">A. Board</p><ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>보드 개요</span></a></li><li><a href="#step02"><span class="n">02</span><span>FPGA 자원</span></a></li><li><a href="#step03"><span class="n">03</span><span>주요 I/O</span></a></li></ol><p class="phase">B. Operation</p><ol class="timeline"><li><a href="#step04"><span class="n">04</span><span>Programming</span></a></li><li><a href="#step05"><span class="n">05</span><span>전원/Jumper</span></a></li><li><a href="#step06"><span class="n">06</span><span>문서 연결</span></a></li><li><a href="#step07"><span class="n">07</span><span>체크리스트</span></a></li></ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+<h2>Basys3 하드웨어 전체 구조</h2>
+<div class="stage-flow">
+<span class="stage">Artix-7 35T</span><span class="arrow">→</span>
+<span class="stage">Switch / LED / Button</span><span class="arrow">→</span>
+<span class="stage">FND / VGA</span><span class="arrow">→</span>
+<span class="stage">PMOD / XADC</span><span class="arrow">→</span>
+<span class="stage">USB / Flash</span>
+</div>
+</div>
+
+<section class="step-card" id="step01">
+<span class="step">STEP 01</span>
+<h2>1. Basys3 보드의 위치</h2>
+<p>
+Basys3는 AMD/Xilinx Artix-7 <code>XC7A35T-1CPG236C</code>를 사용하는 교육용 FPGA 보드입니다.
+기본 조합회로부터 순차회로, UART, VGA, XADC, Soft Processor까지 단계적으로 확장할 수 있습니다.
+</p>
+<p>
+<a href="https://digilent.com/reference/programmable-logic/basys-3/reference-manual" target="_blank" rel="noopener">
+공식 Digilent Basys3 Reference Manual 열기
+</a>
+</p>
+</section>
+
+<section class="step-card" id="step02">
+<span class="step">STEP 02</span>
+<h2>2. Artix-7 35T 핵심 자원</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>항목</th><th>Reference Manual 기준</th><th>활용</th></tr></thead>
+<tbody>
+<tr><td>Logic Cells</td><td>33,280</td><td>RTL Logic</td></tr>
+<tr><td>Slices</td><td>5,200</td><td>LUT + Flip-Flop</td></tr>
+<tr><td>Block RAM</td><td>1,800 Kbit</td><td>FIFO, ROM, Buffer, CPU Memory</td></tr>
+<tr><td>DSP Slices</td><td>90</td><td>곱셈·MAC·NPU</td></tr>
+<tr><td>Clock Management</td><td>5 Tiles</td><td>PLL/MMCM 기반 Clock</td></tr>
+<tr><td>XADC</td><td>On-chip ADC</td><td>Analog 입력</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section class="step-card" id="step03">
+<span class="step">STEP 03</span>
+<h2>3. 보드에 포함된 주요 I/O</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>I/O</th><th>개수/구성</th><th>대표 실습</th></tr></thead>
+<tbody>
+<tr><td>Slide Switch</td><td>16</td><td>입력, Mode, Register</td></tr>
+<tr><td>LED</td><td>16</td><td>상태, Bar, PWM</td></tr>
+<tr><td>Push Button</td><td>5</td><td>Reset, Pulse, FSM</td></tr>
+<tr><td>7-Segment</td><td>4자리</td><td>Counter, Clock, Sensor</td></tr>
+<tr><td>PMOD</td><td>3개</td><td>UART, SPI, Sensor, Motor</td></tr>
+<tr><td>JXADC</td><td>Analog Pmod</td><td>Potentiometer, Analog Sensor</td></tr>
+<tr><td>VGA</td><td>12-bit RGB</td><td>640×480 등 Video</td></tr>
+<tr><td>USB-UART</td><td>On-board Bridge</td><td>PC ↔ FPGA Serial</td></tr>
+<tr><td>USB-JTAG</td><td>Programming/Communication</td><td>Bitstream Download</td></tr>
+<tr><td>Serial Flash</td><td>Nonvolatile Configuration</td><td>전원 재인가 후 자동 Boot</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section class="step-card" id="step04">
+<span class="step">STEP 04</span>
+<h2>4. FPGA Programming 방식</h2>
+<p>Reference Manual은 Basys3 FPGA 설정 경로를 여러 방식으로 설명합니다.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>방식</th><th>특징</th><th>실습 우선순위</th></tr></thead>
+<tbody>
+<tr><td>USB-JTAG</td><td>PC에서 Hardware Manager로 즉시 Program</td><td>기본</td></tr>
+<tr><td>SPI Flash</td><td>Bitstream을 비휘발성 Flash에 저장</td><td>확장</td></tr>
+<tr><td>USB Memory</td><td>지원 Mode에서 저장장치 Bitstream 사용</td><td>필요 시</td></tr>
+</tbody>
+</table></div>
+<div class="note">
+JTAG로 FPGA SRAM에 Program한 Bitstream은 전원이 꺼지면 사라집니다.
+전원 재인가 후 자동 동작이 필요하면 Serial Flash Programming을 사용합니다.
+</div>
+</section>
+
+<section class="step-card" id="step05">
+<span class="step">STEP 05</span>
+<h2>5. 전원과 Programming Jumper</h2>
+<ul>
+<li>보드 전원은 USB 또는 외부 5V 계열 전원으로 공급할 수 있습니다.</li>
+<li>전원 선택 Jumper와 Programming Mode Jumper의 위치를 작업 전에 확인합니다.</li>
+<li>외부 센서와 모터를 연결할 때는 Basys3 USB 전원만으로 전체 부하를 공급하지 않습니다.</li>
+<li>전원 LED와 DONE LED를 통해 기본 상태를 확인합니다.</li>
+</ul>
+</section>
+
+<section class="step-card" id="step06">
+<span class="step">STEP 06</span>
+<h2>6. 하드웨어 매뉴얼을 실습에 연결하는 방법</h2>
+<pre class="codeblock-pre"><code>Reference Manual
+→ 기능 / 전압 / 커넥터 이해
+
+Schematic
+→ 실제 회로와 Net 확인
+
+Master XDC
+→ Package Pin / IOSTANDARD 확인
+
+RTL
+→ Top Port 이름과 기능 구현</code></pre>
+</section>
+
+<section class="step-card" id="step07">
+<span class="step">STEP 07</span>
+<h2>7. 실습 전 하드웨어 체크리스트</h2>
+<ul>
+<li>보드가 Basys3 Rev와 일치하는지 확인</li>
+<li>USB 케이블이 Data 통신을 지원하는지 확인</li>
+<li>JP1/JP2 Jumper 위치 확인</li>
+<li>PMOD/JXADC 핀의 전압 기준 확인</li>
+<li>외부 5V 센서의 Level Shifter 필요 여부 확인</li>
+<li>모터·릴레이 등 대전류 부하는 외부 Driver 사용</li>
+</ul>
+</section>
+
+<section class="step-card summary">
+<h2>핵심 정리</h2>
+<ul>
+<li>Basys3의 중심 FPGA는 Artix-7 XC7A35T-1CPG236C입니다.</li>
+<li>보드 자체 I/O만으로도 많은 디지털 회로 실습이 가능합니다.</li>
+<li>PMOD, XADC, VGA, UART, Flash를 이용해 주변기기와 시스템 설계로 확장합니다.</li>
+<li>Reference Manual, Schematic, XDC는 서로 연결해서 봅니다.</li>
+</ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+<a href="02_basys3_schematic.html">← 이전: 02. Basys3 회로도</a>
+<a class="home" href="../../index.html">🏠 홈</a>
+<a class="next" href="04_xdc_constraints.html">다음: 04. XDC →</a>
+</nav>
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Digilent Adept Runtime을 기준으로 Vivado Hardware Manager의 Basys3 다운로드/JTAG 인식과 OS의 UART Serial Port 인식을 구분하여 확인합니다." name="description"/>
+<title>05. Basys3 다운로드/장치 인식</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb">
+<a href="../../index.html">홈</a><span class="sep">/</span>
+<span>환경구축 및 하드웨어</span><span class="sep">/</span>
+<strong>05. Basys3 다운로드/장치 인식</strong>
+</div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero">
+<div aria-hidden="true" class="hero-grid"></div>
+<div class="hero-inner">
+<p class="hero-kicker">환경구축 및 하드웨어 · 05</p>
+<h1>Basys3 다운로드/장치 인식</h1>
+<p class="hero-desc">Digilent Adept Runtime을 기준으로 Vivado Hardware Manager의 Basys3 다운로드/JTAG 인식과 OS의 UART Serial Port 인식을 구분하여 확인합니다.</p>
+<div class="hero-meta"><span class="chip">Adept Runtime</span><span class="chip">Hardware Manager</span><span class="chip">Open Target</span><span class="chip">JTAG</span><span class="chip">Serial Port</span></div>
+<div class="hero-brief"><article><h2>문제</h2><p>Open Target/Auto Connect 실패의 기본 점검 순서를 익힙니다.</p></article><article><h2>JTAG</h2><p>Adept Runtime과 Digilent USB-JTAG 연결을 확인합니다.</p></article><article><h2>구분</h2><p>FPGA Download 인식과 UART Serial Port 인식을 분리합니다.</p></article></div>
+</div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">HARDWARE FLOW</p>
+<p class="nav-help">CHAPTER 05</p>
+<p class="phase">A. Board Recognition</p><ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>증상</span></a></li><li><a href="#step02"><span class="n">02</span><span>Runtime</span></a></li><li><a href="#step03"><span class="n">03</span><span>설치</span></a></li></ol><p class="phase">B. OS Check</p><ol class="timeline"><li><a href="#step04"><span class="n">04</span><span>Ubuntu 확인</span></a></li><li><a href="#step05"><span class="n">05</span><span>JTAG vs UART</span></a></li><li><a href="#step06"><span class="n">06</span><span>체크리스트</span></a></li></ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+<h2>Basys3 보드 인식 흐름</h2>
+<div class="stage-flow">
+<span class="stage">Vivado</span><span class="arrow">→</span>
+<span class="stage">Adept Runtime</span><span class="arrow">→</span>
+<span class="stage">USB Data Cable</span><span class="arrow">→</span>
+<span class="stage">Basys3 JTAG</span>
+</div>
+</div>
+
+<section class="step-card" id="step01">
+<span class="step">STEP 01</span>
+<h2>1. 가장 먼저 확인할 증상</h2>
+<ul>
+<li>Vivado Hardware Manager에서 Board가 보이지 않음</li>
+<li><code>Open Target</code> 또는 <code>Auto Connect</code> 실패</li>
+<li>USB 연결 후 Programming Device가 나타나지 않음</li>
+</ul>
+<p>참고자료는 이런 경우 Digilent Adept Runtime 설치 여부를 가장 먼저 확인하도록 설명합니다.</p>
+</section>
+
+<section class="step-card" id="step02">
+<span class="step">STEP 02</span>
+<h2>2. Adept Runtime의 역할</h2>
+<p>
+Adept Runtime은 Digilent FPGA Board와 PC 사이의 USB 통신을 담당하는 Runtime/Driver 계층입니다.
+Vivado가 Basys3 JTAG 장치를 인식하는 데 필요한 구성 요소입니다.
+</p>
+<pre class="codeblock-pre"><code>PC / Vivado
+→ Adept Runtime
+→ USB
+→ Basys3
+→ Artix-7 FPGA</code></pre>
+</section>
+
+<section class="step-card" id="step03">
+<span class="step">STEP 03</span>
+<h2>3. 설치와 재연결 절차</h2>
+<ol>
+<li>Digilent Adept 공식 페이지에서 Runtime을 준비합니다.</li>
+<li>OS에 맞는 Runtime을 설치합니다.</li>
+<li>Basys3 USB 케이블을 분리합니다.</li>
+<li>다시 연결합니다.</li>
+<li>Vivado를 다시 실행합니다.</li>
+<li><code>Hardware Manager → Open Target → Auto Connect</code>를 실행합니다.</li>
+</ol>
+<p>
+<a href="https://digilent.com/reference/software/adept/start" target="_blank" rel="noopener">
+Digilent Adept 공식 페이지 열기
+</a>
+</p>
+</section>
+
+<section class="step-card" id="step04">
+<span class="step">STEP 04</span>
+<h2>4. Ubuntu에서 장치 확인</h2>
+<pre class="codeblock-pre"><code># USB 장치 확인
+lsusb
+
+# Digilent 장치 확인
+djtgcfg enum
+
+# Serial Device 후보 확인
+ls /dev/ttyUSB*
+ls /dev/ttyACM*</code></pre>
+<div class="note">
+<code>djtgcfg enum</code>은 Digilent JTAG/보드 인식 확인에 사용하고,
+<code>/dev/ttyUSB*</code> 또는 <code>/dev/ttyACM*</code>은 UART Serial Port 확인에 사용합니다.
+</div>
+</section>
+
+<section class="step-card" id="step05">
+<span class="step">STEP 05</span>
+<h2>5. 다운로드 인식과 UART Serial 인식은 구분</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>목적</th><th>경로</th><th>대표 확인</th></tr></thead>
+<tbody>
+<tr><td>FPGA Program/JTAG</td><td>Vivado ↔ Adept Runtime ↔ USB-JTAG</td><td>Hardware Manager, <code>djtgcfg enum</code></td></tr>
+<tr><td>UART Serial 통신</td><td>Terminal ↔ OS Serial Device ↔ USB-UART</td><td><code>/dev/ttyUSB*</code>, COM Port</td></tr>
+</tbody>
+</table></div>
+<div class="warn">
+<strong>검증 메모:</strong>
+원본 페이지 제목에는 “시리얼포트 인식”이라고 되어 있지만 본문은 주로
+Vivado Hardware Manager와 Adept Runtime을 이용한 <strong>FPGA 다운로드/JTAG 장치 인식</strong>을 설명합니다.
+UART Serial Port 인식과는 목적과 장치 경로가 다르므로 공개본에서는 두 경로를 분리해서 설명합니다.
+</div>
+</section>
+
+<section class="step-card" id="step06">
+<span class="step">STEP 06</span>
+<h2>6. 인식이 안 될 때 체크리스트</h2>
+<ul>
+<li>USB 케이블이 충전 전용이 아니라 Data 통신용인지 확인</li>
+<li>다른 USB Port 사용</li>
+<li>Basys3 Power LED 확인</li>
+<li>Adept Runtime 설치 확인</li>
+<li>Vivado 재시작</li>
+<li>Ubuntu 권한 그룹과 udev/Driver 설정 확인</li>
+<li>Board Programming Jumper 위치 확인</li>
+</ul>
+</section>
+
+<section class="step-card summary">
+<h2>핵심 정리</h2>
+<ul>
+<li>Vivado에서 Basys3가 보이지 않으면 Runtime과 USB 연결을 먼저 확인합니다.</li>
+<li>JTAG/다운로드 인식과 UART Serial Port 인식은 서로 다른 경로입니다.</li>
+<li><code>djtgcfg enum</code>은 Digilent Board 인식 확인에 유용합니다.</li>
+<li>Hardware Manager의 Auto Connect까지 성공하면 다운로드 준비가 완료됩니다.</li>
+</ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+<a href="04_xdc_constraints.html">← 이전: 04. XDC</a>
+<a class="home" href="../../index.html">🏠 홈</a>
+<a class="next" href="06_digilent_adept.html">다음: 06. Digilent Adept →</a>
+</nav>
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+</body>
+</html>

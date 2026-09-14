@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Digilent Adept의 Runtime, Utilities, SDK, 구버전 System의 역할을 구분하고 Basys3 Board 인식과 Programming 환경을 최종 확인합니다." name="description"/>
+<title>06. Digilent Adept 구성과 역할</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb">
+<a href="../../index.html">홈</a><span class="sep">/</span>
+<span>환경구축 및 하드웨어</span><span class="sep">/</span>
+<strong>06. Digilent Adept 구성과 역할</strong>
+</div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero">
+<div aria-hidden="true" class="hero-grid"></div>
+<div class="hero-inner">
+<p class="hero-kicker">환경구축 및 하드웨어 · 06</p>
+<h1>Digilent Adept 구성과 역할</h1>
+<p class="hero-desc">Digilent Adept의 Runtime, Utilities, SDK, 구버전 System의 역할을 구분하고 Basys3 Board 인식과 Programming 환경을 최종 확인합니다.</p>
+<div class="hero-meta"><span class="chip">Adept</span><span class="chip">Runtime</span><span class="chip">Utilities</span><span class="chip">SDK</span><span class="chip">djtgcfg</span></div>
+<div class="hero-brief"><article><h2>Runtime</h2><p>USB 연결과 FPGA Board 인식을 담당하는 핵심 구성 요소입니다.</p></article><article><h2>Utilities</h2><p>장치 검색·통신·테스트를 위한 도구입니다.</p></article><article><h2>SDK</h2><p>사용자 프로그램에서 Digilent API를 사용할 때 활용합니다.</p></article></div>
+</div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+<p class="nav-title">HARDWARE FLOW</p>
+<p class="nav-help">CHAPTER 06</p>
+<p class="phase">A. Adept</p><ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>개요</span></a></li><li><a href="#step02"><span class="n">02</span><span>Runtime</span></a></li><li><a href="#step03"><span class="n">03</span><span>Utilities</span></a></li><li><a href="#step04"><span class="n">04</span><span>SDK</span></a></li></ol><p class="phase">B. Operation</p><ol class="timeline"><li><a href="#step05"><span class="n">05</span><span>파일/대상</span></a></li><li><a href="#step06"><span class="n">06</span><span>구성 비교</span></a></li><li><a href="#step07"><span class="n">07</span><span>완료 기준</span></a></li></ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+<h2>Digilent Adept 구성</h2>
+<div class="stage-flow">
+<span class="stage">Vivado / User Program</span><span class="arrow">→</span>
+<span class="stage">Adept Runtime</span><span class="arrow">→</span>
+<span class="stage">USB</span><span class="arrow">→</span>
+<span class="stage">Basys3</span>
+</div>
+</div>
+
+<section class="step-card" id="step01">
+<span class="step">STEP 01</span>
+<h2>1. Adept란 무엇인가</h2>
+<p>
+Digilent Adept는 PC에서 Digilent FPGA Board를 연결하고 설정·통신·Programming하기 위한 소프트웨어 구성입니다.
+실습에서 가장 중요한 구성 요소는 Board 인식에 필요한 <strong>Runtime</strong>입니다.
+</p>
+</section>
+
+<section class="step-card" id="step02">
+<span class="step">STEP 02</span>
+<h2>2. Runtime</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>항목</th><th>내용</th></tr></thead>
+<tbody>
+<tr><td>역할</td><td>USB Runtime / Driver 계층</td></tr>
+<tr><td>목적</td><td>PC가 Digilent FPGA Board를 인식</td></tr>
+<tr><td>Vivado</td><td>Hardware Manager 연결에 중요</td></tr>
+<tr><td>문제 시</td><td>Open Target 실패, Board 미인식</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section class="step-card" id="step03">
+<span class="step">STEP 03</span>
+<h2>3. Utilities</h2>
+<p>Adept Utilities는 Digilent Device를 검색하고 통신·테스트하는 Command Line 도구를 제공합니다.</p>
+<pre class="codeblock-pre"><code># Digilent 장치 열거
+djtgcfg enum
+
+# 실행 파일 위치 확인
+which djtgcfg</code></pre>
+</section>
+
+<section class="step-card" id="step04">
+<span class="step">STEP 04</span>
+<h2>4. SDK</h2>
+<p>
+Adept SDK는 C/C++ 등의 사용자 프로그램에서 Digilent Device와 통신하기 위한 API를 제공합니다.
+일반적인 Verilog RTL 실습에서는 필수는 아니지만 자동화 도구나 자체 Programming/통신 Software를 만들 때 사용할 수 있습니다.
+</p>
+</section>
+
+<section class="step-card" id="step05">
+<span class="step">STEP 05</span>
+<h2>5. 지원 파일과 Programming 대상</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>파일</th><th>대표 대상</th></tr></thead>
+<tbody>
+<tr><td><code>.bit</code></td><td>FPGA Configuration</td></tr>
+<tr><td><code>.mcs</code></td><td>Configuration Flash</td></tr>
+<tr><td><code>.jed</code></td><td>CPLD 계열</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section class="step-card" id="step06">
+<span class="step">STEP 06</span>
+<h2>6. Runtime / Utilities / SDK 구분</h2>
+<pre class="codeblock-pre"><code>Runtime
+→ Board 인식 / USB 통신 기반
+
+Utilities
+→ CLI 기반 검색·통신·테스트
+
+SDK
+→ 사용자 프로그램에서 API 사용
+
+System
+→ 과거 GUI 도구
+→ 현재 실습에서는 주력 도구로 사용하지 않음</code></pre>
+</section>
+
+<section class="step-card" id="step07">
+<span class="step">STEP 07</span>
+<h2>7. 환경구축 완료 기준</h2>
+<ul>
+<li>Vivado가 정상 실행됩니다.</li>
+<li>Basys3가 USB Data Cable로 연결됩니다.</li>
+<li><code>djtgcfg enum</code>에서 Digilent 장치가 확인됩니다.</li>
+<li>Vivado Hardware Manager에서 Auto Connect가 동작합니다.</li>
+<li>다음 Digital / FPGA 실습에서 Bitstream을 Program할 수 있습니다.</li>
+</ul>
+</section>
+
+<section class="step-card summary">
+<h2>핵심 정리</h2>
+<ul>
+<li>Adept의 핵심은 Runtime, Utilities, SDK 역할을 구분하는 것입니다.</li>
+<li>RTL 실습에서 가장 먼저 필요한 것은 Runtime 기반 Board 인식입니다.</li>
+<li>Utilities의 <code>djtgcfg</code>로 장치 인식을 확인할 수 있습니다.</li>
+<li>환경구축 및 하드웨어 단계가 끝나면 Digital / FPGA 01 실습으로 이동합니다.</li>
+</ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+<a href="05_basys3_device_recognition.html">← 이전: 05. 보드/다운로드 인식</a>
+<a class="home" href="../../index.html">🏠 홈</a>
+<a class="next" href="../fpga/01_sw0_led.html">다음: Digital / FPGA 01. SW0 → LED0 →</a>
+</nav>
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+</body>
+</html>

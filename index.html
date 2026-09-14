@@ -12,7 +12,7 @@
   <div class="hero-inner">
     <div class="hero-kicker">PE.Jung의 Technical Learning Notes</div>
     <h1>FPGA · Digital System · SoC · AI</h1>
-    <p class="hero-desc">환경구축부터 RTL 설계, 검증, SoC, NPU, RISC-V와 AI까지 순차적으로 확장하는 기술 학습 자료입니다.</p>
+    <p class="hero-desc">환경구축 및 하드웨어부터 RTL 설계, 검증, SoC, NPU, RISC-V와 AI까지 순차적으로 확장하는 기술 학습 자료입니다.</p>
     <div class="hero-meta">
       <span class="chip">FPGA</span>
       <span class="chip">Verilog</span>
@@ -27,13 +27,43 @@
 <div class="home-main">
 <main>
   <section class="home-section">
-    <h2>환경구축</h2>
+    <h2>환경구축 및 하드웨어</h2>
     <ol>
       <li>
         <a href="pages/environment/01_ubuntu_vivado_install.html">
           <strong>Ubuntu에서 AMD Vivado 2024.2 설치</strong>
         </a><br/>
         Basys3 FPGA 개발환경 구축과 보드 인식 확인
+      </li>
+      <li>
+        <a href="pages/environment/02_basys3_schematic.html">
+          <strong>Basys3 회로도 읽기</strong>
+        </a><br/>
+        PMOD · JXADC · Switch/Button · VGA · USB/JTAG · FPGA Bank · 전원 회로와 XDC 연결
+      </li>
+      <li>
+        <a href="pages/environment/03_basys3_hardware_manual.html">
+          <strong>Basys3 하드웨어 매뉴얼</strong>
+        </a><br/>
+        Artix-7 XC7A35T 자원 · 보드 I/O · Programming 방식 · 전원과 확장 인터페이스
+      </li>
+      <li>
+        <a href="pages/environment/04_xdc_constraints.html">
+          <strong>XDC · Xilinx Design Constraints</strong>
+        </a><br/>
+        PACKAGE_PIN · IOSTANDARD · create_clock · Basys-3-Master.xdc 사용
+      </li>
+      <li>
+        <a href="pages/environment/05_basys3_device_recognition.html">
+          <strong>Basys3 다운로드/장치 인식</strong>
+        </a><br/>
+        Adept Runtime · Hardware Manager · Open Target · JTAG와 UART Serial Port 구분
+      </li>
+      <li>
+        <a href="pages/environment/06_digilent_adept.html">
+          <strong>Digilent Adept 구성과 역할</strong>
+        </a><br/>
+        Runtime · Utilities · SDK · djtgcfg · Basys3 인식 완료 기준
       </li>
     </ol>
   </section>
