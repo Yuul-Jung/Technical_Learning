@@ -20,6 +20,7 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 14. Tri-State Buffer · Shared Bus RTL 실습
 15. 순차회로와 Latch 기초
 16. D Flip-Flop · Edge Triggered RTL 실습
+17. 8bit Register · Enable · Load · Reset RTL 실습
 
 ## 기본 구조
 
@@ -44,7 +45,8 @@ Technical_Learning/
 │       ├── 13_combinational_mini_project.html
 │       ├── 14_tristate_shared_bus.html
 │       ├── 15_sequential_logic_latch.html
-│       └── 16_d_flipflop_edge_triggered.html
+│       ├── 16_d_flipflop_edge_triggered.html
+│       └── 17_register_enable_load_reset.html
 ├── images/
 ├── code/
 │   └── fpga/
@@ -58,7 +60,8 @@ Technical_Learning/
 │       ├── ch13_combinational_project/
 │       ├── ch14_tristate_bus/
 │       ├── ch15_sequential_latch/
-│       └── ch16_d_flipflop/
+│       ├── ch16_d_flipflop/
+│       └── ch17_register/
 ├── css/
 │   └── style.css
 └── README.md
