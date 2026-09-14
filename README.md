@@ -2,9 +2,14 @@
 
 GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 
-## 현재 공개 챕터
+## 현재 공개 자료
+
+### 환경구축
 
 1. Ubuntu에서 AMD Vivado 2024.2 설치
+
+### Digital / FPGA
+
 2. SW0를 이용한 LED0 ON/OFF 실습
 3. 74 시리즈 기반 Verilog RTL 설계 가이드
 4. 부울대수 공리 FPGA 실습
@@ -29,6 +34,12 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 23. 24시간 디지털 시계 · HH:MM RTL 실습
 24. FSM 회로 설계 · Moore · Mealy RTL 실습
 
+### RTL 주변기기 회로설계
+
+01. UART TX · FIFO · Sender · 8N1 FSM RTL 실습
+
+> UART부터는 Digital / FPGA 기초 번호와 분리하여 `01`부터 별도 번호 체계로 관리합니다.
+
 ## 기본 구조
 
 ```text
@@ -37,52 +48,20 @@ Technical_Learning/
 ├── pages/
 │   ├── environment/
 │   │   └── 01_ubuntu_vivado_install.html
-│   └── fpga/
-│       ├── 02_sw0_led.html
-│       ├── 03_verilog_rtl_74series_guide.html
-│       ├── 04_boolean_algebra_axiom_lab.html
-│       ├── 05_logic_gates_level1_lab.html
-│       ├── 06_structured_gate_modules.html
-│       ├── 07_verilog_syntax_logic_gates.html
-│       ├── 08_boolean_algebra_karnaugh_map.html
-│       ├── 09_combinational_adder.html
-│       ├── 10_cla_adder_practical.html
-│       ├── 11_verilog_testbench_basics.html
-│       ├── 12_selection_conversion_logic.html
-│       ├── 13_combinational_mini_project.html
-│       ├── 14_tristate_shared_bus.html
-│       ├── 15_sequential_logic_latch.html
-│       ├── 16_d_flipflop_edge_triggered.html
-│       ├── 17_register_enable_load_reset.html
-│       ├── 18_shift_register_serial_parallel.html
-│       ├── 19_counter_step1_tick_bcd_fnd.html
-│       ├── 20_counter_step2_multidigit_fnd.html
-│       ├── 21_stopwatch_structured_rtl.html
-│       ├── 22_button_debounce_pulse.html
-│       ├── 23_hhmm_24hour_clock.html
-│       └── 24_fsm_moore_mealy.html
+│   ├── fpga/
+│   │   ├── 02_sw0_led.html
+│   │   ├── ...
+│   │   └── 24_fsm_moore_mealy.html
+│   └── peripheral/
+│       └── 01_uart_tx_fifo_fsm.html
 ├── images/
 ├── code/
-│   └── fpga/
-│       ├── ch06_gate_modules/
-│       ├── ch07_verilog_syntax/
-│       ├── ch08_boolean_kmap/
-│       ├── ch09_adder/
-│       ├── ch10_cla_practical/
-│       ├── ch11_testbench/
-│       ├── ch12_selection_conversion/
-│       ├── ch13_combinational_project/
-│       ├── ch14_tristate_bus/
-│       ├── ch15_sequential_latch/
-│       ├── ch16_d_flipflop/
-│       ├── ch17_register/
-│       ├── ch18_shift_register/
-│       ├── ch19_counter_step1/
-│       ├── ch20_counter_step2/
-│       ├── ch21_stopwatch_step3/
-│       ├── ch22_button_debounce/
-│       ├── ch23_hhmm_clock/
-│       └── ch24_fsm_basics/
+│   ├── fpga/
+│   │   ├── ch06_gate_modules/
+│   │   ├── ...
+│   │   └── ch24_fsm_basics/
+│   └── peripheral/
+│       └── ch01_uart_tx/
 ├── css/
 │   └── style.css
 └── README.md

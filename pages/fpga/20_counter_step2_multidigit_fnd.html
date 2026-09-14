@@ -113,7 +113,7 @@ end</code></pre>
 
 <section class="step-card summary"><h2>핵심 정리</h2><ul><li>2자리 BCD Counter는 낮은 자리의 9→0 전환을 다음 자리 증가 조건으로 사용합니다.</li><li>4자리 BCD Counter는 같은 자리 올림 구조를 4단계로 확장합니다.</li><li>FND Multiplexing은 4자리 중 하나를 빠르게 선택하고 동일 Segment Decoder를 공유합니다.</li><li>Counter 증가 Tick과 FND Scan은 서로 다른 목적의 제어 신호이지만 동일한 기준 Clock Domain에서 동작합니다.</li><li>0.1초 Count 기준은 0.05초 Tick 2회로 생성하며, 100MHz에서 0.05초 비교값은 4,999,999입니다.</li><li>이 구조는 이후 시계·타이머·스톱워치와 같은 다자리 표시 시스템의 기본이 됩니다.</li></ul></section>
 
-<nav aria-label="챕터 이동" class="chapter-nav"><a href="19_counter_step1_tick_bcd_fnd.html">← 이전: Counter Step 1</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="21_stopwatch_structured_rtl.html">다음: Stopwatch →</a></nav>
+<nav aria-label="챕터 이동" class="chapter-nav"><a href="19_counter_step1_tick_bcd_fnd.html">← 이전: Counter Step 1</a><a class="home" href="../../index.html">🏠 홈</a><span class="disabled next">다음 챕터 준비 중 →</span></nav>
 </main></div>
 <footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
 <script>(()=>{const links=[...document.querySelectorAll('.timeline a')];const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);if(!links.length||!targets.length||!('IntersectionObserver'in window))return;const activate=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id));const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top));if(visible.length)activate(visible[0].target.id);},{rootMargin:'-12% 0px -78% 0px',threshold:[0,1]});targets.forEach(t=>observer.observe(t));activate(targets[0].id);})();</script>
