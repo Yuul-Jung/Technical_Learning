@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Basys3 UART RX 1문자 수신을 위해 2-FF Synchronizer, 16x Oversampling, UART RX FSM, 16Byte FIFO, rx_valid/rx_ready 구조를 설명하는 RTL 주변기기 회로설계 자료" name="description"/>
+<title>02. UART RX Core · 1문자 수신 RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+      <strong>02. UART RX</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">RTL 주변기기 회로설계 · 02</p>
+    <h1>UART RX Core · 1문자 수신 RTL 실습</h1>
+    <p class="hero-desc">
+      PC에서 들어오는 UART 8N1 신호를 2-FF로 동기화하고,
+      16x Oversampling으로 비트 중앙을 찾아 D0~D7을 수신한 뒤
+      정상 Byte를 16Byte FIFO에 저장합니다.
+    </p>
+    <div class="hero-meta">
+      <span class="chip">UART RX</span>
+      <span class="chip">8N1</span>
+      <span class="chip">2-FF Synchronizer</span>
+      <span class="chip">16x Oversampling</span>
+      <span class="chip">16Byte FIFO</span>
+    </div>
+
+    <div class="hero-brief">
+      <article><h2>동기화</h2><p><code>RsRx</code>는 외부 비동기 입력이므로 2단 Flip-Flop을 거쳐 FSM에 전달합니다.</p></article>
+      <article><h2>샘플링</h2><p>9600bps를 16배 Oversampling하여 Start·Data·Stop Bit의 중앙에서 값을 확인합니다.</p></article>
+      <article><h2>버퍼링</h2><p>정상 수신된 1Byte는 FIFO에 저장되고 <code>rx_valid / rx_ready</code>로 읽습니다.</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">UART RX FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. 입력 · Timing</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>전체 구조</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>2-FF 동기화</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>16x Oversampling</span></a></li>
+  </ol>
+
+  <p class="phase">B. 수신 처리</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>RX FSM</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>Frame Error</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>RX FIFO</span></a></li>
+  </ol>
+
+  <p class="phase">C. Core · Board</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>rx_valid / ready</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>Basys3 검증</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>전체 데이터 흐름</h2>
+  <div class="stage-flow">
+    <span class="stage">PC / Terminal</span><span class="arrow">→</span>
+    <span class="stage">RsRx</span><span class="arrow">→</span>
+    <span class="stage">2-FF Sync</span><span class="arrow">→</span>
+    <span class="stage">RX FSM</span><span class="arrow">→</span>
+    <span class="stage">16Byte FIFO</span><span class="arrow">→</span>
+    <span class="stage">LED</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. UART RX Core 전체 구조</h2>
+
+  <pre class="codeblock-pre"><code>RsRx
+ ↓
+uart_rx_sync
+ ↓ rx_sync
+uart_rx_fsm ← uart_baud_tick_gen
+ ↓ rx_data / rx_done
+uart_rx_fifo
+ ↓
+rx_data / rx_valid / rx_ready
+ ↓
+basys3_uart_rx_top
+ ↓
+LED 표시</code></pre>
+
+  <div class="flow">
+    IDLE → Start Bit → D0 → D1 → ... → D7 → Stop Bit → 1 Byte
+  </div>
+
+  <p>
+    정상 수신된 Byte만 FIFO에 저장합니다.
+    Stop Bit 오류는 <code>frame_error</code>, FIFO Full 상태의 추가 수신은
+    <code>overrun_error</code>로 구분합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. 비동기 RsRx 입력을 2-FF로 동기화</h2>
+
+  <pre class="codeblock-pre"><code>always @(posedge clk) begin
+    if (reset) begin
+        rx_meta_reg &lt;= 1'b1;
+        rx_sync_reg &lt;= 1'b1;
+    end
+    else begin
+        rx_meta_reg &lt;= rx_async;
+        rx_sync_reg &lt;= rx_meta_reg;
+    end
+end</code></pre>
+
+  <div class="flow">
+    RsRx → rx_meta_reg → rx_sync_reg → UART RX FSM
+  </div>
+
+  <div class="note">
+    UART 입력은 FPGA의 100MHz Clock과 비동기입니다.
+    2-FF Synchronizer(동기화기)는 외부 RX 신호를 내부 Clock 기준으로 정리하고
+    메타안정성 전파 위험을 줄이는 역할을 합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. 16x Oversampling과 Sample Tick</h2>
+
+  <div class="flow">
+    UART = 9600 bps<br/>
+    9600 × 16 → 153,600 Sample/s<br/>
+    100,000,000 ÷ 153,600 → 약 651<br/>
+    CLKS_PER_SAMPLE → 651
+  </div>
+
+  <pre class="codeblock-pre"><code>parameter CLKS_PER_SAMPLE = 651;</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>항목</th><th>값</th></tr></thead>
+      <tbody>
+        <tr><td>Basys3 Clock</td><td>100 MHz</td></tr>
+        <tr><td>UART Baud</td><td>9600 bps</td></tr>
+        <tr><td>Oversampling</td><td>16x</td></tr>
+        <tr><td>Sample Tick</td><td>153,600 Hz</td></tr>
+        <tr><td><code>CLKS_PER_SAMPLE</code></td><td>651</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. UART RX FSM — 중앙 샘플링</h2>
+
+  <div class="stage-flow">
+    <span class="stage">S_IDLE</span><span class="arrow">→</span>
+    <span class="stage">S_START</span><span class="arrow">→</span>
+    <span class="stage">S_DATA</span><span class="arrow">→</span>
+    <span class="stage">S_STOP</span><span class="arrow">→</span>
+    <span class="stage">S_IDLE</span>
+  </div>
+
+  <h3>Start Bit</h3>
+  <pre class="codeblock-pre"><code>if (rx_sync == 1'b0)
+    state &lt;= S_START;</code></pre>
+
+  <p>
+    처음 0이 보였다는 이유만으로 Start Bit를 확정하지 않습니다.
+    16x Oversampling의 반 비트 위치인 8번째 Sample 부근까지 기다린 뒤
+    중앙에서도 0인지 다시 확인합니다.
+  </p>
+
+  <h3>Data Bit</h3>
+  <pre class="codeblock-pre"><code>shift_reg[bit_count] &lt;= rx_sync;</code></pre>
+
+  <p>
+    이후 16 Sample Tick마다 다음 Data Bit 중앙을 읽으며,
+    UART는 LSB First이므로 첫 번째 Data Bit를 <code>shift_reg[0]</code>에 저장합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. Stop Bit · rx_done · frame_error</h2>
+
+  <pre class="codeblock-pre"><code>if (rx_sync == 1'b1) begin
+    data_reg &lt;= shift_reg;
+    done_reg &lt;= 1'b1;
+end
+else begin
+    frame_error_reg &lt;= 1'b1;
+end</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Stop Bit</th><th>판정</th><th>출력</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>정상 8N1 Frame</td><td><code>rx_done=1</code></td></tr>
+        <tr><td>0</td><td>Frame 형식 오류</td><td><code>frame_error=1</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><code>rx_done</code>과 <code>frame_error</code>는 모두 1 Clock Pulse로 사용합니다.</p>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. UART RX FIFO — 8bit × 16</h2>
+
+  <pre class="codeblock-pre"><code>reg [7:0] mem [0:FIFO_DEPTH-1];
+
+parameter FIFO_DEPTH = 16;
+parameter ADDR_WIDTH = 4;
+
+reg [ADDR_WIDTH:0] count;</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>항목</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td>저장 공간</td><td>8bit × 16개</td></tr>
+        <tr><td>Write</td><td><code>rx_done=1</code>일 때 정상 Byte 저장</td></tr>
+        <tr><td>Read</td><td><code>rx_ready=1</code>일 때 1Byte 소비</td></tr>
+        <tr><td>Empty</td><td>저장된 데이터 없음</td></tr>
+        <tr><td>Full</td><td>16개 저장됨</td></tr>
+        <tr><td>Overrun</td><td>Full 상태에서 새 Write 요청</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>assign valid = !empty;
+assign write_ok = wr_en &amp;&amp; !full;
+assign read_ok  = rd_en &amp;&amp; !empty;
+assign rd_data  = mem[rd_ptr];</code></pre>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. UART RX Core의 rx_valid / rx_ready</h2>
+
+  <pre class="codeblock-pre"><code>output [7:0] rx_data;
+output       rx_valid;
+input        rx_ready;</code></pre>
+
+  <div class="flow">
+    FIFO에 데이터 존재
+    → rx_valid=1
+    → Consumer가 rx_ready=1
+    → FIFO에서 1Byte Read
+  </div>
+
+  <p>현재 원본 Top Module에서는 데이터를 오래 쌓아두지 않고 다음처럼 즉시 읽습니다.</p>
+
+  <pre class="codeblock-pre"><code>assign rx_ready = rx_valid;</code></pre>
+
+  <div class="warn">
+    <strong>검증 메모:</strong> 이 자료는 원본의 <code>rx_valid / rx_ready</code> 기반 FIFO 인터페이스를 그대로 유지합니다.
+    이후 재사용 가능한 주변기기 라이브러리로 확장할 때는 현재 프로젝트의 표준 Byte Stream 인터페이스와 연결 관계를 별도 챕터에서 정리합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. Basys3 1문자 수신 확인</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>LED</th><th>연결 신호</th><th>의미</th></tr></thead>
+      <tbody>
+        <tr><td>LED[7:0]</td><td><code>last_rx_data</code></td><td>마지막 수신 Byte</td></tr>
+        <tr><td>LED8</td><td><code>rx_valid</code></td><td>FIFO 데이터 존재</td></tr>
+        <tr><td>LED9</td><td><code>rx_empty</code></td><td>FIFO Empty</td></tr>
+        <tr><td>LED10</td><td><code>rx_full</code></td><td>FIFO Full</td></tr>
+        <tr><td>LED11</td><td><code>frame_error_latched</code></td><td>Stop Bit 오류 이력</td></tr>
+        <tr><td>LED12</td><td><code>overrun_error</code></td><td>FIFO Overrun</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flow">
+    PC에서 문자 'A' 전송
+    → ASCII 0x41
+    → UART RX 8N1 수신
+    → FIFO 저장
+    → Top 즉시 Read
+    → LED[7:0]에 0100_0001 표시
+  </div>
+
+  <p>
+    RX 전용 실습이므로 사용하지 않는 <code>RsTx</code>는 UART Idle 상태인 1로 고정합니다.
+  </p>
+
+  <div class="note">
+    원본의 회로도·Waveform 이미지는 임시 서명 URL이므로 GitHub Pages에 직접 연결하지 않았습니다.
+    실제 Vivado Simulation 결과는 Repository 내부 <code>images/</code>에 저장한 뒤 상대경로로 추가하는 방식이 적합합니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>외부 UART RX는 2-FF Synchronizer를 거쳐 FPGA Clock에 동기화합니다.</li>
+    <li>9600bps 수신은 16x Oversampling을 사용하며 100MHz 기준 <code>CLKS_PER_SAMPLE=651</code>입니다.</li>
+    <li>Start Bit는 처음 0을 검출한 뒤 반 비트 위치에서 다시 확인하여 Noise를 걸러냅니다.</li>
+    <li>D0~D7을 LSB First로 수신하고 Stop Bit가 1일 때만 정상 Byte를 확정합니다.</li>
+    <li>정상 Byte는 8bit × 16 FIFO에 저장하며 <code>rx_valid / rx_ready</code>로 읽습니다.</li>
+    <li>Frame Error와 FIFO Overrun을 별도 오류 신호로 구분합니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="01_uart_tx_fifo_fsm.html">← 이전: 01. UART TX</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <span class="disabled next">03. UART RX 연속문자 준비 중 →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>

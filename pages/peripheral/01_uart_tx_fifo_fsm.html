@@ -119,7 +119,7 @@ abcdefghijklmnopqrstuvwxyzabc...</code></pre>
 
 <section class="step-card summary"><h2>핵심 정리</h2><ul><li>버튼 입력은 Debounce 후 1-Clock Pulse로 변환해 송신 요청에 사용합니다.</li><li>FIFO는 최대 16Byte의 송신 대기 데이터를 순서대로 저장합니다.</li><li>Sender는 <code>fifo_empty</code>와 <code>tx_busy</code>를 확인해 한 Byte씩 TX FSM에 전달합니다.</li><li>TX FSM은 8N1 형식으로 Start 0 → D0~D7 → Stop 1을 직렬 출력합니다.</li><li>100MHz / 9600bps 기준 <code>CLKS_PER_BIT=10417</code>을 사용합니다.</li><li>Top은 <code>btnC → ASCII → FIFO → Sender → FSM → RsTx</code> 흐름을 연결합니다.</li></ul></section>
 
-<nav aria-label="챕터 이동" class="chapter-nav"><a href="../fpga/24_fsm_moore_mealy.html">← 이전 분야: FSM</a><a class="home" href="../../index.html">🏠 홈</a><span class="disabled next">02. UART RX 준비 중 →</span></nav>
+<nav aria-label="챕터 이동" class="chapter-nav"><a href="../fpga/24_fsm_moore_mealy.html">← 이전 분야: FSM</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="02_uart_rx_core_single_byte.html">다음: 02. UART RX →</a></nav>
 </main></div>
 <footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
 <script>(()=>{const links=[...document.querySelectorAll('.timeline a')];const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);if(!links.length||!targets.length||!('IntersectionObserver'in window))return;const activate=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id));const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top));if(visible.length)activate(visible[0].target.id);},{rootMargin:'-12% 0px -78% 0px',threshold:[0,1]});targets.forEach(t=>observer.observe(t));activate(targets[0].id);})();</script>
