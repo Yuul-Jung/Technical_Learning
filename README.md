@@ -38,6 +38,7 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 
 01. UART TX · FIFO · Sender · 8N1 FSM RTL 실습
 02. UART RX Core · 1문자 수신 RTL 실습
+03. UART RX 연속문자 · BRAM Line Buffer RTL 실습
 
 > UART부터는 Digital / FPGA 기초 번호와 분리하여 `01`부터 별도 번호 체계로 관리합니다.
 
@@ -55,7 +56,8 @@ Technical_Learning/
 │   │   └── 24_fsm_moore_mealy.html
 │   └── peripheral/
 │       ├── 01_uart_tx_fifo_fsm.html
-│       └── 02_uart_rx_core_single_byte.html
+│       ├── 02_uart_rx_core_single_byte.html
+│       └── 03_uart_rx_continuous_bram_line_buffer.html
 ├── images/
 ├── code/
 │   ├── fpga/
@@ -64,7 +66,8 @@ Technical_Learning/
 │   │   └── ch24_fsm_basics/
 │   └── peripheral/
 │       ├── ch01_uart_tx/
-│       └── ch02_uart_rx/
+│       ├── ch02_uart_rx/
+│       └── ch03_uart_rx_continuous/
 ├── css/
 │   └── style.css
 └── README.md
