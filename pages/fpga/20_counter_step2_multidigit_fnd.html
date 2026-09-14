@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Counter Step 2: 2자리/4자리 BCD Counter, 자리 올림, FND Multiplexing, Basys3 4자리 FND 종합 실습" name="description"/>
+<title>Counter Step 2 · Multi-Digit BCD · FND Multiplexing</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner"><div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>Digital / FPGA</span><span class="sep">/</span><strong>Counter Step 2</strong></div><div class="brand">PE. JUNG · TECHNICAL NOTES</div></div></div>
+<header class="hero"><div aria-hidden="true" class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">Digital / FPGA · Chapter 20</p>
+<h1>Counter Step 2 · Multi-Digit BCD · FND Multiplexing</h1>
+<p class="hero-desc">1자리 Counter를 2자리·4자리 BCD로 확장하고, 자리 올림과 4자리 FND Multiplexing을 결합하여 Basys3에서 0000~9999를 표시합니다.</p>
+<div class="hero-meta"><span class="chip">2-Digit BCD</span><span class="chip">4-Digit BCD</span><span class="chip">Carry</span><span class="chip">FND Multiplexing</span><span class="chip">Basys3</span></div>
+<div class="hero-brief"><article><h2>Count</h2><p><code>enable && tick</code> 조건에서만 BCD 값이 증가합니다.</p></article><article><h2>Carry</h2><p>낮은 자리가 9→0으로 바뀌는 순간 높은 자리를 증가시킵니다.</p></article><article><h2>Scan</h2><p>FND Scan은 Counter 증가와 독립적으로 빠르게 4자리를 순환합니다.</p></article></div>
+</div></header>
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 진행 순서"><p class="nav-title">COUNTER STEP 2</p><p class="nav-help">STEP 01 → 08</p>
+<p class="phase">A. Multi-Digit BCD</p><ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>Step 2 개요</span></a></li><li><a href="#step02"><span class="n">02</span><span>2자리 BCD</span></a></li><li><a href="#step03"><span class="n">03</span><span>4자리 BCD</span></a></li></ol>
+<p class="phase">B. FND Multiplexing</p><ol class="timeline"><li><a href="#step04"><span class="n">04</span><span>Digit 선택</span></a></li><li><a href="#step05"><span class="n">05</span><span>7-Segment 변환</span></a></li><li><a href="#step06"><span class="n">06</span><span>Scan Counter</span></a></li></ol>
+<p class="phase">C. Basys3</p><ol class="timeline"><li><a href="#step07"><span class="n">07</span><span>4자리 종합</span></a></li><li><a href="#step08"><span class="n">08</span><span>검증 포인트</span></a></li></ol></aside>
+<main>
+<div class="overview-card"><h2>전체 흐름</h2><div class="stage-flow"><span class="stage">0.1s Tick</span><span class="arrow">→</span><span class="stage">4-Digit BCD</span><span class="arrow">→</span><span class="stage">Digit Select</span><span class="arrow">→</span><span class="stage">7-Segment</span><span class="arrow">→</span><span class="stage">FND Scan</span></div></div>
+
+<section class="step-card" id="step01"><span class="step">STEP 01</span><h2>1. Counter Step 2의 설계 기준</h2>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>기준</th></tr></thead><tbody><tr><td>Counter 증가</td><td><code>enable && tick</code></td></tr><tr><td>Tick</td><td>Clock이 아니라 Enable</td></tr><tr><td>FND Scan</td><td>Counter 증가와 별도 동작</td></tr><tr><td>0.1초 Count</td><td>0.05초 Tick 2회</td></tr><tr><td>보드 종합</td><td>4자리 FND를 빠르게 순환 선택</td></tr></tbody></table></div>
+<div class="flow">100MHz → 0.05초 Tick → 0.1초 Tick → BCD Count<br/>100MHz → Scan Counter → Digit Select</div>
+<div class="warn"><strong>핵심:</strong> Count 시간축과 FND Scan 시간축은 목적이 다릅니다. 두 기능 모두 같은 기준 Clock을 사용하되 서로 다른 Enable/Counter로 제어합니다.</div></section>
+
+<section class="step-card" id="step02"><span class="step">STEP 02</span><h2>2. 2자리 BCD Counter — 00~99</h2>
+<pre class="codeblock-pre"><code>if (enable &amp;&amp; tick) begin
+    if (digit0 == 4'd9) begin
+        digit0 &lt;= 4'd0;
+
+        if (digit1 == 4'd9)
+            digit1 &lt;= 4'd0;
+        else
+            digit1 &lt;= digit1 + 1'b1;
+    end
+    else begin
+        digit0 &lt;= digit0 + 1'b1;
+    end
+end</code></pre>
+<div class="flow">08 → 09 → 10 → ... → 98 → 99 → 00</div>
+<p><code>digit0</code>은 1의 자리, <code>digit1</code>은 10의 자리입니다. 1의 자리가 9에서 0으로 돌아갈 때만 10의 자리가 증가합니다.</p></section>
+
+<section class="step-card" id="step03"><span class="step">STEP 03</span><h2>3. 4자리 BCD Counter — 0000~9999</h2>
+<div class="flow">digit0 Carry → digit1 Carry → digit2 Carry → digit3 Carry</div>
+<pre class="codeblock-pre"><code>if (digit0 == 4'd9) begin
+    digit0 &lt;= 4'd0;
+    if (digit1 == 4'd9) begin
+        digit1 &lt;= 4'd0;
+        if (digit2 == 4'd9) begin
+            digit2 &lt;= 4'd0;
+            if (digit3 == 4'd9)
+                digit3 &lt;= 4'd0;
+            else
+                digit3 &lt;= digit3 + 1'b1;
+        end
+        else
+            digit2 &lt;= digit2 + 1'b1;
+    end
+    else
+        digit1 &lt;= digit1 + 1'b1;
+end</code></pre>
+<div class="table-wrap"><table><thead><tr><th>전환</th><th>결과</th></tr></thead><tbody><tr><td>0009</td><td>0010</td></tr><tr><td>0099</td><td>0100</td></tr><tr><td>0999</td><td>1000</td></tr><tr><td>9999</td><td>0000</td></tr></tbody></table></div></section>
+
+<section class="step-card" id="step04"><span class="step">STEP 04</span><h2>4. FND Multiplexing — Digit 선택</h2>
+<p>Basys3의 4자리 FND는 Segment 선을 공유하므로 한 순간에는 한 자리만 선택하고, 빠르게 순환하여 동시에 켜진 것처럼 보이게 합니다.</p>
+<pre class="codeblock-pre"><code>case (digit_sel)
+    2'd0: begin current_digit = digit0; an = 4'b1110; end
+    2'd1: begin current_digit = digit1; an = 4'b1101; end
+    2'd2: begin current_digit = digit2; an = 4'b1011; end
+    2'd3: begin current_digit = digit3; an = 4'b0111; end
+endcase</code></pre>
+<div class="flow">digit_sel → 현재 BCD 선택 → current_digit → 해당 an 활성화</div></section>
+
+<section class="step-card" id="step05"><span class="step">STEP 05</span><h2>5. 선택된 Digit을 7-Segment 코드로 변환</h2>
+<pre class="codeblock-pre"><code>case (current_digit)
+    4'd0: seg = 7'b1000000;
+    4'd1: seg = 7'b1111001;
+    4'd2: seg = 7'b0100100;
+    ...
+    4'd9: seg = 7'b0010000;
+    default: seg = 7'b1111111;
+endcase</code></pre>
+<p>먼저 어떤 BCD Digit을 표시할지 선택하고, 그 값을 동일한 7-Segment Decoder에 넣습니다. 따라서 4개 Decoder를 따로 둘 필요가 없습니다.</p></section>
+
+<section class="step-card" id="step06"><span class="step">STEP 06</span><h2>6. FND Scan Counter</h2>
+<pre class="codeblock-pre"><code>always @(posedge clk) begin
+    if (btnU) begin
+        scan_div &lt;= 16'd0;
+        digit_sel &lt;= 2'd0;
+    end
+    else begin
+        scan_div &lt;= scan_div + 1'b1;
+        digit_sel &lt;= scan_div[15:14];
+    end
+end</code></pre>
+<div class="flow">100MHz Clock → scan_div 증가 → 상위 2bit → 00,01,10,11 → 4자리 반복 선택</div>
+<div class="note">Scan은 표시를 위한 빠른 반복 동작이고, 0.1초 Counter 증가는 사람이 확인할 수 있는 느린 동작입니다.</div></section>
+
+<section class="step-card" id="step07"><span class="step">STEP 07</span><h2>7. Basys3 4자리 FND Counter 종합</h2>
+<h3>Tick 계산</h3><div class="flow">100MHz → 0.05초 = 5,000,000 Clock → 비교값 4,999,999<br/>0.05초 Tick 2회 → tick_0p1s 1회</div>
+<div class="table-wrap"><table><thead><tr><th>자원</th><th>역할</th></tr></thead><tbody><tr><td><code>btnU</code></td><td>동기 Reset</td></tr><tr><td><code>sw[0]</code></td><td>Counter Enable</td></tr><tr><td><code>led[3:0]</code></td><td>digit0 확인</td></tr><tr><td><code>led[7:4]</code></td><td>digit1 확인</td></tr><tr><td><code>led[8]</code></td><td>0.05초 Tick 확인</td></tr><tr><td><code>led[9]</code></td><td>0.1초 Tick 확인</td></tr><tr><td><code>an[3:0]</code></td><td>4자리 순환 선택</td></tr><tr><td><code>seg[6:0]</code></td><td>현재 Digit 숫자 표시</td></tr></tbody></table></div>
+<p>원본 Step 2-4는 Basys3 보드 종합 실습 단계로 제시되어 있으며, Counter와 Scan 회로가 동시에 동작하는 것을 확인하는 것이 핵심입니다.</p></section>
+
+<section class="step-card" id="step08"><span class="step">STEP 08</span><h2>8. Simulation · FPGA 검증 포인트</h2>
+<div class="table-wrap"><table><thead><tr><th>확인 항목</th><th>정상 동작</th></tr></thead><tbody><tr><td>2자리 Carry</td><td>09→10, 99→00</td></tr><tr><td>4자리 Carry</td><td>0099→0100, 0999→1000, 9999→0000</td></tr><tr><td>Enable</td><td>0이면 모든 Digit 유지</td></tr><tr><td>FND Scan</td><td>4개 Digit을 빠르게 반복 선택</td></tr><tr><td>Segment</td><td>선택된 current_digit만 변환</td></tr><tr><td>Clock 구조</td><td>Tick과 Scan을 별도 Clock으로 사용하지 않음</td></tr></tbody></table></div>
+<div class="note">원본의 보드·Waveform 이미지는 임시 서명 URL이므로 GitHub Pages에 직접 연결하지 않았습니다. 실제 Vivado 결과 이미지는 Repository의 <code>images/</code>에 저장해 추가하는 방식이 적합합니다.</div></section>
+
+<section class="step-card summary"><h2>핵심 정리</h2><ul><li>2자리 BCD Counter는 낮은 자리의 9→0 전환을 다음 자리 증가 조건으로 사용합니다.</li><li>4자리 BCD Counter는 같은 자리 올림 구조를 4단계로 확장합니다.</li><li>FND Multiplexing은 4자리 중 하나를 빠르게 선택하고 동일 Segment Decoder를 공유합니다.</li><li>Counter 증가 Tick과 FND Scan은 서로 다른 목적의 제어 신호이지만 동일한 기준 Clock Domain에서 동작합니다.</li><li>0.1초 Count 기준은 0.05초 Tick 2회로 생성하며, 100MHz에서 0.05초 비교값은 4,999,999입니다.</li><li>이 구조는 이후 시계·타이머·스톱워치와 같은 다자리 표시 시스템의 기본이 됩니다.</li></ul></section>
+
+<nav aria-label="챕터 이동" class="chapter-nav"><a href="19_counter_step1_tick_bcd_fnd.html">← 이전: Counter Step 1</a><a class="home" href="../../index.html">🏠 홈</a><span class="disabled next">다음 챕터 준비 중 →</span></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+<script>(()=>{const links=[...document.querySelectorAll('.timeline a')];const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);if(!links.length||!targets.length||!('IntersectionObserver'in window))return;const activate=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id));const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top));if(visible.length)activate(visible[0].target.id);},{rootMargin:'-12% 0px -78% 0px',threshold:[0,1]});targets.forEach(t=>observer.observe(t));activate(targets[0].id);})();</script>
+</body>
+</html>

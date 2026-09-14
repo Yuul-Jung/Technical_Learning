@@ -21,6 +21,9 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 15. 순차회로와 Latch 기초
 16. D Flip-Flop · Edge Triggered RTL 실습
 17. 8bit Register · Enable · Load · Reset RTL 실습
+18. Shift Register · Serial/Parallel 변환 RTL 실습
+19. Counter Step 1 · Tick · BCD · FND RTL 실습
+20. Counter Step 2 · Multi-Digit BCD · FND Multiplexing
 
 ## 기본 구조
 
@@ -46,7 +49,10 @@ Technical_Learning/
 │       ├── 14_tristate_shared_bus.html
 │       ├── 15_sequential_logic_latch.html
 │       ├── 16_d_flipflop_edge_triggered.html
-│       └── 17_register_enable_load_reset.html
+│       ├── 17_register_enable_load_reset.html
+│       ├── 18_shift_register_serial_parallel.html
+│       ├── 19_counter_step1_tick_bcd_fnd.html
+│       └── 20_counter_step2_multidigit_fnd.html
 ├── images/
 ├── code/
 │   └── fpga/
@@ -61,7 +67,10 @@ Technical_Learning/
 │       ├── ch14_tristate_bus/
 │       ├── ch15_sequential_latch/
 │       ├── ch16_d_flipflop/
-│       └── ch17_register/
+│       ├── ch17_register/
+│       ├── ch18_shift_register/
+│       ├── ch19_counter_step1/
+│       └── ch20_counter_step2/
 ├── css/
 │   └── style.css
 └── README.md

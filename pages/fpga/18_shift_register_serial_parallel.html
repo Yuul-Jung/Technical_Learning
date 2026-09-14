@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Register에 데이터 이동 기능을 추가한 Shift Register의 SISO, SIPO, PISO, 좌우 이동, Universal Shift Register와 Basys3 실습을 정리한 FPGA RTL 학습자료" name="description"/>
+<title>Shift Register · Serial/Parallel 변환 RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>Digital / FPGA</span><span class="sep">/</span>
+      <strong>Shift Register</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">Digital / FPGA · Chapter 18</p>
+    <h1>Shift Register · Serial/Parallel 변환 RTL 실습</h1>
+    <p class="hero-desc">
+      Register의 저장 기능에 비트 이동 기능을 추가하고,
+      SISO·SIPO·PISO 구조와 좌우 Shift, Universal Shift Register를 Verilog로 구현합니다.
+    </p>
+    <div class="hero-meta">
+      <span class="chip">Shift Register</span>
+      <span class="chip">SISO / SIPO / PISO</span>
+      <span class="chip">Concatenation</span>
+      <span class="chip">Universal Shift</span>
+      <span class="chip">Basys3</span>
+    </div>
+
+    <div class="hero-brief">
+      <article>
+        <h2>Register</h2>
+        <p>여러 bit 데이터를 Clock Edge에서 저장합니다.</p>
+      </article>
+      <article>
+        <h2>Shift Register</h2>
+        <p>데이터 저장과 함께 Clock마다 한 bit씩 이동합니다.</p>
+      </article>
+      <article>
+        <h2>응용</h2>
+        <p>UART·SPI 직렬 통신, CPU Shift, 영상처리 Pixel 이동, DSP Delay Line과 연결됩니다.</p>
+      </article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">SHIFT REGISTER FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. 기본 원리</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>개념 · 종류</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>Shift 방향</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>SISO</span></a></li>
+  </ol>
+
+  <p class="phase">B. 데이터 변환</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>Left / Right</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>SIPO</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>PISO</span></a></li>
+  </ol>
+
+  <p class="phase">C. 통합 · 보드</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>Universal Shift</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>Basys3 실습</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>전체 학습 흐름</h2>
+  <div class="stage-flow">
+    <span class="stage">Register<br/>저장</span>
+    <span class="arrow">→</span>
+    <span class="stage">Shift<br/>비트 이동</span>
+    <span class="arrow">→</span>
+    <span class="stage">Serial ↔ Parallel</span>
+    <span class="arrow">→</span>
+    <span class="stage">UART · SPI</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. Shift Register란?</h2>
+
+  <p>
+    Shift Register는 여러 Flip-Flop에 저장된 데이터를 Clock 상승 Edge마다
+    한 비트씩 이동시키는 순차회로입니다.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>구분</th><th>Register</th><th>Shift Register</th></tr></thead>
+      <tbody>
+        <tr><td>기능</td><td>저장</td><td>저장 + 이동</td></tr>
+        <tr><td>데이터 변화</td><td>저장값 유지</td><td>Clock마다 한 bit 이동</td></tr>
+        <tr><td>구조</td><td>Flip-Flop 배열</td><td>Flip-Flop + 이동 논리</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flow">
+    Din → FF → FF → FF → FF → Dout<br/>
+    Clock 상승 Edge마다 데이터가 한 단계 이동
+  </div>
+
+  <h3>대표 종류</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>종류</th><th>영문</th><th>데이터 흐름</th></tr></thead>
+      <tbody>
+        <tr><td>SISO</td><td>Serial In Serial Out</td><td>직렬 입력 → 직렬 출력</td></tr>
+        <tr><td>SIPO</td><td>Serial In Parallel Out</td><td>직렬 입력 → 병렬 출력</td></tr>
+        <tr><td>PISO</td><td>Parallel In Serial Out</td><td>병렬 입력 → 직렬 출력</td></tr>
+        <tr><td>PIPO</td><td>Parallel In Parallel Out</td><td>병렬 입력 → 병렬 출력</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. Shift 방향과 Concatenation</h2>
+
+  <h3>Shift Left</h3>
+  <pre class="codeblock-pre"><code>q &lt;= {q[2:0], din};</code></pre>
+
+  <p>
+    기존 <code>q[2:0]</code>이 상위 bit 방향으로 이동하고,
+    새로운 <code>din</code>이 <code>q[0]</code> 위치로 들어옵니다.
+  </p>
+
+  <h3>Shift Right</h3>
+  <pre class="codeblock-pre"><code>q &lt;= {din, q[3:1]};</code></pre>
+
+  <p>
+    기존 <code>q[3:1]</code>이 하위 bit 방향으로 이동하고,
+    새로운 <code>din</code>이 <code>q[3]</code> 위치로 들어옵니다.
+  </p>
+
+  <div class="note">
+    <strong>Concatenation(컨캐터네이션, 비트 연결)</strong>은 여러 bit를 하나의 Vector로 묶는 문법입니다.
+    예를 들어 <code>{q[2:0], din}</code>은 총 4bit입니다.
+  </div>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. SISO — Serial In Serial Out</h2>
+
+  <pre class="codeblock-pre"><code>module shift_register_siso(
+    input clk,
+    input din,
+    output serial_out,
+    output reg [3:0] q
+);
+
+assign serial_out = q[3];
+
+always @(posedge clk) begin
+    q &lt;= {q[2:0], din};
+end
+
+endmodule</code></pre>
+
+  <div class="flow">
+    din → q[0] → q[1] → q[2] → q[3] → serial_out
+  </div>
+
+  <p>
+    원본 실습에서는 SISO 동작을 확인하면서 Waveform 관찰을 위해
+    내부 상태 <code>q[3:0]</code>도 함께 출력합니다.
+  </p>
+
+  <h3>입력 예</h3>
+  <pre class="codeblock-pre"><code>din = 0
+  ↓ Clock
+din = 1
+  ↓ Clock
+din = 0
+  ↓ Clock
+din = 1
+  ↓ Clock
+din = 1</code></pre>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. Left / Right Shift 선택</h2>
+
+  <pre class="codeblock-pre"><code>always @(posedge clk) begin
+    if (dir == 1'b0)
+        q &lt;= {q[2:0], din}; // Left Shift
+    else
+        q &lt;= {din, q[3:1]}; // Right Shift
+end</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>dir</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>Shift Left</td></tr>
+        <tr><td>1</td><td>Shift Right</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    하나의 Register에서도 제어 신호에 따라 데이터 이동 방향을 바꿀 수 있습니다.
+  </p>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. SIPO — Serial In Parallel Out</h2>
+
+  <pre class="codeblock-pre"><code>module shift_register_sipo(
+    input clk,
+    input din,
+    output reg [3:0] q
+);
+
+always @(posedge clk) begin
+    q &lt;= {q[2:0], din};
+end
+
+endmodule</code></pre>
+
+  <div class="stage-flow">
+    <span class="stage">Serial Input</span>
+    <span class="arrow">→</span>
+    <span class="stage">Clock마다 누적</span>
+    <span class="arrow">→</span>
+    <span class="stage">q[3:0] Parallel Output</span>
+  </div>
+
+  <p>
+    직렬 bit가 Clock마다 Register에 누적되어 병렬 데이터가 됩니다.
+    원본 자료는 이를 UART 수신부의 기본 구조와 연결합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. PISO — Parallel In Serial Out</h2>
+
+  <pre class="codeblock-pre"><code>assign serial_out = q[0];   // LSB First 출력
+
+always @(posedge clk) begin
+    if (load)
+        q &lt;= pdata;
+    else
+        q &lt;= {1'b0, q[3:1]};
+end</code></pre>
+
+  <div class="flow">
+    Parallel Load → q[3:0] 저장 → 오른쪽 Shift → q[0]에서 Serial Output
+  </div>
+
+  <p>
+    원본은 <code>q[0]</code>을 직렬 출력으로 사용하므로
+    <strong>LSB First</strong> 방식입니다.
+  </p>
+
+  <h3>예: <code>pdata = 4'b1011</code></h3>
+  <pre class="codeblock-pre"><code>serial_out
+1 → 1 → 0 → 1</code></pre>
+
+  <p>원본 자료는 이 구조를 UART 송신부의 기본 구조와 연결합니다.</p>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. Universal Shift Register</h2>
+
+  <p>
+    여러 Shift 동작과 Parallel Load를 하나의 Register에 통합합니다.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>mode</th><th>기능</th><th>RTL 동작</th></tr></thead>
+      <tbody>
+        <tr><td>00</td><td>Hold</td><td><code>q &lt;= q</code></td></tr>
+        <tr><td>01</td><td>Serial In Shift</td><td><code>{serial_in, q[3:1]}</code></td></tr>
+        <tr><td>10</td><td>Serial Out Shift</td><td><code>{1'b0, q[3:1]}</code></td></tr>
+        <tr><td>11</td><td>Parallel Load</td><td><code>q &lt;= pdata</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre class="codeblock-pre"><code>always @(posedge clk) begin
+    if (reset)
+        q &lt;= 4'b0000;
+    else begin
+        case (mode)
+            2'b00: q &lt;= q;
+            2'b01: q &lt;= {serial_in, q[3:1]};
+            2'b10: q &lt;= {1'b0, q[3:1]};
+            2'b11: q &lt;= pdata;
+            default: q &lt;= q;
+        endcase
+    end
+end</code></pre>
+
+  <div class="note">
+    원본 자료는 Universal Shift Register가 SISO·SIPO·PISO·PIPO 구조를 모두 지원하는 통합 구조로 설명합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. Basys3 수동 실습</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>신호</th><th>Basys3 장치</th><th>역할</th></tr></thead>
+      <tbody>
+        <tr><td><code>btnC</code></td><td>Center Button</td><td>수동 Clock</td></tr>
+        <tr><td><code>btnU</code></td><td>Up Button</td><td>Parallel Load</td></tr>
+        <tr><td><code>sw[1:0]</code></td><td>SW1:SW0</td><td>mode</td></tr>
+        <tr><td><code>sw[7:4]</code></td><td>SW7:SW4</td><td>Parallel Data</td></tr>
+        <tr><td><code>sw[8]</code></td><td>SW8</td><td>Serial Input</td></tr>
+        <tr><td><code>led[3:0]</code></td><td>LED3:LED0</td><td>Parallel Output</td></tr>
+        <tr><td><code>led[4]</code></td><td>LED4</td><td>Serial Output</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Parallel Load 절차</h3>
+  <div class="flow">
+    SW7:SW4 데이터 설정
+    → btnU 누름
+    → btnC 1회
+    → q 저장
+    → btnU 해제
+    → mode 선택 후 btnC로 Shift
+  </div>
+
+  <div class="warn">
+    <strong>실습 주의:</strong> 원본에서는 이해를 위해 <code>btnC</code>를 수동 Clock으로 직접 사용합니다.
+    실제 FPGA 설계에서는 Button Debounce(디바운스)와 Synchronizer(동기화 회로)가 필요합니다.
+  </div>
+
+  <div class="note">
+    Notion 원본의 회로·Waveform 이미지는 임시 서명 URL이므로 GitHub Pages에 직접 연결하지 않았습니다.
+    실제 Vivado 결과 이미지는 Repository 내부 <code>images/</code>에 저장해 추가하는 방식이 적합합니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>Shift Register는 Register의 저장 기능에 bit 이동 기능을 추가한 순차회로입니다.</li>
+    <li>Shift Left는 <code>{q[2:0], din}</code>, Shift Right는 <code>{din, q[3:1]}</code> 형태로 표현할 수 있습니다.</li>
+    <li>SISO는 직렬 입력을 직렬 출력으로 전달하며, SIPO는 직렬 데이터를 병렬 데이터로 변환합니다.</li>
+    <li>PISO는 병렬 데이터를 저장한 뒤 Clock마다 직렬로 내보냅니다.</li>
+    <li>Universal Shift Register는 Hold·Serial Shift·Parallel Load를 하나의 회로에 통합합니다.</li>
+    <li>Shift Register는 이후 UART 송수신, SPI, CPU Shift 연산, Delay Line 설계와 직접 연결됩니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="17_register_enable_load_reset.html">← 이전: Register</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <a class="next" href="19_counter_step1_tick_bcd_fnd.html">다음: Counter Step 1 →</a>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+
+  const activate = id => {
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  };
+
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries
+      .filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>
