@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Ubuntu 24.04에서 AMD Vivado 2024.2를 설치하고 Basys3 FPGA 보드 인식까지 확인하는 절차" name="description"/>
+<title>Ubuntu에서 AMD Vivado 2024.2 설치</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner"><div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>환경구축</span><span class="sep">/</span><strong>Vivado 설치</strong></div><div class="brand">PE. JUNG · TECHNICAL NOTES</div></div></div>
+<header class="hero"><div aria-hidden="true" class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">Environment Setup · Chapter 01</p>
+<h1>Ubuntu에서 AMD Vivado 2024.2 설치</h1>
+<p class="hero-desc">Ubuntu 24.04 환경에서 Vivado를 설치하고, 케이블 드라이버와 Digilent 도구를 준비하여 Basys3 보드 인식까지 확인합니다.</p>
+<div class="hero-meta"><span class="chip">Ubuntu 24.04</span><span class="chip">Vivado 2024.2</span><span class="chip">Basys3</span><span class="chip">Artix-7</span></div>
+<div class="hero-brief"><article><h2>시작 조건</h2><p>Ubuntu 설치, 인터넷 연결, sudo 권한, Basys3와 USB 데이터 케이블을 준비합니다.</p></article><article><h2>핵심 설치</h2><p>필수 패키지 → Vivado → 환경 변수 → 케이블 드라이버 순서로 진행합니다.</p></article><article><h2>완료 기준</h2><p>Vivado 실행과 Basys3 장치 인식을 확인하면 환경구축이 완료됩니다.</p></article></div></div></header>
+<div class="wrap">
+<aside aria-label="설치 진행 순서" class="flow-nav"><p class="nav-title">INSTALL FLOW</p><p class="nav-help">STEP 00 → 15</p><p class="phase">A. 시스템 준비</p><ol class="timeline"><li><a href="#step00"><span class="n">00</span><span>사전 준비</span></a></li><li><a href="#step01"><span class="n">01</span><span>터미널 실행</span></a></li><li><a href="#step02"><span class="n">02</span><span>시스템 업데이트</span></a></li><li><a href="#step03"><span class="n">03</span><span>필수 패키지</span></a></li></ol><p class="phase">B. Vivado 설치</p><ol class="timeline"><li><a href="#step04"><span class="n">04</span><span>설치 파일 준비</span></a></li><li><a href="#step05"><span class="n">05</span><span>실행 권한</span></a></li><li><a href="#step06"><span class="n">06</span><span>설치 실행</span></a></li><li><a href="#step07"><span class="n">07</span><span>설치 옵션</span></a></li><li><a href="#step08"><span class="n">08</span><span>환경 변수</span></a></li><li><a href="#step09"><span class="n">09</span><span>Vivado 실행</span></a></li></ol><p class="phase">C. 보드 연결</p><ol class="timeline"><li><a href="#step10"><span class="n">10</span><span>케이블 드라이버</span></a></li><li><a href="#step11"><span class="n">11</span><span>Digilent Runtime</span></a></li><li><a href="#step12"><span class="n">12</span><span>Basys3 검색</span></a></li><li><a href="#step13"><span class="n">13</span><span>사용자 권한</span></a></li><li><a href="#step14"><span class="n">14</span><span>인식 최종 확인</span></a></li><li><a href="#step15"><span class="n">15</span><span>H/W 테스트</span></a></li></ol></aside>
+<main><div class="overview-card"><h2>전체 설치 흐름</h2><div aria-label="전체 설치 흐름" class="stage-flow"><span class="stage">시스템 준비</span><span class="arrow">→</span><span class="stage">필수 패키지</span><span class="arrow">→</span><span class="stage">Vivado 설치</span><span class="arrow">→</span><span class="stage">환경설정</span><span class="arrow">→</span><span class="stage">케이블 드라이버</span><span class="arrow">→</span><span class="stage">Digilent Runtime</span><span class="arrow">→</span><span class="stage">Basys3 인식</span></div></div>
+<section class="step-card" id="overview">
+<h2>1. 개요</h2>
+<div class="flow">다운로드 → 시스템 준비 → 필수 패키지 → Vivado 설치 → 환경설정 → 케이블 드라이버 → Digilent Runtime → Basys3 인식</div>
+<ul>
+<li>대상 환경: Ubuntu 24.04 64-bit</li>
+<li>개발 도구: AMD Vivado 2024.2</li>
+<li>대상 보드: Digilent Basys3</li>
+<li>FPGA: AMD/Xilinx Artix-7 계열</li>
+</ul>
+<div class="ok">AMD의 Vivado 2024.2 지원 운영체제 목록에는 Ubuntu 24.04 LTS 64-bit가 포함됩니다.</div>
+</section>
+<section class="step-card" id="prepare">
+<h2>2. 사전 준비</h2>
+<span class="step step-anchor" id="step00">STEP 0</span>
+<ul>
+<li>Ubuntu 24.04 설치 완료</li>
+<li>인터넷 연결</li>
+<li><span class="inline">sudo</span> 사용 가능한 관리자 권한</li>
+<li>Basys3 보드</li>
+<li>데이터 통신이 가능한 USB 케이블</li>
+</ul>
+<div class="warn"><strong>주의:</strong> 단순 충전·전원 전용 케이블은 JTAG/USB 통신에 사용할 수 없습니다.</div>
+<span class="step step-anchor" id="step01">STEP 1</span>
+<h3>터미널 실행</h3>
+<pre class="codeblock-pre"><code>Ctrl + Alt + T</code></pre>
+</section>
+<section class="step-card" id="packages">
+<h2>3. 시스템 업데이트와 필수 패키지</h2>
+<span class="step step-anchor" id="step02">STEP 2</span>
+<h3>시스템 업데이트</h3>
+<pre class="codeblock-pre"><code>sudo apt update
+sudo apt upgrade -y</code></pre>
+<ul><li>패키지 목록 최신화</li><li>설치 전 시스템 상태 정리</li></ul>
+<span class="step step-anchor" id="step03">STEP 3</span>
+<h3>필수 패키지 설치</h3>
+<pre class="codeblock-pre"><code>sudo apt install -y build-essential git make gcc g++ \
+  libncurses6 libtinfo6 libusb-1.0-0 libgtk-3-0 \
+  libx11-6 libxext6 libxrender1 libxtst6 libxi6 \
+  libxft2 net-tools</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>패키지</th><th>역할</th></tr></thead>
+<tbody>
+<tr><td><code>build-essential</code>, <code>gcc</code>, <code>g++</code>, <code>make</code></td><td>컴파일·빌드 기본 환경</td></tr>
+<tr><td><code>libusb-1.0-0</code></td><td>USB 통신 지원</td></tr>
+<tr><td><code>libgtk-3-0</code>, X11 관련 라이브러리</td><td>Vivado GUI 실행 지원</td></tr>
+<tr><td><code>libncurses6</code>, <code>libtinfo6</code></td><td>터미널 기능 지원</td></tr>
+<tr><td><code>git</code>, <code>net-tools</code></td><td>소스 관리·네트워크 확인용</td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="step-card" id="install">
+<h2>4. Vivado 설치</h2>
+<span class="step step-anchor" id="step04">STEP 4</span>
+<h3>설치 파일 준비</h3>
+<ul>
+<li>AMD 공식 다운로드 페이지에서 Vivado 2024.2 Linux 설치 파일 다운로드</li>
+<li>기본 다운로드 위치: <code>~/Downloads</code></li>
+<li>예상 파일명: <code>FPGAs_AdaptiveSoCs_Unified_2024.2_*.bin</code></li>
+</ul>
+<span class="step step-anchor" id="step05">STEP 5</span>
+<h3>실행 권한 부여</h3>
+<pre class="codeblock-pre"><code>cd ~/Downloads
+chmod +x FPGAs_AdaptiveSoCs_Unified_2024.2_*.bin</code></pre>
+<span class="step step-anchor" id="step06">STEP 6</span>
+<h3>설치 프로그램 실행</h3>
+<pre class="codeblock-pre"><code>./FPGAs_AdaptiveSoCs_Unified_2024.2_*.bin</code></pre>
+<div class="note">일반 Vivado 설치 프로그램 자체는 Linux에서 root 권한 없이 실행할 수 있습니다. 케이블 드라이버 설치는 설치 완료 후 별도로 <code>sudo</code> 권한을 사용합니다.</div>
+<span class="step step-anchor" id="step07">STEP 7</span>
+<h3>설치 옵션</h3>
+<ul>
+<li>Vivado 설치 선택</li>
+<li>Basys3 사용을 위해 <strong>7 Series</strong> 디바이스 지원 포함</li>
+<li>Basys3의 FPGA는 Artix-7 계열이므로 해당 디바이스 지원이 필요</li>
+<li>설치 경로 예: <code>/tools/Xilinx</code></li>
+</ul>
+</section>
+<section class="step-card" id="env">
+<h2>5. 환경설정과 실행 확인</h2>
+<span class="step step-anchor" id="step08">STEP 8</span>
+<h3>환경 변수 적용</h3>
+<pre class="codeblock-pre"><code>source /tools/Xilinx/Vivado/2024.2/settings64.sh</code></pre>
+<p>현재 터미널 세션에 Vivado 실행 경로와 관련 환경을 등록합니다.</p>
+<span class="step step-anchor" id="step09">STEP 9</span>
+<h3>Vivado 실행</h3>
+<pre class="codeblock-pre"><code>vivado</code></pre>
+<div class="ok">Vivado GUI가 정상적으로 열리면 기본 설치가 완료된 상태입니다.</div>
+</section>
+<section class="step-card" id="driver">
+<h2>6. 케이블 드라이버 설치</h2>
+<span class="step step-anchor" id="step10">STEP 10</span>
+<p>Linux에서는 Vivado 설치 후 케이블 드라이버 설치 스크립트를 별도로 실행합니다.</p>
+<pre class="codeblock-pre"><code>cd /tools/Xilinx/Vivado/2024.2/data/xicom/cable_drivers/lin64/install_script/install_drivers
+sudo ./install_drivers</code></pre>
+<div class="note">AMD 문서에서도 Linux 케이블 드라이버는 Vivado 설치 후 별도 스크립트를 root 또는 sudo 권한으로 실행하도록 안내합니다.</div>
+</section>
+<section class="step-card" id="digilent">
+<h2>7. Digilent Runtime과 Basys3 인식</h2>
+<span class="step step-anchor" id="step11">STEP 11</span>
+<h3>Adept Runtime / Utilities 준비</h3>
+<ul>
+<li>Digilent Adept Runtime 설치</li>
+<li><code>djtgcfg</code> 확인을 위해 Adept Utilities도 설치</li>
+<li>다운로드한 <code>.deb</code> 파일은 보통 <code>~/Downloads</code>에 위치</li>
+</ul>
+<pre class="codeblock-pre"><code>cd ~/Downloads
+sudo dpkg -i digilent.adept.runtime_*.deb
+sudo apt -f install
+
+sudo dpkg -i digilent.adept.utilities_*.deb
+sudo apt -f install</code></pre>
+<h3>설치 확인</h3>
+<pre class="codeblock-pre"><code>which djtgcfg</code></pre>
+<p>실행 파일 경로가 출력되면 Utilities 설치가 확인된 것입니다.</p>
+<span class="step step-anchor" id="step12">STEP 12</span>
+<h3>Basys3 검색</h3>
+<pre class="codeblock-pre"><code>djtgcfg enum</code></pre>
+<span class="step step-anchor" id="step13">STEP 13</span>
+<h3>사용자 권한 설정</h3>
+<pre class="codeblock-pre"><code>sudo usermod -aG dialout $USER
+sudo usermod -aG plugdev $USER</code></pre>
+<p>그룹 변경 후에는 로그아웃/로그인 또는 재부팅하여 권한을 다시 적용합니다.</p>
+<span class="step step-anchor" id="step14">STEP 14</span>
+<h3>최종 보드 인식 확인</h3>
+<pre class="codeblock-pre"><code>lsusb
+djtgcfg enum</code></pre>
+<div class="ok">USB 장치와 Digilent 장치가 정상적으로 표시되면 Basys3 연결 준비가 완료된 것입니다.</div>
+</section>
+<section class="step-card" id="check">
+<h2>8. 최종 확인</h2>
+<span class="step step-anchor" id="step15">STEP 15</span>
+<ul>
+<li>Vivado 프로젝트 생성 또는 준비된 테스트 프로젝트 사용</li>
+<li>Basys3가 USB 데이터 케이블로 연결되어 있는지 확인</li>
+<li>Vivado 실행이 정상적인지 확인</li>
+<li><code>lsusb</code>와 <code>djtgcfg enum</code>에서 보드 인식 상태 확인</li>
+</ul>
+<h3>문제 확인 기준</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>증상</th><th>우선 확인</th></tr></thead>
+<tbody>
+<tr><td><code>vivado: command not found</code></td><td><code>settings64.sh</code> 적용 여부</td></tr>
+<tr><td><code>djtgcfg: command not found</code></td><td>Adept Utilities 설치 여부</td></tr>
+<tr><td>장치가 검색되지 않음</td><td>USB 데이터 케이블, 케이블 드라이버, Runtime, 사용자 권한</td></tr>
+<tr><td>권한 오류</td><td><code>dialout</code>, <code>plugdev</code> 그룹 및 재로그인/재부팅</td></tr>
+</tbody>
+</table></div>
+</section>
+<section class="step-card" id="memo">
+<h2>9. 검증 메모</h2>
+<p>원본 기술자료의 절차는 유지하되, 공개 페이지에서는 실행 오류를 막기 위해 다음 명령 표기를 교정했습니다.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>원문 표기</th><th>공개본 표기</th><th>이유</th></tr></thead>
+<tbody>
+<tr><td><code>sudo apt install-y ...</code></td><td><code>sudo apt install -y ...</code></td><td><code>install</code>과 <code>-y</code> 사이 공백 필요</td></tr>
+<tr><td><code>sudo dpkg-i ...</code></td><td><code>sudo dpkg -i ...</code></td><td><code>dpkg</code>와 <code>-i</code> 사이 공백 필요</td></tr>
+<tr><td><code>sudo apt-f install</code></td><td><code>sudo apt -f install</code></td><td><code>apt</code>와 <code>-f</code> 사이 공백 필요</td></tr>
+</tbody>
+</table></div>
+<div class="note">Notion 내부 관리 정보, 실명 표기, 특정 공유방·특정 대상 표현은 공개본에서 제거했습니다. 저자 표기는 허용된 형태인 <strong>PE. JUNG</strong>만 사용합니다.</div>
+</section>
+<section class="step-card summary" id="summary"><h2>핵심 정리</h2><ul class="compact"><li>Vivado가 정상 실행되면 소프트웨어 설치를 확인할 수 있습니다.</li><li>lsusb와 djtgcfg enum에서 Basys3 연결 상태를 확인합니다.</li><li>다음 단계는 실제 Vivado 프로젝트를 이용한 FPGA 실습입니다.</li></ul></section><nav aria-label="챕터 이동" class="chapter-nav">
+<span class="disabled">← 첫 챕터</span>
+<a class="home" href="../../index.html">🏠 홈</a>
+<span class="disabled next">다음 챕터 준비 중 →</span>
+</nav>
+</main>
+</div>
+<footer class="site-footer">PE. JUNG · FPGA Technical Learning Notes</footer>
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links
+    .map(a => document.querySelector(a.getAttribute('href')))
+    .filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+
+  const activate = id => {
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  };
+
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries
+      .filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script></body>
+</html>
