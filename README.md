@@ -15,6 +15,8 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 9. 조합회로 설계 실습 — Adder
 10. CLA Adder 원리와 FPGA 실무형 작성법
 11. Verilog Testbench 기본 개념
+12. Selection · Conversion Logic RTL 실습
+13. 조합회로 응용 Mini Project
 
 ## 기본 구조
 
@@ -32,13 +34,22 @@ Technical_Learning/
 │       ├── 06_structured_gate_modules.html
 │       ├── 07_verilog_syntax_logic_gates.html
 │       ├── 08_boolean_algebra_karnaugh_map.html
-│       └── 09_combinational_adder.html
+│       ├── 09_combinational_adder.html
+│       ├── 10_cla_adder_practical.html
+│       ├── 11_verilog_testbench_basics.html
+│       ├── 12_selection_conversion_logic.html
+│       └── 13_combinational_mini_project.html
 ├── images/
 ├── code/
 │   └── fpga/
 │       ├── ch06_gate_modules/
 │       ├── ch07_verilog_syntax/
-│       └── ch09_adder/
+│       ├── ch08_boolean_kmap/
+│       ├── ch09_adder/
+│       ├── ch10_cla_practical/
+│       ├── ch11_testbench/
+│       ├── ch12_selection_conversion/
+│       └── ch13_combinational_project/
 ├── css/
 │   └── style.css
 └── README.md

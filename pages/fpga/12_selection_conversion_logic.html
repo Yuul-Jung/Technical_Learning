@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="MUX, DEMUX, Decoder, Encoder, Comparator, 8:1 MUX, 4-to-16 Decoder, Mini ALU를 Verilog RTL과 Testbench로 설계·검증하는 조합회로 실습" name="description"/>
+<title>Selection · Conversion Logic RTL 실습</title><link href="../../css/style.css" rel="stylesheet"/></head><body>
+<div class="topbar"><div class="topbar-inner"><div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>Digital / FPGA</span><span class="sep">/</span><strong>Selection · Conversion Logic</strong></div><div class="brand">PE. JUNG · TECHNICAL NOTES</div></div></div>
+<header class="hero"><div aria-hidden="true" class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">Digital / FPGA · Chapter 12</p><h1>Selection · Conversion Logic RTL 실습</h1>
+<p class="hero-desc">데이터를 선택하고, 분배하고, 변환하고, 비교하는 조합논리회로를 MUX → DEMUX → Decoder → Encoder → Comparator → 확장 MUX/Decoder → Mini ALU 순서로 설계합니다.</p>
+<div class="hero-meta"><span class="chip">MUX</span><span class="chip">DEMUX</span><span class="chip">Decoder / Encoder</span><span class="chip">Comparator</span><span class="chip">Mini ALU</span></div>
+<div class="hero-brief"><article><h2>모델링</h2><p>Gate-Level, Dataflow, Behavioral, Structural 표현의 역할을 비교합니다.</p></article><article><h2>검증</h2><p>같은 기능을 서로 다른 모델링 방식으로 작성하고 Testbench에서 출력이 일치하는지 확인합니다.</p></article><article><h2>확장</h2><p>74157, 74151, 74138/74139, 74148, 7485, 74154, 74181 계열 개념으로 확장합니다.</p></article></div></div></header>
+<div class="wrap"><aside class="flow-nav" aria-label="학습 진행 순서"><p class="nav-title">LEVEL 2-B FLOW</p><p class="nav-help">STEP 01 → 08</p>
+<p class="phase">A. 선택 · 분배</p><ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>MUX</span></a></li><li><a href="#step02"><span class="n">02</span><span>DEMUX</span></a></li></ol>
+<p class="phase">B. 변환 · 비교</p><ol class="timeline"><li><a href="#step03"><span class="n">03</span><span>Decoder</span></a></li><li><a href="#step04"><span class="n">04</span><span>Encoder</span></a></li><li><a href="#step05"><span class="n">05</span><span>Comparator</span></a></li></ol>
+<p class="phase">C. 확장 · 연산</p><ol class="timeline"><li><a href="#step06"><span class="n">06</span><span>8:1 MUX</span></a></li><li><a href="#step07"><span class="n">07</span><span>4→16 Decoder</span></a></li><li><a href="#step08"><span class="n">08</span><span>Mini ALU</span></a></li></ol></aside><main>
+<div class="overview-card"><h2>LEVEL 2-B 핵심 흐름</h2><div class="stage-flow"><span class="stage">선택<br/>MUX</span><span class="arrow">→</span><span class="stage">분배<br/>DEMUX</span><span class="arrow">→</span><span class="stage">변환<br/>Decoder</span><span class="arrow">→</span><span class="stage">역변환<br/>Encoder</span><span class="arrow">→</span><span class="stage">비교<br/>Comparator</span><span class="arrow">→</span><span class="stage">연산<br/>ALU</span></div></div>
+<section class="step-card"><h2>회로 모델링 방식 선택 기준</h2><div class="table-wrap"><table><thead><tr><th>방식</th><th>주요 표현</th><th>용도</th></tr></thead><tbody><tr><td>Gate-Level</td><td>Gate Primitive</td><td>Gate 연결 학습</td></tr><tr><td>Dataflow</td><td><code>assign</code></td><td>조합논리 실무에 자주 사용</td></tr><tr><td>Behavioral</td><td><code>always @(*)</code>, <code>case</code></td><td>FPGA 실무 중심</td></tr><tr><td>Structural</td><td>Module Instance</td><td>상위 시스템 계층 구성</td></tr></tbody></table></div><div class="flow">HDL 논리 의미 → Synthesis → FPGA LUT 구조</div></section>
+<section class="step-card" id="step01"><span class="step">STEP 01</span><h2>1. MUX — 74157</h2><p>여러 입력 중 하나를 선택하여 출력합니다.</p><div class="flow">sel=0 → a 선택 &nbsp; | &nbsp; sel=1 → b 선택</div><h3>Gate-Level</h3><pre class="codeblock-pre"><code>not u0(nsel, sel);
+and u1(w0, a, nsel);
+and u2(w1, b, sel);
+or  u3(y, w0, w1);</code></pre><h3>Dataflow</h3><pre class="codeblock-pre"><code>assign y = sel ? b : a;</code></pre><h3>Behavioral</h3><pre class="codeblock-pre"><code>always @(*) begin
+    if(sel) y = b;
+    else    y = a;
+end</code></pre><div class="note">같은 MUX 기능을 세 가지 모델링 방식으로 작성한 뒤 Testbench에서 <code>y_gate</code>, <code>y_dataflow</code>, <code>y_behavioral</code>이 일치하는지 확인합니다.</div></section>
+<section class="step-card" id="step02"><span class="step">STEP 02</span><h2>2. DEMUX</h2><p>하나의 입력을 선택 신호에 따라 여러 출력 중 하나로 분배합니다.</p><pre class="codeblock-pre"><code>assign y0 = ~sel &amp; din;
+assign y1 =  sel &amp; din;</code></pre><pre class="codeblock-pre"><code>always @(*) begin
+    y0 = 0;
+    y1 = 0;
+    case(sel)
+        1'b0: y0 = din;
+        1'b1: y1 = din;
+    endcase
+end</code></pre></section>
+<section class="step-card" id="step03"><span class="step">STEP 03</span><h2>3. Decoder — 74139 / 74138</h2><p>Binary 입력을 One-Hot 출력으로 변환합니다.</p><pre class="codeblock-pre"><code>case(a)
+    2'b00: y = 4'b0001;
+    2'b01: y = 4'b0010;
+    2'b10: y = 4'b0100;
+    2'b11: y = 4'b1000;
+endcase</code></pre><div class="flow">2비트 입력 → 4개 출력 중 하나만 HIGH</div></section>
+<section class="step-card" id="step04"><span class="step">STEP 04</span><h2>4. Encoder — 74148</h2><p>One-Hot 입력을 Binary 값으로 역변환합니다. 원본 실습은 상위 입력에 우선순위를 주는 <code>if / else if</code> 구조를 사용합니다.</p><pre class="codeblock-pre"><code>if(d[7])      y = 3'b111;
+else if(d[6]) y = 3'b110;
+else if(d[5]) y = 3'b101;
+...
+else if(d[0]) y = 3'b000;</code></pre></section>
+<section class="step-card" id="step05"><span class="step">STEP 05</span><h2>5. Comparator — 7485</h2><p>두 4비트 입력의 크기를 비교하여 Greater Than, Equal, Less Than 신호를 만듭니다.</p><pre class="codeblock-pre"><code>assign gt = (a &gt; b);
+assign eq = (a == b);
+assign lt = (a &lt; b);</code></pre><div class="table-wrap"><table><thead><tr><th>출력</th><th>조건</th></tr></thead><tbody><tr><td><code>gt</code></td><td>A &gt; B</td></tr><tr><td><code>eq</code></td><td>A == B</td></tr><tr><td><code>lt</code></td><td>A &lt; B</td></tr></tbody></table></div></section>
+<section class="step-card" id="step06"><span class="step">STEP 06</span><h2>6. 8:1 MUX — 74151</h2><p>3비트 선택 신호로 8개의 입력 중 하나를 출력합니다.</p><pre class="codeblock-pre"><code>case(sel)
+    3'b000: y = d[0];
+    3'b001: y = d[1];
+    3'b010: y = d[2];
+    3'b011: y = d[3];
+    3'b100: y = d[4];
+    3'b101: y = d[5];
+    3'b110: y = d[6];
+    3'b111: y = d[7];
+endcase</code></pre></section>
+<section class="step-card" id="step07"><span class="step">STEP 07</span><h2>7. Decoder Expansion — 74154</h2><p>4비트 입력을 16개 출력 중 하나로 변환합니다.</p><div class="flow">0000 → y[0] &nbsp; ... &nbsp; 1111 → y[15]</div><pre class="codeblock-pre"><code>y = 16'b0000000000000000;
+case(a)
+    4'b0000: y = 16'b0000000000000001;
+    ...
+    4'b1111: y = 16'b1000000000000000;
+endcase</code></pre></section>
+<section class="step-card" id="step08"><span class="step">STEP 08</span><h2>8. Mini ALU — 74181 기능 일부</h2><p>4비트 A, B와 2비트 <code>op</code>를 이용해 ADD, SUB, AND, OR를 선택합니다.</p><div class="table-wrap"><table><thead><tr><th>op</th><th>연산</th></tr></thead><tbody><tr><td>00</td><td>A + B</td></tr><tr><td>01</td><td>A - B</td></tr><tr><td>10</td><td>A &amp; B</td></tr><tr><td>11</td><td>A | B</td></tr></tbody></table></div><pre class="codeblock-pre"><code>case(op)
+    2'b00: begin
+        temp = a + b;
+        y = temp[3:0];
+        cout = temp[4];
+    end
+    2'b01: begin y = a - b; cout = 1'b0; end
+    2'b10: begin y = a &amp; b; cout = 1'b0; end
+    2'b11: begin y = a | b; cout = 1'b0; end
+endcase</code></pre><div class="note">원본은 Mini ALU 결과를 Seven Segment와 Carry LED로 확인하는 Top Module과 Basys3 다운로드 절차까지 확장합니다.</div></section>
+<section class="step-card summary"><h2>핵심 정리</h2><ul><li>MUX는 여러 입력 중 하나를 선택하고 DEMUX는 하나의 입력을 여러 출력 중 하나로 분배합니다.</li><li>Decoder는 Binary → One-Hot, Encoder는 One-Hot → Binary 변환을 수행합니다.</li><li>Comparator는 두 데이터의 크기 관계를 세 출력으로 나타냅니다.</li><li>같은 조합논리 기능도 Gate-Level, Dataflow, Behavioral 방식으로 다르게 기술할 수 있습니다.</li><li>FPGA 합성은 코드 모양이 아니라 논리 의미를 기준으로 LUT 등 내부 자원에 구현합니다.</li><li>Mini ALU는 선택·비교·산술·논리 개념을 하나의 조합회로 블록으로 연결하는 다음 단계입니다.</li></ul></section>
+<nav aria-label="챕터 이동" class="chapter-nav"><a href="11_verilog_testbench_basics.html">← 이전: Testbench</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="13_combinational_mini_project.html">다음: 조합회로 Mini Project →</a></nav>
+</main></div><footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+<script>(()=>{const links=[...document.querySelectorAll('.timeline a')];const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);if(!links.length||!targets.length||!('IntersectionObserver'in window))return;const activate=id=>links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+id));const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>Math.abs(a.boundingClientRect.top)-Math.abs(b.boundingClientRect.top));if(visible.length)activate(visible[0].target.id);},{rootMargin:'-12% 0px -78% 0px',threshold:[0,1]});targets.forEach(t=>observer.observe(t));activate(targets[0].id);})();</script></body></html>
