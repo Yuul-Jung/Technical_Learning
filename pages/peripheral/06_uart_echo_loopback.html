@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="UART RX에서 수신한 Byte를 UART TX로 그대로 되돌려 보내는 Echo Controller와 Basys3 UART Echo Top을 설명하는 RTL 주변기기 회로설계 자료" name="description"/>
+<title>06. UART Echo · RX → TX Loopback RTL 실습</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>RTL 주변기기 회로설계</span><span class="sep">/</span>
+      <strong>06. UART Echo</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">RTL 주변기기 회로설계 · 06</p>
+    <h1>UART Echo · RX → TX Loopback RTL 실습</h1>
+    <p class="hero-desc">
+      PC에서 전송한 1Byte를 Basys3 UART RX가 수신하고,
+      Echo Controller가 그 Byte를 UART TX 경로로 그대로 전달하여
+      다시 PC로 돌려보냅니다.
+    </p>
+
+    <div class="hero-meta">
+      <span class="chip">UART Echo</span>
+      <span class="chip">RX → TX</span>
+      <span class="chip">Byte Stream</span>
+      <span class="chip">Backpressure</span>
+      <span class="chip">Basys3</span>
+    </div>
+
+    <div class="hero-brief">
+      <article><h2>RX</h2><p><code>rx_valid</code>과 <code>rx_data</code>가 수신 Byte를 Echo Controller에 전달합니다.</p></article>
+      <article><h2>Echo</h2><p>수신 Byte를 변경하지 않고 TX FIFO 입력으로 그대로 전달합니다.</p></article>
+      <article><h2>TX</h2><p>TX FIFO에 공간이 없으면 RX FIFO를 읽지 않고 대기합니다.</p></article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">UART ECHO FLOW</p>
+  <p class="nav-help">STEP 01 → 08</p>
+
+  <p class="phase">A. Echo 개념</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>목표</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>전체 경로</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>원본 구조</span></a></li>
+  </ol>
+
+  <p class="phase">B. 현재 Library 적용</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>인터페이스 대응</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>Echo Controller</span></a></li>
+    <li><a href="#step06"><span class="n">06</span><span>Basys3 Top</span></a></li>
+  </ol>
+
+  <p class="phase">C. 검증</p>
+  <ol class="timeline">
+    <li><a href="#step07"><span class="n">07</span><span>Testbench</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>성공 기준</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>Echo 전체 흐름</h2>
+  <div class="stage-flow">
+    <span class="stage">PC TX</span><span class="arrow">→</span>
+    <span class="stage">Basys3 RsRx</span><span class="arrow">→</span>
+    <span class="stage">UART RX FIFO</span><span class="arrow">→</span>
+    <span class="stage">Echo Controller</span><span class="arrow">→</span>
+    <span class="stage">UART TX FIFO</span><span class="arrow">→</span>
+    <span class="stage">RsTx → PC RX</span>
+  </div>
+</div>
+
+<section class="step-card" id="step01">
+  <span class="step">STEP 01</span>
+  <h2>1. 목표 — 받은 Byte를 그대로 되돌려 보내기</h2>
+
+  <div class="flow">
+    PC에서 'A' 전송
+    → Basys3 RX에서 0x41 수신
+    → Echo Controller
+    → Basys3 TX에서 0x41 송신
+    → PC에서 다시 'A' 수신
+  </div>
+
+  <p>
+    Echo는 UART RX와 UART TX가 실제로 연결되어 동작하는지를 확인하는 가장 단순한 응용입니다.
+    데이터 해석이나 Command Parser는 아직 수행하지 않습니다.
+  </p>
+</section>
+
+<section class="step-card" id="step02">
+  <span class="step">STEP 02</span>
+  <h2>2. 기존 Core는 수정하지 않음</h2>
+
+  <pre class="codeblock-pre"><code>uart_rx_core.v   → 유지
+uart_tx_core.v   → 유지
+uart_core.v      → 유지
+
+신규:
+uart_echo_controller.v
+basys3_uart_echo_top.v
+tb_uart_echo_controller.v</code></pre>
+
+  <p>
+    Echo 기능을 RX Core나 TX Core 내부에 넣지 않고,
+    두 Core 사이에 별도의 Controller를 둡니다.
+  </p>
+</section>
+
+<section class="step-card" id="step03">
+  <span class="step">STEP 03</span>
+  <h2>3. 참고자료의 Echo 제어 방식</h2>
+
+  <p>
+    참고자료의 Echo Controller는 RX에서 <code>rx_valid</code>이 발생하고
+    TX가 <code>tx_busy=0</code>일 때 <code>tx_start</code>를 1 Clock 발생시키는 구조입니다.
+  </p>
+
+  <pre class="codeblock-pre"><code>if (rx_valid &amp;&amp; !tx_busy) begin
+    tx_data  &lt;= rx_data;
+    tx_start &lt;= 1'b1;
+end</code></pre>
+
+  <div class="note">
+    이 코드는 참고자료 당시의 TX Core가 <code>tx_start / tx_data</code> 인터페이스를 직접 공개하던 구조를 기준으로 합니다.
+  </div>
+</section>
+
+<section class="step-card" id="step04">
+  <span class="step">STEP 04</span>
+  <h2>4. 현재 UART Library 인터페이스에 맞춘 연결</h2>
+
+  <p>
+    현재 누적 사이트의 <code>uart_core</code>는 TX FIFO를 포함하고 있으므로
+    외부 인터페이스가 <code>tx_wr_en / tx_wr_data / tx_full</code>입니다.
+    따라서 Echo 동작 의미는 유지하면서 현재 Core 인터페이스에 맞게 연결합니다.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>참고자료 구조</th><th>현재 Library 대응</th></tr></thead>
+      <tbody>
+        <tr><td><code>rx_valid</code></td><td><code>rx_valid</code></td></tr>
+        <tr><td><code>rx_data</code></td><td><code>rx_data</code></td></tr>
+        <tr><td><code>tx_busy</code></td><td><code>tx_full</code>을 이용한 수신 Backpressure</td></tr>
+        <tr><td><code>tx_start</code></td><td><code>tx_wr_en</code></td></tr>
+        <tr><td><code>tx_data</code></td><td><code>tx_wr_data</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">
+    <strong>검증 메모:</strong>
+    아래 Controller는 참고자료의 기능을 현재 프로젝트의 FIFO 기반 UART Core에 맞춘
+    <strong>현재 Library용 구현</strong>입니다.
+    참고자료의 <code>tx_start / tx_busy</code> 코드를 그대로 복사한 것이 아닙니다.
+  </div>
+</section>
+
+<section class="step-card" id="step05">
+  <span class="step">STEP 05</span>
+  <h2>5. uart_echo_controller</h2>
+
+  <pre class="codeblock-pre"><code>assign transfer = rx_valid &amp;&amp; !tx_full;
+
+assign rx_ready   = transfer;
+assign tx_wr_en   = transfer;
+assign tx_wr_data = rx_data;</code></pre>
+
+  <div class="flow">
+    RX FIFO에 Byte 있음
+    + TX FIFO 공간 있음
+    → 같은 Clock Edge에서
+    RX FIFO Read + TX FIFO Write
+  </div>
+
+  <p>
+    TX FIFO가 Full이면 <code>rx_ready=0</code>이므로 RX FIFO의 현재 Byte를 소비하지 않습니다.
+    TX FIFO에 공간이 생긴 뒤 같은 Byte를 전달합니다.
+  </p>
+</section>
+
+<section class="step-card" id="step06">
+  <span class="step">STEP 06</span>
+  <h2>6. Basys3 Echo Top</h2>
+
+  <pre class="codeblock-pre"><code>uart_core u_uart_core (...);
+
+uart_echo_controller u_uart_echo_controller (
+    .rx_valid   (rx_valid),
+    .rx_data    (rx_data),
+    .rx_ready   (rx_ready),
+    .tx_full    (tx_full),
+    .tx_wr_en   (tx_wr_en),
+    .tx_wr_data (tx_wr_data)
+);</code></pre>
+
+  <div class="flow">
+    RsRx
+    → uart_core RX
+    → Echo Controller
+    → uart_core TX
+    → RsTx
+  </div>
+
+  <p>
+    Top Module에는 Echo 기능을 직접 작성하지 않고
+    UART Core와 Echo Controller를 연결하는 Shell/Wrapper 역할만 둡니다.
+  </p>
+</section>
+
+<section class="step-card" id="step07">
+  <span class="step">STEP 07</span>
+  <h2>7. Controller Testbench</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>조건</th><th>확인 내용</th></tr></thead>
+      <tbody>
+        <tr><td><code>rx_data=0x41</code>, TX FIFO 공간 있음</td><td><code>rx_ready=1</code>, <code>tx_wr_en=1</code>, <code>tx_wr_data=0x41</code></td></tr>
+        <tr><td>TX FIFO Full</td><td><code>rx_ready=0</code>, <code>tx_wr_en=0</code></td></tr>
+        <tr><td>Full 해제</td><td>대기 중인 Byte 전송 가능</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    Testbench 파일에는 Self-checking용 <code>$display()</code>를 넣었습니다.
+    현재 생성 환경에는 Verilog Simulator가 없어 실제 Simulation Output을 실행 결과처럼 표시하지 않았습니다.
+  </div>
+</section>
+
+<section class="step-card" id="step08">
+  <span class="step">STEP 08</span>
+  <h2>8. 보드 성공 기준</h2>
+
+  <pre class="codeblock-pre"><code>PC TX : Aa10
+          ↓
+Basys3 UART Echo
+          ↓
+PC RX : Aa10
+
+Hex:
+41 61 31 30</code></pre>
+
+  <p>
+    참고자료의 성공 기준은 Python Echo Test에서
+    <code>Aa10</code>을 송신했을 때 RX Hex가 <code>41613130</code>으로 돌아오는 것입니다.
+  </p>
+
+  <div class="note">
+    위 값은 참고자료에 제시된 성공 기준입니다.
+    이번 생성 과정에서 실제 Basys3 보드나 Python 프로그램을 실행한 결과는 아닙니다.
+  </div>
+</section>
+
+<section class="step-card summary">
+  <h2>핵심 정리</h2>
+  <ul>
+    <li>UART Echo는 RX로 받은 Byte를 변경하지 않고 TX로 그대로 다시 송신하는 구조입니다.</li>
+    <li>기존 UART RX/TX Core는 수정하지 않고 별도 Echo Controller만 추가합니다.</li>
+    <li>현재 UART Library에서는 RX의 <code>valid/ready</code>와 TX FIFO의 <code>wr_en/full</code>을 연결합니다.</li>
+    <li>TX FIFO가 Full이면 RX FIFO를 읽지 않아 Backpressure가 적용됩니다.</li>
+    <li>Top Module은 보드 핀과 UART Core, Echo Controller 연결만 담당합니다.</li>
+    <li>다음 단계에서는 Echo 이후 Command/Response 또는 Register Map 제어로 확장할 수 있습니다.</li>
+  </ul>
+</section>
+
+<nav aria-label="챕터 이동" class="chapter-nav">
+  <a href="05_uart_rx_immediate_display.html">← 이전: 05. UART RX 즉시 표시</a>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <span class="disabled next">07. 다음 UART 단계 준비 중 →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · Technical Learning Notes</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.timeline a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!links.length || !targets.length || !('IntersectionObserver' in window)) return;
+  const activate = id => links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting)
+      .sort((a,b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+    if (visible.length) activate(visible[0].target.id);
+  }, {rootMargin:'-12% 0px -78% 0px', threshold:[0,1]});
+  targets.forEach(t => observer.observe(t));
+  activate(targets[0].id);
+})();
+</script>
+
+</body>
+</html>

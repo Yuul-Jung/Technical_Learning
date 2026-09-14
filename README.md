@@ -41,6 +41,7 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 03. UART RX 연속문자 · BRAM Line Buffer RTL 실습
 04. UART RX + TX 통합 · uart_core RTL 실습
 05. UART RX 1문자 즉시 표시 · RX Display Register 수정
+06. UART Echo · RX → TX Loopback RTL 실습
 
 > UART부터는 Digital / FPGA 기초 번호와 분리하여 `01`부터 별도 번호 체계로 관리합니다.
 
@@ -61,7 +62,8 @@ Technical_Learning/
 │       ├── 02_uart_rx_core_single_byte.html
 │       ├── 03_uart_rx_continuous_bram_line_buffer.html
 │       ├── 04_uart_rx_tx_integration.html
-│       └── 05_uart_rx_immediate_display.html
+│       ├── 05_uart_rx_immediate_display.html
+│       └── 06_uart_echo_loopback.html
 ├── images/
 ├── code/
 │   ├── fpga/
@@ -73,7 +75,8 @@ Technical_Learning/
 │       ├── ch02_uart_rx/
 │       ├── ch03_uart_rx_continuous/
 │       ├── ch04_uart_rx_tx/
-│       └── ch05_uart_rx_immediate_display/
+│       ├── ch05_uart_rx_immediate_display/
+│       └── ch06_uart_echo/
 ├── css/
 │   └── style.css
 └── README.md
