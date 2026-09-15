@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="NPU와 Accelerator에 필요한 저장과 연산 자원을 LUT RAM, BRAM, DSP48E1 관점에서 연결합니다."/>
+<title>10. FPGA Memory · BRAM · DSP 구조</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>10. FPGA Memory · BRAM · DSP 구조</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 10</p>
+<h1>FPGA Memory · BRAM · DSP 구조</h1>
+<p class="hero-desc">NPU와 Accelerator에 필요한 저장과 연산 자원을 LUT RAM, BRAM, DSP48E1 관점에서 연결합니다.</p>
+<div class="hero-meta"><span class="chip">Distributed RAM</span><span class="chip">BRAM</span><span class="chip">DSP48E1</span><span class="chip">MAC</span><span class="chip">Pipeline</span></div>
+<div class="hero-brief"><article><h2>Memory</h2><p>작은 분산 메모리와 큰 Block RAM의 역할을 구분합니다.</p></article><article><h2>DSP</h2><p>곱셈·누산을 전용 DSP48E1에 매핑할 수 있습니다.</p></article><article><h2>NPU 연결</h2><p>Weight 저장과 MAC Datapath가 FPGA 자원과 직접 연결됩니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 10</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>Memory와 DSP의 역할</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Distributed RAM과 BRAM</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>DSP48E1</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>Resource 균형</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>Memory와 DSP의 역할</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/10_fpga_memory_dsp/memory_dsp_datapath.svg" alt="FPGA Memory DSP Datapath"><figcaption>UG473·UG479·UG474 기반의 교육용 Datapath 구조.</figcaption></figure>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>Distributed RAM과 BRAM</h2>
+<p>UG474의 SLICEM LUT는 작은 Distributed RAM이나 Shift Register로 구성할 수 있습니다. 반면 7 Series의 Block RAM은 더 큰 저장 공간을 제공하고 Dual-Port 구조와 다양한 Width/Depth 구성을 지원합니다.</p>
+<div class="table-wrap"><table><thead><tr><th>자원</th><th>적합한 용도</th></tr></thead><tbody><tr><td>Distributed RAM</td><td>작은 Table, Delay, 작은 Buffer</td></tr><tr><td>BRAM</td><td>Weight, Feature Buffer, FIFO, Program/Data Memory</td></tr></tbody></table></div>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/10_fpga_memory_dsp/dual_port_bram.svg" alt="Dual Port BRAM 개념"><figcaption>UG473의 Dual-Port Block RAM 개념을 교육용으로 단순화.</figcaption></figure>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>DSP48E1</h2>
+<p>UG479의 DSP48E1 Slice는 Multiply, Multiply-Accumulate, Add/Subtract, Pattern Detect 등의 연산을 지원하는 전용 Arithmetic Resource입니다. NPU의 MAC(Multiply-Accumulate, 곱셈-누산) 구조와 직접 연결됩니다.</p>
+<div class="flow">Input × Weight → Multiply → Accumulate → Pipeline Register</div>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>Resource 균형</h2>
+<p>FPGA Accelerator는 LUT만 많이 쓰는 것이 좋은 설계가 아닙니다. BRAM Bandwidth, DSP 수, Pipeline Stage, Routing, Clock Frequency를 함께 고려해야 합니다. Basys3 XC7A35T의 자원 한도 안에서 병렬도와 메모리 구조를 조절하는 것이 핵심입니다.</p>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>작은 분산 메모리와 큰 Block RAM의 역할을 구분합니다.</li><li>곱셈·누산을 전용 DSP48E1에 매핑할 수 있습니다.</li><li>Weight 저장과 MAC Datapath가 FPGA 자원과 직접 연결됩니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/api/khub/documents/9gZGbqBxtlKXxBfkBt~lAg/content" target="_blank" rel="noopener">AMD UG473 — 7 Series Memory Resources</a></li><li><a href="https://docs.amd.com/v/u/en-US/ug479_7Series_DSP48E1" target="_blank" rel="noopener">AMD UG479 — DSP48E1</a></li><li><a href="https://docs.amd.com/r/en-US/ug474_7Series_CLB/Carry-Logic-Applications" target="_blank" rel="noopener">AMD UG474 — Carry Logic Applications</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="09_microblaze_soc.html">← 09. MicroBlaze 기반 FPGA SoC</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="11_hardware_accelerator.html">11. Hardware Accelerator 구조 →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>

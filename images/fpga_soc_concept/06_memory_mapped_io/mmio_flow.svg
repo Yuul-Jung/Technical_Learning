@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="370" viewBox="0 0 960 370" role="img">
+<style>
+text{font-family:Arial,'Noto Sans KR',sans-serif;fill:#1d2230}
+.box{fill:#ffffff;stroke:#4635B1;stroke-width:2}
+.soft{fill:#f2f0ff;stroke:#8e83d9;stroke-width:1.5}
+.gray{fill:#f8f8f6;stroke:#aeb3bc;stroke-width:1.5}
+.dark{fill:#20242c;stroke:#20242c;stroke-width:1.5}
+.darktext{fill:#ffffff}
+.line{stroke:#4a4f5a;stroke-width:2;fill:none;marker-end:url(#arrow)}
+.bus{stroke:#4635B1;stroke-width:5;fill:none;opacity:.9}
+.dash{stroke:#858B96;stroke-width:1.5;fill:none;stroke-dasharray:6 5}
+.small{font-size:13px}
+.label{font-size:15px;font-weight:700}
+.title{font-size:18px;font-weight:700}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4a4f5a"/></marker></defs>
+<text class="title" x="30" y="30" text-anchor="start">Memory-Mapped I/O — 주소가 하드웨어 Register로 변환되는 과정</text>
+<rect class="dark" x="30" y="115" width="160" height="80" rx="8"/>
+<text class="label darktext" x="110.0" y="145.0" text-anchor="middle" dominant-baseline="middle">CPU</text>
+<text class="label darktext" x="110.0" y="165.0" text-anchor="middle" dominant-baseline="middle">Store</text>
+<rect class="soft" x="240" y="115" width="190" height="80" rx="8"/>
+<text class="label " x="335.0" y="145.0" text-anchor="middle" dominant-baseline="middle">AXI Address</text>
+<text class="label " x="335.0" y="165.0" text-anchor="middle" dominant-baseline="middle">0x4000_0000</text>
+<rect class="soft" x="480" y="115" width="190" height="80" rx="8"/>
+<text class="label " x="575.0" y="145.0" text-anchor="middle" dominant-baseline="middle">Address Decode</text>
+<text class="label " x="575.0" y="165.0" text-anchor="middle" dominant-baseline="middle">Base + Offset</text>
+<rect class="box" x="720" y="115" width="190" height="80" rx="8"/>
+<text class="label " x="815.0" y="145.0" text-anchor="middle" dominant-baseline="middle">GPIO_DATA</text>
+<text class="label " x="815.0" y="165.0" text-anchor="middle" dominant-baseline="middle">Register</text>
+<line class="line" x1="190" y1="155" x2="235" y2="155"/>
+<line class="line" x1="430" y1="155" x2="475" y2="155"/>
+<line class="line" x1="670" y1="155" x2="715" y2="155"/>
+<rect class="gray" x="720" y="260" width="190" height="70" rx="8"/>
+<text class="label " x="815.0" y="295.0" text-anchor="middle" dominant-baseline="middle">LED[0] = 1</text>
+<line class="line" x1="815" y1="195" x2="815" y2="255"/></svg>

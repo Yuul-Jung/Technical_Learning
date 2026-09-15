@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="Verilog RTL이 LUT, Flip-Flop, Slice, CLB, BRAM, DSP와 Routing으로 매핑되는 구조를 Basys3 Artix-7 기준으로 연결합니다."/>
+<title>01. FPGA 개요와 내부 구조</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>01. FPGA 개요와 내부 구조</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 01</p>
+<h1>FPGA 개요와 내부 구조</h1>
+<p class="hero-desc">Verilog RTL이 LUT, Flip-Flop, Slice, CLB, BRAM, DSP와 Routing으로 매핑되는 구조를 Basys3 Artix-7 기준으로 연결합니다.</p>
+<div class="hero-meta"><span class="chip">FPGA</span><span class="chip">Artix-7</span><span class="chip">LUT</span><span class="chip">FF</span><span class="chip">Slice</span><span class="chip">CLB</span><span class="chip">BRAM</span><span class="chip">DSP</span></div>
+<div class="hero-brief"><article><h2>핵심 질문</h2><p>FPGA 내부에 실제로 무엇이 있고 RTL은 어디에 매핑되는가?</p></article><article><h2>Basys3 연결</h2><p>XC7A35T의 논리·메모리·DSP 자원을 실제 수치로 확인합니다.</p></article><article><h2>다음 단계</h2><p>FPGA·MCU·ASIC·SoC의 구조적 차이로 확장합니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 01</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>FPGA를 하드웨어 관점에서 보기</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>CLB · Slice · LUT · FF 관계</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>RTL이 FPGA 자원으로 내려가는 과정</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>Basys3에서 실제로 확인할 자원</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>FPGA를 하드웨어 관점에서 보기</h2>
+<p>FPGA(Field Programmable Gate Array, 사용자가 구성할 수 있는 디지털 회로 칩)는 프로그램을 순서대로 실행하는 장치가 아니라, 내부의 논리 자원과 배선 구조를 사용자가 재구성하는 장치입니다. Verilog RTL은 결국 LUT, Flip-Flop, Carry Logic, BRAM, DSP 같은 자원에 대응됩니다.</p>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>CLB · Slice · LUT · FF 관계</h2>
+<p>AMD 7 Series에서 CLB(Configurable Logic Block, 구성 가능한 논리 블록)는 조합논리와 순차논리를 구현하는 핵심 자원입니다. UG474에 따르면 하나의 CLB는 두 개의 Slice를 포함하고, 각 Slice는 4개의 6-input LUT와 8개의 저장 요소를 가집니다.</p>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/01_fpga_architecture/ug474_clb_slice_redraw.svg" alt="CLB와 Slice 관계"><figcaption>AMD UG474 Figure 1 <em>Arrangement of Slices within the CLB</em> 기반 교육용 재작성.</figcaption></figure>
+<div class="flow">4 × 6-input LUT + 8 × FF → 1 Slice, 2 × Slice → 1 CLB</div>
+<p>SLICEL은 일반 논리 구현에 사용되고, SLICEM은 LUT를 Distributed RAM이나 Shift Register로 사용할 수 있는 추가 기능을 가집니다.</p>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>RTL이 FPGA 자원으로 내려가는 과정</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/01_fpga_architecture/rtl_to_fpga_resources.svg" alt="RTL에서 FPGA 자원으로의 매핑"><figcaption>UG474·UG473·UG479의 자원 구조를 연결한 교육용 개념도.</figcaption></figure>
+<ul><li><code>assign</code>, 조합 <code>always</code> → LUT 중심</li><li>Clock Edge 기반 저장 → Flip-Flop/Register</li><li>큰 배열·Buffer → BRAM으로 추론 가능</li><li>곱셈·MAC 연산 → DSP48E1로 추론 가능</li><li>모든 블록의 연결 → Programmable Routing</li></ul>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>Basys3에서 실제로 확인할 자원</h2>
+<p>Digilent Basys3는 AMD Artix-7 XC7A35T-1CPG236C를 사용합니다. 공식 제품 정보에는 33,280 Logic Cell, 5,200 Slice, 1,800 Kbit Block RAM, 90 DSP Slice가 제시됩니다.</p>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/01_fpga_architecture/basys3_resources.svg" alt="Basys3 핵심 FPGA 자원"><figcaption>Digilent Basys3 공식 사양을 시각화한 교육용 도식.</figcaption></figure>
+<p class="note">Vivado의 Utilization Report를 볼 때 LUT, FF, BRAM, DSP 수치를 단순 숫자가 아니라 위 자원 구조와 연결해서 봐야 합니다.</p>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>FPGA 내부에 실제로 무엇이 있고 RTL은 어디에 매핑되는가?</li><li>XC7A35T의 논리·메모리·DSP 자원을 실제 수치로 확인합니다.</li><li>FPGA·MCU·ASIC·SoC의 구조적 차이로 확장합니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/r/en-US/ug474_7Series_CLB/CLB-Overview" target="_blank" rel="noopener">AMD UG474 — CLB Overview</a></li><li><a href="https://docs.amd.com/r/en-US/ug474_7Series_CLB/CLB-Slices" target="_blank" rel="noopener">AMD UG474 — CLB Slices</a></li><li><a href="https://digilent.com/shop/basys-3-amd-artix-7-fpga-trainer-board-recommended-for-introductory-users/" target="_blank" rel="noopener">Digilent Basys3</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="../../index.html">← 홈으로</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="02_fpga_asic_mcu_soc.html">02. FPGA · ASIC · MCU · SoC 비교 →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>

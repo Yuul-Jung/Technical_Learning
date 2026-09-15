@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="SoC를 CPU 하나가 아니라 CPU·Memory·Bus·Peripheral·Custom Logic이 결합된 시스템으로 이해합니다."/>
+<title>04. SoC 개요와 구성</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>04. SoC 개요와 구성</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 04</p>
+<h1>SoC 개요와 구성</h1>
+<p class="hero-desc">SoC를 CPU 하나가 아니라 CPU·Memory·Bus·Peripheral·Custom Logic이 결합된 시스템으로 이해합니다.</p>
+<div class="hero-meta"><span class="chip">SoC</span><span class="chip">CPU</span><span class="chip">Memory</span><span class="chip">Bus</span><span class="chip">Peripheral</span><span class="chip">Custom IP</span></div>
+<div class="hero-brief"><article><h2>핵심 구조</h2><p>CPU + Memory + Bus + Peripheral이 하나의 시스템을 구성합니다.</p></article><article><h2>FPGA 의미</h2><p>MicroBlaze를 중심으로 FPGA 안에 SoC 구조를 직접 조립할 수 있습니다.</p></article><article><h2>다음 연결</h2><p>CPU·Memory·Peripheral 관계를 더 구체적으로 봅니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 04</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>SoC를 시스템으로 보기</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Control Path와 Data Path</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>FPGA SoC의 장점</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>Basys3에서의 학습 포인트</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>SoC를 시스템으로 보기</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/04_soc_overview/soc_minimum_structure.svg" alt="SoC 최소 구성"><figcaption>MicroBlaze FPGA SoC 학습을 위한 최소 구성도.</figcaption></figure>
+<p>SoC(System-on-Chip, 하나의 칩에 여러 시스템 기능을 통합한 반도체)는 CPU만을 뜻하지 않습니다. Program/Data Memory, Bus, Peripheral, Interrupt, Debug, Clock/Reset, 필요하면 Hardware Accelerator까지 하나의 시스템으로 결합됩니다.</p>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>Control Path와 Data Path</h2>
+<p>CPU는 명령어를 실행하고 시스템 상태를 관리하는 Control 역할에 강합니다. FPGA Custom RTL은 병렬 Datapath를 직접 만들 수 있어 반복 연산이나 정해진 신호 처리에 유리합니다. SoC 설계에서는 이 두 영역을 적절히 나누는 것이 중요합니다.</p>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/04_soc_overview/control_acceleration.svg" alt="CPU Control과 Custom RTL Accelerator 역할 분담"><figcaption>CPU Control Path와 FPGA Datapath 역할 분담을 교육용으로 정리.</figcaption></figure>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>FPGA SoC의 장점</h2>
+<ul><li>CPU Software와 RTL Hardware를 같은 FPGA 내부에서 결합</li><li>Peripheral을 필요에 따라 추가·변경</li><li>Register Map과 AXI를 이용해 CPU가 Custom RTL 제어</li><li>성능이 필요한 부분만 Accelerator로 분리 가능</li></ul>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>Basys3에서의 학습 포인트</h2>
+<p class="note">Basys3에는 Hard ARM CPU가 없으므로 MicroBlaze Soft Processor를 FPGA Logic에 구현합니다. 따라서 CPU가 실제로 어떤 자원을 사용하고 BRAM·AXI와 어떻게 연결되는지 눈으로 확인하기 좋습니다.</p>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>CPU + Memory + Bus + Peripheral이 하나의 시스템을 구성합니다.</li><li>MicroBlaze를 중심으로 FPGA 안에 SoC 구조를 직접 조립할 수 있습니다.</li><li>CPU·Memory·Peripheral 관계를 더 구체적으로 봅니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref/Overview" target="_blank" rel="noopener">AMD UG984 — MicroBlaze Overview</a></li><li><a href="https://docs.amd.com/r/en-US/ug994-vivado-ip-subsystems" target="_blank" rel="noopener">AMD UG994 — IP Integrator</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="03_fpga_design_flow.html">← 03. RTL이 FPGA 회로가 되는 과정</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="05_cpu_memory_peripheral.html">05. CPU · Memory · Peripheral 구조 →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>

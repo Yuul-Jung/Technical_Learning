@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="CPU가 제어를 담당하고 RTL Datapath가 병렬 연산을 담당하는 Accelerator의 기본 구조를 Register Map과 AXI 관점에서 설명합니다."/>
+<title>11. Hardware Accelerator 구조</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>11. Hardware Accelerator 구조</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 11</p>
+<h1>Hardware Accelerator 구조</h1>
+<p class="hero-desc">CPU가 제어를 담당하고 RTL Datapath가 병렬 연산을 담당하는 Accelerator의 기본 구조를 Register Map과 AXI 관점에서 설명합니다.</p>
+<div class="hero-meta"><span class="chip">Accelerator</span><span class="chip">Control Path</span><span class="chip">Data Path</span><span class="chip">AXI4-Lite</span><span class="chip">BRAM</span><span class="chip">Stream</span></div>
+<div class="hero-brief"><article><h2>CPU 역할</h2><p>설정·시작·상태 확인을 담당합니다.</p></article><article><h2>RTL 역할</h2><p>반복 연산을 병렬 Datapath로 처리합니다.</p></article><article><h2>Interface</h2><p>Control은 AXI4-Lite, Data는 BRAM/Stream으로 분리할 수 있습니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 11</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>CPU + Accelerator 구조</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Control Register 예</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>Control Path와 Data Path를 분리하는 이유</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>성능 평가</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>CPU + Accelerator 구조</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/11_hardware_accelerator/accelerator_control_data.svg" alt="Hardware Accelerator 구조"><figcaption>MicroBlaze + AXI4-Lite + Custom Datapath 구조의 교육용 개념도.</figcaption></figure>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>Control Register 예</h2>
+<div class="table-wrap"><table><thead><tr><th>Offset</th><th>Register</th><th>의미</th></tr></thead><tbody>
+<tr><td>0x00</td><td>CTRL</td><td>start, reset, mode</td></tr>
+<tr><td>0x04</td><td>STATUS</td><td>busy, done, error</td></tr>
+<tr><td>0x08</td><td>INPUT_ADDR</td><td>입력 Buffer 정보</td></tr>
+<tr><td>0x0C</td><td>OUTPUT_ADDR</td><td>출력 Buffer 정보</td></tr>
+</tbody></table></div>
+<p class="note">위 Register Map은 구조 설명용 예시이며 실제 구현 시 RTL과 Software Header의 주소 정의를 동일하게 유지해야 합니다.</p>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>Control Path와 Data Path를 분리하는 이유</h2>
+<ul><li>CPU는 복잡한 조건 판단과 System Control에 유리</li><li>RTL은 정해진 연산을 Cycle 단위로 병렬화 가능</li><li>Register Interface를 고정하면 Datapath 내부 구현을 바꿔도 Software 영향 최소화</li></ul>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>성능 평가</h2>
+<p>Accelerator를 만들었다고 자동으로 빨라지는 것은 아닙니다. Data 이동 시간이 계산 시간보다 길 수 있으므로 Latency, Throughput, Memory Bandwidth, Clock, Resource 사용량을 함께 측정해야 합니다.</p>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/11_hardware_accelerator/latency_breakdown.svg" alt="Accelerator Latency 분해"><figcaption>System Latency를 Setup·Data Move·Compute로 분해한 평가 구조.</figcaption></figure>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>설정·시작·상태 확인을 담당합니다.</li><li>반복 연산을 병렬 Datapath로 처리합니다.</li><li>Control은 AXI4-Lite, Data는 BRAM/Stream으로 분리할 수 있습니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/r/en-US/ug994-vivado-ip-subsystems" target="_blank" rel="noopener">AMD UG994 — IP Integrator</a></li><li><a href="https://docs.amd.com/r/en-US/pg144-axi-gpio/Register-Space" target="_blank" rel="noopener">AMD PG144 — AXI GPIO Register Space</a></li><li><a href="https://docs.amd.com/v/u/en-US/ug479_7Series_DSP48E1" target="_blank" rel="noopener">AMD UG479 — DSP48E1</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="10_fpga_memory_dsp.html">← 10. FPGA Memory · BRAM · DSP 구조</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="12_npu_extension.html">12. Basys3 NPU로 확장 →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>

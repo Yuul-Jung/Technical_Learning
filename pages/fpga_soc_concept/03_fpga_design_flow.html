@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="RTL 작성부터 Elaboration, Synthesis, Placement, Routing, Timing Analysis, Bitstream까지 Vivado 전체 구현 흐름을 연결합니다."/>
+<title>03. RTL이 FPGA 회로가 되는 과정</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>03. RTL이 FPGA 회로가 되는 과정</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 03</p>
+<h1>RTL이 FPGA 회로가 되는 과정</h1>
+<p class="hero-desc">RTL 작성부터 Elaboration, Synthesis, Placement, Routing, Timing Analysis, Bitstream까지 Vivado 전체 구현 흐름을 연결합니다.</p>
+<div class="hero-meta"><span class="chip">RTL</span><span class="chip">Synthesis</span><span class="chip">Implementation</span><span class="chip">Timing</span><span class="chip">Bitstream</span></div>
+<div class="hero-brief"><article><h2>출발점</h2><p>Verilog RTL은 아직 실제 FPGA 배치 결과가 아닙니다.</p></article><article><h2>핵심 과정</h2><p>합성 후 Netlist를 실제 소자 자원에 배치·배선합니다.</p></article><article><h2>검증 관점</h2><p>Simulation 성공과 Timing 만족은 서로 다른 검증입니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 03</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>전체 Vivado 흐름</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Elaboration과 Synthesis</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>Implementation</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>성공의 의미를 구분하기</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>전체 Vivado 흐름</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/03_fpga_design_flow/vivado_flow.svg" alt="Vivado FPGA 설계 흐름"><figcaption>AMD UG901/UG904 설계 흐름 기반 교육용 재작성.</figcaption></figure>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>Elaboration과 Synthesis</h2>
+<p>Elaboration은 Module 계층, Parameter, Port 연결을 해석하여 설계 구조를 펼치는 과정입니다. Synthesis(합성)는 RTL 문장에서 Register, MUX, Adder, Comparator, FSM 등을 추론하고 Target Device의 논리 자원에 맞게 논리 Netlist를 만드는 과정입니다.</p>
+<div class="flow">RTL 문장 → 회로 추론 → 논리 최적화 → Target Library Mapping → Netlist</div>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/03_fpga_design_flow/synth_vs_impl.svg" alt="Synthesis와 Implementation 비교"><figcaption>UG901/UG904의 역할 구분을 교육용으로 재작성.</figcaption></figure>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>Implementation</h2>
+<p>UG904는 Vivado Implementation이 합성된 Netlist를 Device Resource에 배치하고 배선하여 논리·물리·Timing Constraint를 만족시키는 과정이라고 설명합니다. 일반적으로 <code>opt_design → place_design → route_design</code> 순서로 진행됩니다.</p>
+<ul><li>Optimization: 불필요하거나 비효율적인 구조 최적화</li><li>Placement: LUT, FF, BRAM, DSP 등의 물리 위치 결정</li><li>Routing: 각 자원 사이의 실제 배선 경로 결정</li><li>STA: Setup/Hold와 Clock Constraint 만족 여부 확인</li></ul>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>성공의 의미를 구분하기</h2>
+<div class="table-wrap"><table><thead><tr><th>단계</th><th>성공의 의미</th><th>아직 보장하지 않는 것</th></tr></thead><tbody>
+<tr><td>RTL Simulation</td><td>논리 기능</td><td>실제 배선 지연</td></tr>
+<tr><td>Synthesis</td><td>합성 가능한 회로 생성</td><td>배치·배선 후 Timing</td></tr>
+<tr><td>Implementation</td><td>실제 Device에 배치·배선</td><td>Constraint 자체의 적절성</td></tr>
+<tr><td>Board Test</td><td>실제 I/O 동작</td><td>모든 Corner 조건</td></tr></tbody></table></div>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>Verilog RTL은 아직 실제 FPGA 배치 결과가 아닙니다.</li><li>합성 후 Netlist를 실제 소자 자원에 배치·배선합니다.</li><li>Simulation 성공과 Timing 만족은 서로 다른 검증입니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/r/en-US/ug901-vivado-synthesis" target="_blank" rel="noopener">AMD UG901 — Vivado Synthesis</a></li><li><a href="https://docs.amd.com/r/en-US/ug904-vivado-implementation/About-the-Vivado-Implementation-Process" target="_blank" rel="noopener">AMD UG904 — Implementation Process</a></li><li><a href="https://docs.amd.com/r/en-US/ug904-vivado-implementation/Running-Implementation-in-Steps" target="_blank" rel="noopener">AMD UG904 — Running Implementation in Steps</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="02_fpga_asic_mcu_soc.html">← 02. FPGA · ASIC · MCU · SoC 비교</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="04_soc_overview.html">04. SoC 개요와 구성 →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>

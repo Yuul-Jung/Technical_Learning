@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="MicroBlaze의 Instruction/Data 경로, LMB, BRAM, AXI Peripheral을 연결하여 CPU가 명령과 데이터를 어떻게 접근하는지 정리합니다."/>
+<title>05. CPU · Memory · Peripheral 구조</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>05. CPU · Memory · Peripheral 구조</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 05</p>
+<h1>CPU · Memory · Peripheral 구조</h1>
+<p class="hero-desc">MicroBlaze의 Instruction/Data 경로, LMB, BRAM, AXI Peripheral을 연결하여 CPU가 명령과 데이터를 어떻게 접근하는지 정리합니다.</p>
+<div class="hero-meta"><span class="chip">MicroBlaze</span><span class="chip">Harvard</span><span class="chip">LMB</span><span class="chip">BRAM</span><span class="chip">AXI</span><span class="chip">Peripheral</span></div>
+<div class="hero-brief"><article><h2>CPU</h2><p>Instruction과 Data 경로를 분리해 접근합니다.</p></article><article><h2>Local Memory</h2><p>LMB는 BRAM에 대한 낮은 지연의 로컬 접근에 사용됩니다.</p></article><article><h2>Peripheral</h2><p>AXI는 GPIO·UART·Timer·Custom IP 연결에 사용됩니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 05</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>MicroBlaze I/O 구조</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Harvard Architecture</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>LMB와 AXI의 역할</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>프로그램이 LED를 켜기까지</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>MicroBlaze I/O 구조</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/05_cpu_memory_peripheral/microblaze_io.svg" alt="MicroBlaze I/O 구조"><figcaption>AMD UG984 Figure 1 <em>MicroBlaze Core Block Diagram</em>의 인터페이스 구성을 교육용으로 단순화.</figcaption></figure>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>Harvard Architecture</h2>
+<p>UG984는 MicroBlaze를 Instruction Access와 Data Access의 Bus Interface Unit을 분리한 Harvard Architecture로 설명합니다. Program Instruction을 읽는 경로와 Data를 읽고 쓰는 경로를 분리할 수 있습니다.</p>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/05_cpu_memory_peripheral/harvard_paths.svg" alt="MicroBlaze Harvard 구조"><figcaption>UG984의 Instruction/Data Interface 분리 개념을 단순화한 교육용 구조도.</figcaption></figure>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>LMB와 AXI의 역할</h2>
+<div class="table-wrap"><table><thead><tr><th>인터페이스</th><th>주요 연결</th><th>특징</th></tr></thead><tbody>
+<tr><td>ILMB</td><td>Instruction BRAM</td><td>로컬 명령어 메모리</td></tr>
+<tr><td>DLMB</td><td>Data BRAM</td><td>로컬 데이터 메모리</td></tr>
+<tr><td>M_AXI_DP</td><td>Peripheral / Memory</td><td>AXI4 또는 AXI4-Lite Data 접근</td></tr>
+<tr><td>M/S_AXIS</td><td>Streaming IP</td><td>주소 없는 연속 데이터 전송</td></tr>
+</tbody></table></div>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>프로그램이 LED를 켜기까지</h2>
+<div class="flow">C 코드에서 Register Write → MicroBlaze Store 명령 → AXI Address/Data → AXI GPIO Register → FPGA 출력 Port → Basys3 LED</div>
+<p>이 연결을 이해하면 Software와 RTL이 분리된 것이 아니라 Memory-Mapped I/O를 통해 같은 하드웨어 시스템 안에서 연결된다는 점이 보입니다.</p>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>Instruction과 Data 경로를 분리해 접근합니다.</li><li>LMB는 BRAM에 대한 낮은 지연의 로컬 접근에 사용됩니다.</li><li>AXI는 GPIO·UART·Timer·Custom IP 연결에 사용됩니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref/MicroBlaze-I/O-Overview" target="_blank" rel="noopener">AMD UG984 — MicroBlaze I/O Overview</a></li><li><a href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref/Overview" target="_blank" rel="noopener">AMD UG984 — Overview</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="04_soc_overview.html">← 04. SoC 개요와 구성</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="06_memory_mapped_io.html">06. Memory-Mapped I/O와 Register Map →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="기존 Verilog RTL을 Block Design에 직접 넣는 Module Reference와 재사용 가능한 Package IP 방식을 비교합니다."/>
+<title>08. IP · Module Reference · Custom IP</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>08. IP · Module Reference · Custom IP</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 08</p>
+<h1>IP · Module Reference · Custom IP</h1>
+<p class="hero-desc">기존 Verilog RTL을 Block Design에 직접 넣는 Module Reference와 재사용 가능한 Package IP 방식을 비교합니다.</p>
+<div class="hero-meta"><span class="chip">IP</span><span class="chip">Module Reference</span><span class="chip">Package IP</span><span class="chip">IP Catalog</span><span class="chip">Block Design</span></div>
+<div class="hero-brief"><article><h2>빠른 통합</h2><p>Module Reference는 RTL을 빠르게 Block Design에 추가합니다.</p></article><article><h2>재사용</h2><p>Package IP는 IP Catalog를 통한 관리와 재사용에 적합합니다.</p></article><article><h2>확장</h2><p>기존 Peripheral RTL을 SoC용 Custom IP로 발전시킵니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 08</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>두 가지 통합 경로</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Module Reference</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>Package IP</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>우리 과정에서의 사용 기준</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>두 가지 통합 경로</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/08_ip_custom_ip/module_vs_ip.svg" alt="Module Reference와 Package IP 비교"><figcaption>AMD UG994/UG1118 기반 교육용 재작성.</figcaption></figure>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>Module Reference</h2>
+<p>UG994는 Module Reference를 Verilog/VHDL Source의 Module 또는 Entity를 Packaging 과정 없이 Block Design에 직접 추가하는 기능으로 설명합니다. 빠르게 RTL을 연결해 실험할 때 유리합니다.</p>
+<ul><li>장점: 빠르고 단순함</li><li>단점: IP Catalog 관리·재사용·버전 관리 기능이 제한적</li></ul>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>Package IP</h2>
+<p>UG1118의 IP Packager를 사용하면 현재 Project 또는 지정한 RTL File을 IP로 Packaging할 수 있습니다. Port/Interface, Parameter, Address Map, Driver/Software 연결 정보를 정리해 재사용 가능한 IP로 만들 수 있습니다.</p>
+<ul><li>IP Catalog에서 재사용</li><li>다른 Project로 이동하기 쉬움</li><li>AXI Interface를 명확히 정의 가능</li><li>Revision 관리에 적합</li></ul>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>우리 과정에서의 사용 기준</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/08_ip_custom_ip/ip_lifecycle.svg" alt="RTL에서 재사용 IP로 발전하는 흐름"><figcaption>UG994/UG1118을 기준으로 RTL에서 IP Catalog까지의 발전 단계를 재작성.</figcaption></figure>
+<div class="flow">독립 RTL 검증 → Module Reference로 빠른 연결 → 인터페이스 안정화 → Custom IP Packaging → AXI4-Lite/Stream 연결</div>
+<p class="note">Top Module에 기능을 몰아넣지 않고 Controller/IP를 독립 모듈로 유지해 온 설계 원칙이 Custom IP 단계에서 그대로 재사용됩니다.</p>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>Module Reference는 RTL을 빠르게 Block Design에 추가합니다.</li><li>Package IP는 IP Catalog를 통한 관리와 재사용에 적합합니다.</li><li>기존 Peripheral RTL을 SoC용 Custom IP로 발전시킵니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/r/2024.2-English/ug994-vivado-ip-subsystems/Referencing-RTL-Modules" target="_blank" rel="noopener">AMD UG994 — Referencing RTL Modules</a></li><li><a href="https://docs.amd.com/r/en-US/ug994-vivado-ip-subsystems/Adding-RTL-Modules-to-the-Block-Design" target="_blank" rel="noopener">AMD UG994 — Adding RTL Modules</a></li><li><a href="https://docs.amd.com/r/en-US/ug1118-vivado-creating-packaging-custom-ip/Packaging-Your-Current-Project" target="_blank" rel="noopener">AMD UG1118 — Packaging Current Project</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="07_axi_concept.html">← 07. AXI 개념 — AXI4 · AXI4-Lite · AXI4-Stream</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="09_microblaze_soc.html">09. MicroBlaze 기반 FPGA SoC →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>

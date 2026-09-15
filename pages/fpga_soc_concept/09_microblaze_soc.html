@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="MicroBlaze, BRAM, AXI GPIO/UART/Timer, Custom IP를 하나의 Block Design으로 통합하는 Basys3 SoC 구조를 정리합니다."/>
+<title>09. MicroBlaze 기반 FPGA SoC</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>09. MicroBlaze 기반 FPGA SoC</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 09</p>
+<h1>MicroBlaze 기반 FPGA SoC</h1>
+<p class="hero-desc">MicroBlaze, BRAM, AXI GPIO/UART/Timer, Custom IP를 하나의 Block Design으로 통합하는 Basys3 SoC 구조를 정리합니다.</p>
+<div class="hero-meta"><span class="chip">MicroBlaze</span><span class="chip">BRAM</span><span class="chip">AXI GPIO</span><span class="chip">UART</span><span class="chip">Timer</span><span class="chip">Custom IP</span></div>
+<div class="hero-brief"><article><h2>CPU</h2><p>MicroBlaze가 Software를 실행합니다.</p></article><article><h2>Memory</h2><p>BRAM에 Program/Data를 배치합니다.</p></article><article><h2>Peripheral</h2><p>AXI Interconnect를 통해 GPIO·UART·Timer·Custom IP를 연결합니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 09</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>목표 구조</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>BRAM과 Software</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>AXI Peripheral</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>Hardware와 Software의 경계</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>목표 구조</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/09_microblaze_soc/basys3_microblaze_soc.svg" alt="Basys3 MicroBlaze SoC 구조"><figcaption>UG984/UG994와 Basys3 실습 방향을 연결한 목표 구조.</figcaption></figure>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>BRAM과 Software</h2>
+<p>MicroBlaze는 FPGA Logic에 구현되는 Processor이고 Program Code와 Data는 BRAM에 배치할 수 있습니다. LMB를 사용하면 On-chip BRAM에 낮은 지연으로 접근할 수 있습니다.</p>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>AXI Peripheral</h2>
+<ul><li>AXI GPIO: LED, Switch, Button 등 단순 I/O</li><li>AXI UART Lite: PC Terminal과 Serial 통신</li><li>AXI Timer: Timer/Counter, Interrupt 학습</li><li>Custom AXI IP: 기존 RTL Controller를 CPU가 제어</li></ul>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>Hardware와 Software의 경계</h2>
+<p>Vivado에서 Hardware Platform을 만들고 Bitstream/XSA를 생성한 뒤 Software Toolchain에서 MicroBlaze Program을 작성합니다. FPGA Fabric의 회로 구조와 CPU Software는 분리되어 있지만 Register Map과 AXI로 연결됩니다.</p>
+<div class="flow">Vivado Hardware → XSA → Software Project → ELF → Program/Debug</div>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/09_microblaze_soc/hw_sw_flow.svg" alt="MicroBlaze Hardware Software 개발 흐름"><figcaption>Vivado Hardware Platform과 Software 실행 파일의 연결 흐름.</figcaption></figure>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>MicroBlaze가 Software를 실행합니다.</li><li>BRAM에 Program/Data를 배치합니다.</li><li>AXI Interconnect를 통해 GPIO·UART·Timer·Custom IP를 연결합니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref" target="_blank" rel="noopener">AMD UG984 — MicroBlaze Processor Reference</a></li><li><a href="https://docs.amd.com/r/en-US/ug994-vivado-ip-subsystems" target="_blank" rel="noopener">AMD UG994 — IP Integrator</a></li><li><a href="https://docs.amd.com/r/en-US/pg144-axi-gpio" target="_blank" rel="noopener">AMD PG144 — AXI GPIO</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="08_ip_custom_ip.html">← 08. IP · Module Reference · Custom IP</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="10_fpga_memory_dsp.html">10. FPGA Memory · BRAM · DSP 구조 →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>

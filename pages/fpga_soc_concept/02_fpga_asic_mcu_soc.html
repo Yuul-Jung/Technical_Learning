@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="CPU 중심의 MCU, 재구성 가능한 FPGA, 주문형 ASIC, FPGA 내부 Soft CPU 기반 SoC를 구조와 설계 관점에서 비교합니다."/>
+<title>02. FPGA · ASIC · MCU · SoC 비교</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>02. FPGA · ASIC · MCU · SoC 비교</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 02</p>
+<h1>FPGA · ASIC · MCU · SoC 비교</h1>
+<p class="hero-desc">CPU 중심의 MCU, 재구성 가능한 FPGA, 주문형 ASIC, FPGA 내부 Soft CPU 기반 SoC를 구조와 설계 관점에서 비교합니다.</p>
+<div class="hero-meta"><span class="chip">MCU</span><span class="chip">FPGA</span><span class="chip">ASIC</span><span class="chip">SoC</span><span class="chip">MicroBlaze</span></div>
+<div class="hero-brief"><article><h2>핵심 질문</h2><p>왜 MCU와 FPGA는 같은 코드 실행 장치가 아닌가?</p></article><article><h2>구조 차이</h2><p>고정 CPU 구조와 재구성 논리 구조를 분리해서 이해합니다.</p></article><article><h2>Basys3 연결</h2><p>MicroBlaze를 넣으면 FPGA 내부에 CPU 시스템을 구성할 수 있습니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 02</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>네 플랫폼을 한 번에 비교하기</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>MCU와 FPGA의 가장 큰 차이</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>ASIC과 FPGA</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>FPGA SoC와 MicroBlaze</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>네 플랫폼을 한 번에 비교하기</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/02_fpga_asic_mcu_soc/platform_compare.svg" alt="MCU FPGA ASIC FPGA SoC 비교"><figcaption>플랫폼별 고정 구조·재구성 구조·Soft CPU 구조 비교.</figcaption></figure>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>MCU와 FPGA의 가장 큰 차이</h2>
+<p>MCU(Microcontroller Unit, 마이크로컨트롤러)는 CPU, Memory, Timer, UART 같은 Peripheral이 이미 칩 내부에 고정되어 있고 소프트웨어가 그 하드웨어를 사용합니다. FPGA는 반대로 LUT, FF, BRAM, DSP, Routing을 이용해 사용자가 원하는 디지털 회로를 직접 구성합니다.</p>
+<div class="flow">MCU: 고정 하드웨어 위에서 Software 실행 / FPGA: HDL로 하드웨어 자체를 구성</div>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/02_fpga_asic_mcu_soc/software_vs_hardware.svg" alt="Software 실행과 FPGA 병렬 하드웨어 비교"><figcaption>순차 Instruction 실행과 병렬 Hardware 구조의 차이를 교육용으로 재작성.</figcaption></figure>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>ASIC과 FPGA</h2>
+<p>ASIC(Application-Specific Integrated Circuit, 특정 용도 전용 집적회로)은 목표 회로를 실제 반도체 공정으로 제조합니다. 제조 후 회로 구조를 바꾸기 어렵지만 대량생산에서는 성능·전력·단가에서 유리할 수 있습니다. FPGA는 제조된 칩의 논리와 배선을 Bitstream으로 재구성하기 때문에 개발과 변경이 빠릅니다.</p>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>FPGA SoC와 MicroBlaze</h2>
+<p>MicroBlaze는 FPGA Fabric에 구현하는 Soft Processor입니다. UG984에 따르면 Harvard Architecture를 사용하며 Instruction/Data 경로를 분리하고, LMB와 AXI 인터페이스를 지원합니다. Basys3 안에 MicroBlaze + BRAM + AXI Peripheral + Custom RTL을 구성하면 하나의 FPGA 내부 SoC 학습 구조를 만들 수 있습니다.</p>
+<p class="note">여기서 SoC라는 말은 Zynq처럼 Hard CPU가 이미 내장된 칩만 의미하지 않습니다. FPGA Fabric에 Soft CPU와 Memory·Peripheral을 통합한 구조도 SoC 설계 개념을 학습하는 데 사용할 수 있습니다.</p>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>왜 MCU와 FPGA는 같은 코드 실행 장치가 아닌가?</li><li>고정 CPU 구조와 재구성 논리 구조를 분리해서 이해합니다.</li><li>MicroBlaze를 넣으면 FPGA 내부에 CPU 시스템을 구성할 수 있습니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref/Overview" target="_blank" rel="noopener">AMD UG984 — Overview</a></li><li><a href="https://digilent.com/shop/basys-3-amd-artix-7-fpga-trainer-board-recommended-for-introductory-users/" target="_blank" rel="noopener">Digilent Basys3</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="01_fpga_architecture.html">← 01. FPGA 개요와 내부 구조</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="03_fpga_design_flow.html">03. RTL이 FPGA 회로가 되는 과정 →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>

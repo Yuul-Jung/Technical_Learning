@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="350" viewBox="0 0 960 350" role="img">
+<style>
+text{font-family:Arial,'Noto Sans KR',sans-serif;fill:#1d2230}
+.box{fill:#ffffff;stroke:#4635B1;stroke-width:2}
+.soft{fill:#f2f0ff;stroke:#8e83d9;stroke-width:1.5}
+.gray{fill:#f8f8f6;stroke:#aeb3bc;stroke-width:1.5}
+.dark{fill:#20242c;stroke:#20242c;stroke-width:1.5}
+.darktext{fill:#ffffff}
+.line{stroke:#4a4f5a;stroke-width:2;fill:none;marker-end:url(#arrow)}
+.bus{stroke:#4635B1;stroke-width:5;fill:none;opacity:.9}
+.dash{stroke:#858B96;stroke-width:1.5;fill:none;stroke-dasharray:6 5}
+.small{font-size:13px}
+.label{font-size:15px;font-weight:700}
+.title{font-size:18px;font-weight:700}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4a4f5a"/></marker></defs>
+<text class="title" x="30" y="30" text-anchor="start">AXI GPIO Register Map 예 — PG144</text>
+<rect class="gray" x="70" y="75" width="170" height="48" rx="8"/>
+<text class="label " x="155.0" y="99.0" text-anchor="middle" dominant-baseline="middle">0x0000</text>
+<rect class="soft" x="240" y="75" width="250" height="48" rx="8"/>
+<text class="label " x="365.0" y="99.0" text-anchor="middle" dominant-baseline="middle">GPIO_DATA</text>
+<rect class="box" x="490" y="75" width="400" height="48" rx="8"/>
+<text class="label " x="690.0" y="99.0" text-anchor="middle" dominant-baseline="middle">Channel 1 Data</text>
+<rect class="gray" x="70" y="133" width="170" height="48" rx="8"/>
+<text class="label " x="155.0" y="157.0" text-anchor="middle" dominant-baseline="middle">0x0004</text>
+<rect class="soft" x="240" y="133" width="250" height="48" rx="8"/>
+<text class="label " x="365.0" y="157.0" text-anchor="middle" dominant-baseline="middle">GPIO_TRI</text>
+<rect class="box" x="490" y="133" width="400" height="48" rx="8"/>
+<text class="label " x="690.0" y="157.0" text-anchor="middle" dominant-baseline="middle">Channel 1 Direction</text>
+<rect class="gray" x="70" y="191" width="170" height="48" rx="8"/>
+<text class="label " x="155.0" y="215.0" text-anchor="middle" dominant-baseline="middle">0x0008</text>
+<rect class="soft" x="240" y="191" width="250" height="48" rx="8"/>
+<text class="label " x="365.0" y="215.0" text-anchor="middle" dominant-baseline="middle">GPIO2_DATA</text>
+<rect class="box" x="490" y="191" width="400" height="48" rx="8"/>
+<text class="label " x="690.0" y="215.0" text-anchor="middle" dominant-baseline="middle">Channel 2 Data</text>
+<rect class="gray" x="70" y="249" width="170" height="48" rx="8"/>
+<text class="label " x="155.0" y="273.0" text-anchor="middle" dominant-baseline="middle">0x000C</text>
+<rect class="soft" x="240" y="249" width="250" height="48" rx="8"/>
+<text class="label " x="365.0" y="273.0" text-anchor="middle" dominant-baseline="middle">GPIO2_TRI</text>
+<rect class="box" x="490" y="249" width="400" height="48" rx="8"/>
+<text class="label " x="690.0" y="273.0" text-anchor="middle" dominant-baseline="middle">Channel 2 Direction</text></svg>

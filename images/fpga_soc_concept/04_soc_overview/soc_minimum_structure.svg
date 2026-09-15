@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="370" viewBox="0 0 1000 370" role="img">
+<style>
+text{font-family:Arial,'Noto Sans KR',sans-serif;fill:#1d2230}
+.box{fill:#ffffff;stroke:#4635B1;stroke-width:2}
+.soft{fill:#f2f0ff;stroke:#8e83d9;stroke-width:1.5}
+.gray{fill:#f8f8f6;stroke:#aeb3bc;stroke-width:1.5}
+.dark{fill:#20242c;stroke:#20242c;stroke-width:1.5}
+.darktext{fill:#ffffff}
+.line{stroke:#4a4f5a;stroke-width:2;fill:none;marker-end:url(#arrow)}
+.bus{stroke:#4635B1;stroke-width:5;fill:none;opacity:.9}
+.dash{stroke:#858B96;stroke-width:1.5;fill:none;stroke-dasharray:6 5}
+.small{font-size:13px}
+.label{font-size:15px;font-weight:700}
+.title{font-size:18px;font-weight:700}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4a4f5a"/></marker></defs>
+<text class="title" x="30" y="30" text-anchor="start">SoC의 최소 구성 — CPU · Memory · Bus · Peripheral</text>
+<rect class="dark" x="385" y="65" width="220" height="70" rx="8"/>
+<text class="label darktext" x="495.0" y="100.0" text-anchor="middle" dominant-baseline="middle">CPU</text>
+<text class="small darktext" x="495.0" y="123" text-anchor="middle">MicroBlaze / Processor</text>
+<rect class="soft" x="65" y="225" width="180" height="70" rx="8"/>
+<text class="label " x="155.0" y="260.0" text-anchor="middle" dominant-baseline="middle">Program / Data Memory</text>
+<rect class="soft" x="300" y="225" width="180" height="70" rx="8"/>
+<text class="label " x="390.0" y="260.0" text-anchor="middle" dominant-baseline="middle">AXI Interconnect</text>
+<rect class="gray" x="535" y="225" width="180" height="70" rx="8"/>
+<text class="label " x="625.0" y="260.0" text-anchor="middle" dominant-baseline="middle">Peripheral</text>
+<rect class="gray" x="770" y="225" width="180" height="70" rx="8"/>
+<text class="label " x="860.0" y="260.0" text-anchor="middle" dominant-baseline="middle">Custom RTL IP</text>
+<line class="line" x1="495" y1="135" x2="155" y2="220"/>
+<line class="line" x1="495" y1="135" x2="390" y2="220"/>
+<line class="line" x1="495" y1="135" x2="625" y2="220"/>
+<line class="line" x1="495" y1="135" x2="860" y2="220"/>
+<text class="small" x="495" y="330" text-anchor="middle">SoC는 CPU 하나가 아니라 메모리·인터페이스·주변장치까지 하나의 시스템으로 연결한 구조</text></svg>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="AXI를 CPU가 아니라 인터페이스 프로토콜로 이해하고, Memory-Mapped 제어와 Streaming Data 전송을 구분합니다."/>
+<title>07. AXI 개념 — AXI4 · AXI4-Lite · AXI4-Stream</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>07. AXI 개념 — AXI4 · AXI4-Lite · AXI4-Stream</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 07</p>
+<h1>AXI 개념 — AXI4 · AXI4-Lite · AXI4-Stream</h1>
+<p class="hero-desc">AXI를 CPU가 아니라 인터페이스 프로토콜로 이해하고, Memory-Mapped 제어와 Streaming Data 전송을 구분합니다.</p>
+<div class="hero-meta"><span class="chip">AXI4</span><span class="chip">AXI4-Lite</span><span class="chip">AXI4-Stream</span><span class="chip">VALID</span><span class="chip">READY</span></div>
+<div class="hero-brief"><article><h2>AXI4</h2><p>메모리·고성능 데이터 전송에 사용합니다.</p></article><article><h2>AXI4-Lite</h2><p>Control/Status Register 접근에 적합합니다.</p></article><article><h2>AXI4-Stream</h2><p>주소 없이 연속 데이터를 VALID/READY로 전달합니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 07</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>AXI는 무엇인가</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>세 가지 AXI 계열 구분</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>VALID · READY Handshake</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>NPU와 AXI</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>AXI는 무엇인가</h2>
+<p>AXI(Advanced eXtensible Interface, 고급 확장 인터페이스)는 CPU 자체가 아니라 IP 간 데이터 전송 규칙을 정의하는 Bus/Interface Protocol입니다. MicroBlaze와 GPIO, UART, Timer, Custom IP를 연결할 때도 AXI 규칙에 따라 Address, Data, Response가 전달됩니다.</p>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>세 가지 AXI 계열 구분</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/07_axi_concept/axi_family.svg" alt="AXI4 AXI4-Lite AXI4-Stream 비교"><figcaption>AXI 계열의 용도를 교육용으로 비교한 도식.</figcaption></figure>
+<div class="table-wrap"><table><thead><tr><th>구분</th><th>주소</th><th>대표 용도</th></tr></thead><tbody>
+<tr><td>AXI4</td><td>있음</td><td>고성능 Memory-Mapped Burst</td></tr>
+<tr><td>AXI4-Lite</td><td>있음</td><td>Control / Status Register</td></tr>
+<tr><td>AXI4-Stream</td><td>없음</td><td>Video, DSP, NPU Data Stream</td></tr>
+</tbody></table></div>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>VALID · READY Handshake</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/07_axi_concept/axi_stream_handshake.svg" alt="AXI4-Stream VALID READY Handshake"><figcaption>AMD AXI4-Stream Product Guide의 Basic Handshake 설명을 기반으로 재작성.</figcaption></figure>
+<p>AXI4-Stream에서 Source는 <code>TVALID</code>를, Receiver는 <code>TREADY</code>를 구동합니다. 두 신호가 모두 1인 Clock Edge에서 Transfer가 성립합니다. Receiver가 준비되지 않았으면 Source는 유효 데이터를 유지해야 합니다.</p>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>NPU와 AXI</h2>
+<div class="flow">MicroBlaze Control → AXI4-Lite → NPU Register / Feature Data → AXI4-Stream 또는 BRAM → MAC Datapath</div>
+<p>따라서 AXI4-Lite는 제어에, AXI4-Stream은 대량의 연속 데이터 흐름에 적합하다는 구분이 NPU 통합에서도 그대로 사용됩니다.</p>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>메모리·고성능 데이터 전송에 사용합니다.</li><li>Control/Status Register 접근에 적합합니다.</li><li>주소 없이 연속 데이터를 VALID/READY로 전달합니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/v/u/en-US/ug1037-vivado-axi-reference-guide" target="_blank" rel="noopener">AMD UG1037 — Vivado AXI Reference Guide</a></li><li><a href="https://docs.amd.com/r/en-US/pg149-fir-compiler/Basic-Handshake" target="_blank" rel="noopener">AMD PG149 — Basic Handshake</a></li><li><a href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref/MicroBlaze-I/O-Overview" target="_blank" rel="noopener">AMD UG984 — MicroBlaze I/O Overview</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="06_memory_mapped_io.html">← 06. Memory-Mapped I/O와 Register Map</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="08_ip_custom_ip.html">08. IP · Module Reference · Custom IP →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>

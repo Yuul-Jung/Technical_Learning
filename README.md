@@ -19,6 +19,23 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 5. Basys3 다운로드/장치 인식
 6. Digilent Adept 구성과 역할
 
+### FPGA / SoC 개념
+
+01. FPGA 개요와 내부 구조
+02. FPGA · ASIC · MCU · SoC 비교
+03. RTL이 FPGA 회로가 되는 과정
+04. SoC 개요와 구성
+05. CPU · Memory · Peripheral 구조
+06. Memory-Mapped I/O와 Register Map
+07. AXI 개념 — AXI4 · AXI4-Lite · AXI4-Stream
+08. IP · Module Reference · Custom IP
+09. MicroBlaze 기반 FPGA SoC
+10. FPGA Memory · BRAM · DSP 구조
+11. Hardware Accelerator 구조
+12. Basys3 NPU로 확장
+
+> AMD/Xilinx · Digilent 공식 문서를 기준으로 구성하며, 원문 구조도는 핵심 개념을 유지한 교육용 재작성 그림으로 Repository 내부에 저장합니다.
+
 ### Digital / FPGA
 
 01. SW0를 이용한 LED0 ON/OFF 실습
@@ -81,6 +98,19 @@ Technical_Learning/
 │   │   ├── 04_xdc_constraints.html
 │   │   ├── 05_basys3_device_recognition.html
 │   │   └── 06_digilent_adept.html
+│   ├── fpga_soc_concept/
+│   │   ├── 01_fpga_architecture.html
+│   │   ├── 02_fpga_asic_mcu_soc.html
+│   │   ├── 03_fpga_design_flow.html
+│   │   ├── 04_soc_overview.html
+│   │   ├── 05_cpu_memory_peripheral.html
+│   │   ├── 06_memory_mapped_io.html
+│   │   ├── 07_axi_concept.html
+│   │   ├── 08_ip_custom_ip.html
+│   │   ├── 09_microblaze_soc.html
+│   │   ├── 10_fpga_memory_dsp.html
+│   │   ├── 11_hardware_accelerator.html
+│   │   └── 12_npu_extension.html
 │   ├── fpga/
 │   │   ├── 01_sw0_led.html
 │   │   ├── ...

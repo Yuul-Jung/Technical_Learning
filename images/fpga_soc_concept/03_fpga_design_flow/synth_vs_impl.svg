@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="350" viewBox="0 0 940 350" role="img">
+<style>
+text{font-family:Arial,'Noto Sans KR',sans-serif;fill:#1d2230}
+.box{fill:#ffffff;stroke:#4635B1;stroke-width:2}
+.soft{fill:#f2f0ff;stroke:#8e83d9;stroke-width:1.5}
+.gray{fill:#f8f8f6;stroke:#aeb3bc;stroke-width:1.5}
+.dark{fill:#20242c;stroke:#20242c;stroke-width:1.5}
+.darktext{fill:#ffffff}
+.line{stroke:#4a4f5a;stroke-width:2;fill:none;marker-end:url(#arrow)}
+.small{font-size:13px} .label{font-size:15px;font-weight:700} .title{font-size:18px;font-weight:700}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4a4f5a"/></marker></defs>
+<text class="title" x="30" y="30" text-anchor="start">Synthesis와 Implementation은 무엇이 다른가?</text>
+<rect class="dark" x="60" y="90" width="220" height="70" rx="8"/>
+<text class="label darktext" x="170.0" y="125.0" text-anchor="middle" dominant-baseline="middle">RTL</text>
+<rect class="soft" x="360" y="90" width="220" height="70" rx="8"/>
+<text class="label " x="470.0" y="125.0" text-anchor="middle" dominant-baseline="middle">Synthesis</text>
+<text class="small " x="470.0" y="148" text-anchor="middle">논리 구조 결정</text>
+<rect class="box" x="660" y="90" width="220" height="70" rx="8"/>
+<text class="label " x="770.0" y="125.0" text-anchor="middle" dominant-baseline="middle">Netlist</text>
+<line class="line" x1="280" y1="125" x2="355" y2="125"/>
+<line class="line" x1="580" y1="125" x2="655" y2="125"/>
+<rect class="soft" x="360" y="230" width="220" height="70" rx="8"/>
+<text class="label " x="470.0" y="265.0" text-anchor="middle" dominant-baseline="middle">Implementation</text>
+<text class="small " x="470.0" y="288" text-anchor="middle">물리 위치·배선 결정</text>
+<rect class="box" x="660" y="230" width="220" height="70" rx="8"/>
+<text class="label " x="770.0" y="265.0" text-anchor="middle" dominant-baseline="middle">Placed / Routed</text>
+<line class="line" x1="580" y1="265" x2="655" y2="265"/>
+<line class="line" x1="770" y1="160" x2="470" y2="225"/></svg>

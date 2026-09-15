@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="PyTorch 학습 모델을 Quantization하고 Weight를 FPGA Memory에 배치한 뒤 DSP 기반 MAC Datapath로 추론하는 전체 확장 흐름을 정리합니다."/>
+<title>12. Basys3 NPU로 확장</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>12. Basys3 NPU로 확장</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 12</p>
+<h1>Basys3 NPU로 확장</h1>
+<p class="hero-desc">PyTorch 학습 모델을 Quantization하고 Weight를 FPGA Memory에 배치한 뒤 DSP 기반 MAC Datapath로 추론하는 전체 확장 흐름을 정리합니다.</p>
+<div class="hero-meta"><span class="chip">NPU</span><span class="chip">INT8</span><span class="chip">Quantization</span><span class="chip">BRAM</span><span class="chip">DSP48E1</span><span class="chip">MAC</span><span class="chip">Timing</span></div>
+<div class="hero-brief"><article><h2>Model</h2><p>학습은 PC/PyTorch에서 수행합니다.</p></article><article><h2>Hardware</h2><p>정수화한 Weight/Activation을 FPGA 자원에 맞게 배치합니다.</p></article><article><h2>평가</h2><p>Accuracy·Latency·Resource·Timing을 함께 봅니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 12</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>학습 모델에서 FPGA NPU까지</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Quantization의 의미</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>Weight · Activation · MAC</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>Basys3 NPU 평가 기준</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>학습 모델에서 FPGA NPU까지</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/12_npu_extension/npu_pipeline.svg" alt="PyTorch 모델에서 FPGA NPU까지"><figcaption>PyTorch → INT8 → BRAM → DSP48E1 MAC → Output의 전체 확장 흐름.</figcaption></figure>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>Quantization의 의미</h2>
+<p>FP32 Weight와 Activation을 그대로 작은 Artix-7 FPGA에서 대규모로 처리하면 자원과 메모리 부담이 큽니다. INT8 Quantization은 값의 표현 범위를 줄여 Memory Size와 Arithmetic Resource 요구량을 낮추는 대표적 방법입니다.</p>
+<p class="warn">Quantization은 단순히 자료형 이름을 바꾸는 작업이 아닙니다. Scale, Zero Point, Saturation, Accumulator Bit Width와 Accuracy 변화를 검증해야 합니다.</p>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>Weight · Activation · MAC</h2>
+<div class="flow">Input Activation → BRAM/Buffer → Weight Read → DSP48E1 Multiply → Accumulator → Activation/Output</div>
+<p>여러 MAC Unit을 병렬 배치하면 Throughput을 높일 수 있지만 DSP와 BRAM Port, Routing, Power, Timing 사용량이 증가합니다.</p>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/12_npu_extension/npu_resource_mapping.svg" alt="NPU 연산의 FPGA 자원 매핑"><figcaption>Weight·Activation·BRAM·DSP48E1 MAC의 자원 매핑 관계.</figcaption></figure>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>Basys3 NPU 평가 기준</h2>
+<div class="table-wrap"><table><thead><tr><th>영역</th><th>측정 항목</th></tr></thead><tbody>
+<tr><td>정확도</td><td>FP32 대비 INT8 Accuracy 변화</td></tr>
+<tr><td>성능</td><td>Latency, Throughput, Clock</td></tr>
+<tr><td>자원</td><td>LUT, FF, BRAM, DSP</td></tr>
+<tr><td>Timing</td><td>WNS, TNS, Critical Path</td></tr>
+<tr><td>시스템</td><td>CPU 제어 시간 + Data 이동 + NPU 계산 시간</td></tr>
+</tbody></table></div>
+<p class="note">실제 합성·Timing 수치는 구현 후 Vivado Report에서 확보한 값만 사용합니다. 구현 전에는 예상 수치를 실제 결과처럼 제시하지 않습니다.</p>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>학습은 PC/PyTorch에서 수행합니다.</li><li>정수화한 Weight/Activation을 FPGA 자원에 맞게 배치합니다.</li><li>Accuracy·Latency·Resource·Timing을 함께 봅니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/v/u/en-US/ug479_7Series_DSP48E1" target="_blank" rel="noopener">AMD UG479 — DSP48E1</a></li><li><a href="https://docs.amd.com/api/khub/documents/9gZGbqBxtlKXxBfkBt~lAg/content" target="_blank" rel="noopener">AMD UG473 — 7 Series Memory Resources</a></li><li><a href="https://docs.amd.com/r/en-US/pg149-fir-compiler/Basic-Handshake" target="_blank" rel="noopener">AMD PG149 — AXI4-Stream Basic Handshake</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="11_hardware_accelerator.html">← 11. Hardware Accelerator 구조</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="../fpga/01_sw0_led.html">Digital / FPGA 실습으로 →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>

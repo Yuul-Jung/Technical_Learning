@@ -78,6 +78,87 @@
     </ol>
   </section>
 
+
+
+  <section class="home-section" style="margin-top:18px">
+    <h2>FPGA / SoC 개념</h2>
+    <p>공식 AMD/Xilinx · Digilent 문서를 기준으로 FPGA 내부 자원에서 MicroBlaze SoC, AXI, Custom IP, Hardware Accelerator, NPU까지 구조적으로 연결합니다.</p>
+    <ol>
+      <li>
+        <a href="pages/fpga_soc_concept/01_fpga_architecture.html">
+          <strong>01. FPGA 개요와 내부 구조</strong>
+        </a><br/>
+        Verilog RTL이 LUT, Flip-Flop, Slice, CLB, BRAM, DSP와 Routing으로 매핑되는 구조를 Basys3 Artix-7 기준으로 연결합니다.
+      </li>
+      <li>
+        <a href="pages/fpga_soc_concept/02_fpga_asic_mcu_soc.html">
+          <strong>02. FPGA · ASIC · MCU · SoC 비교</strong>
+        </a><br/>
+        CPU 중심의 MCU, 재구성 가능한 FPGA, 주문형 ASIC, FPGA 내부 Soft CPU 기반 SoC를 구조와 설계 관점에서 비교합니다.
+      </li>
+      <li>
+        <a href="pages/fpga_soc_concept/03_fpga_design_flow.html">
+          <strong>03. RTL이 FPGA 회로가 되는 과정</strong>
+        </a><br/>
+        RTL 작성부터 Elaboration, Synthesis, Placement, Routing, Timing Analysis, Bitstream까지 Vivado 전체 구현 흐름을 연결합니다.
+      </li>
+      <li>
+        <a href="pages/fpga_soc_concept/04_soc_overview.html">
+          <strong>04. SoC 개요와 구성</strong>
+        </a><br/>
+        SoC를 CPU 하나가 아니라 CPU·Memory·Bus·Peripheral·Custom Logic이 결합된 시스템으로 이해합니다.
+      </li>
+      <li>
+        <a href="pages/fpga_soc_concept/05_cpu_memory_peripheral.html">
+          <strong>05. CPU · Memory · Peripheral 구조</strong>
+        </a><br/>
+        MicroBlaze의 Instruction/Data 경로, LMB, BRAM, AXI Peripheral을 연결하여 CPU가 명령과 데이터를 어떻게 접근하는지 정리합니다.
+      </li>
+      <li>
+        <a href="pages/fpga_soc_concept/06_memory_mapped_io.html">
+          <strong>06. Memory-Mapped I/O와 Register Map</strong>
+        </a><br/>
+        CPU 주소가 Peripheral Register를 선택하고, Register 값이 실제 FPGA 신호로 연결되는 과정을 AXI GPIO와 AXI Timer의 실제 주소표로 설명합니다.
+      </li>
+      <li>
+        <a href="pages/fpga_soc_concept/07_axi_concept.html">
+          <strong>07. AXI 개념 — AXI4 · AXI4-Lite · AXI4-Stream</strong>
+        </a><br/>
+        AXI를 CPU가 아니라 인터페이스 프로토콜로 이해하고, Memory-Mapped 제어와 Streaming Data 전송을 구분합니다.
+      </li>
+      <li>
+        <a href="pages/fpga_soc_concept/08_ip_custom_ip.html">
+          <strong>08. IP · Module Reference · Custom IP</strong>
+        </a><br/>
+        기존 Verilog RTL을 Block Design에 직접 넣는 Module Reference와 재사용 가능한 Package IP 방식을 비교합니다.
+      </li>
+      <li>
+        <a href="pages/fpga_soc_concept/09_microblaze_soc.html">
+          <strong>09. MicroBlaze 기반 FPGA SoC</strong>
+        </a><br/>
+        MicroBlaze, BRAM, AXI GPIO/UART/Timer, Custom IP를 하나의 Block Design으로 통합하는 Basys3 SoC 구조를 정리합니다.
+      </li>
+      <li>
+        <a href="pages/fpga_soc_concept/10_fpga_memory_dsp.html">
+          <strong>10. FPGA Memory · BRAM · DSP 구조</strong>
+        </a><br/>
+        NPU와 Accelerator에 필요한 저장과 연산 자원을 LUT RAM, BRAM, DSP48E1 관점에서 연결합니다.
+      </li>
+      <li>
+        <a href="pages/fpga_soc_concept/11_hardware_accelerator.html">
+          <strong>11. Hardware Accelerator 구조</strong>
+        </a><br/>
+        CPU가 제어를 담당하고 RTL Datapath가 병렬 연산을 담당하는 Accelerator의 기본 구조를 Register Map과 AXI 관점에서 설명합니다.
+      </li>
+      <li>
+        <a href="pages/fpga_soc_concept/12_npu_extension.html">
+          <strong>12. Basys3 NPU로 확장</strong>
+        </a><br/>
+        PyTorch 학습 모델을 Quantization하고 Weight를 FPGA Memory에 배치한 뒤 DSP 기반 MAC Datapath로 추론하는 전체 확장 흐름을 정리합니다.
+      </li>
+    </ol>
+  </section>
+
   <section class="home-section" style="margin-top:18px">
     <h2>Digital / FPGA</h2>
     <ol>

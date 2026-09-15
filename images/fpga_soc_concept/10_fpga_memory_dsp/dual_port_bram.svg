@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="310" viewBox="0 0 980 310" role="img">
+<style>
+text{font-family:Arial,'Noto Sans KR',sans-serif;fill:#1d2230}
+.box{fill:#ffffff;stroke:#4635B1;stroke-width:2}
+.soft{fill:#f2f0ff;stroke:#8e83d9;stroke-width:1.5}
+.gray{fill:#f8f8f6;stroke:#aeb3bc;stroke-width:1.5}
+.dark{fill:#20242c;stroke:#20242c;stroke-width:1.5}
+.darktext{fill:#ffffff}
+.line{stroke:#4a4f5a;stroke-width:2;fill:none;marker-end:url(#arrow)}
+.small{font-size:13px} .label{font-size:15px;font-weight:700} .title{font-size:18px;font-weight:700}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4a4f5a"/></marker></defs>
+<text class="title" x="30" y="30" text-anchor="start">Dual-Port BRAM의 개념 — 두 Port가 같은 Memory를 접근</text>
+<rect class="soft" x="370" y="100" width="240" height="130" rx="8"/>
+<text class="label " x="490.0" y="165.0" text-anchor="middle" dominant-baseline="middle">Block RAM</text>
+<text class="small " x="490.0" y="218" text-anchor="middle">Shared Memory</text>
+<rect class="box" x="70" y="110" width="180" height="70" rx="8"/>
+<text class="label " x="160.0" y="145.0" text-anchor="middle" dominant-baseline="middle">Port A</text>
+<text class="small " x="160.0" y="168" text-anchor="middle">Addr/Data/WE/CLK</text>
+<rect class="box" x="730" y="110" width="180" height="70" rx="8"/>
+<text class="label " x="820.0" y="145.0" text-anchor="middle" dominant-baseline="middle">Port B</text>
+<text class="small " x="820.0" y="168" text-anchor="middle">Addr/Data/WE/CLK</text>
+<line class="line" x1="250" y1="145" x2="365" y2="145"/>
+<line class="line" x1="730" y1="145" x2="615" y2="145"/>
+<text class="small" x="490" y="265" text-anchor="middle">Weight Buffer · Feature Buffer · Ping-Pong 구조에 활용 가능</text></svg>

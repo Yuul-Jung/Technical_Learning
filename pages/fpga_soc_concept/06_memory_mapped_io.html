@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="description" content="CPU 주소가 Peripheral Register를 선택하고, Register 값이 실제 FPGA 신호로 연결되는 과정을 AXI GPIO와 AXI Timer의 실제 주소표로 설명합니다."/>
+<title>06. Memory-Mapped I/O와 Register Map</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+<div class="breadcrumb"><a href="../../index.html">홈</a><span class="sep">/</span><span>FPGA / SoC 개념</span><span class="sep">/</span><strong>06. Memory-Mapped I/O와 Register Map</strong></div>
+<div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+</div></div>
+
+<header class="hero"><div class="hero-grid"></div><div class="hero-inner">
+<p class="hero-kicker">FPGA / SoC 개념 · 06</p>
+<h1>Memory-Mapped I/O와 Register Map</h1>
+<p class="hero-desc">CPU 주소가 Peripheral Register를 선택하고, Register 값이 실제 FPGA 신호로 연결되는 과정을 AXI GPIO와 AXI Timer의 실제 주소표로 설명합니다.</p>
+<div class="hero-meta"><span class="chip">MMIO</span><span class="chip">Register Map</span><span class="chip">Base Address</span><span class="chip">Offset</span><span class="chip">AXI GPIO</span><span class="chip">AXI Timer</span></div>
+<div class="hero-brief"><article><h2>핵심 질문</h2><p>LED와 Timer가 왜 CPU 주소를 갖는가?</p></article><article><h2>계산</h2><p>Base Address + Register Offset으로 실제 주소를 만듭니다.</p></article><article><h2>실제 예</h2><p>PG144·PG079의 Register Map을 기준으로 봅니다.</p></article></div>
+</div></header>
+
+<div class="wrap">
+<aside class="flow-nav" aria-label="학습 순서">
+<p class="nav-title">CONCEPT FLOW</p><p class="nav-help">CHAPTER 06</p>
+<ol class="timeline"><li><a href="#step01"><span class="n">01</span><span>Memory-Mapped I/O 핵심</span></a></li>
+<li><a href="#step02"><span class="n">02</span><span>Base Address + Offset</span></a></li>
+<li><a href="#step03"><span class="n">03</span><span>AXI GPIO 실제 Register Map</span></a></li>
+<li><a href="#step04"><span class="n">04</span><span>AXI Timer 실제 Register Map</span></a></li>
+<li><a href="#summary"><span class="n">S</span><span>핵심 정리</span></a></li>
+<li><a href="#sources"><span class="n">R</span><span>공식 기준 문서</span></a></li>
+</ol></aside>
+<main>
+<div class="overview-card"><h2>이 챕터의 위치</h2>
+<div class="stage-flow"><span class="stage">FPGA 구조</span><span class="arrow">→</span><span class="stage">RTL</span><span class="arrow">→</span><span class="stage">SoC</span><span class="arrow">→</span><span class="stage">AXI / IP</span><span class="arrow">→</span><span class="stage">Accelerator / NPU</span></div>
+</div>
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>Memory-Mapped I/O 핵심</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/06_memory_mapped_io/mmio_flow.svg" alt="Memory-Mapped I/O 흐름"><figcaption>CPU Address → AXI Decode → Register → Hardware Signal 흐름.</figcaption></figure>
+<p>Memory-Mapped I/O는 Peripheral Register를 CPU의 주소 공간 일부에 배치하는 방식입니다. CPU 입장에서는 Memory Read/Write처럼 보이지만, 실제로는 특정 Hardware Register를 읽고 쓰게 됩니다.</p>
+</section><section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>Base Address + Offset</h2>
+<div class="flow">실제 Register Address = Peripheral Base Address + Register Offset</div>
+<p>예를 들어 AXI GPIO의 Base Address가 <code>0x4000_0000</code>이고 GPIO_DATA Offset이 <code>0x0000</code>이면 실제 주소는 <code>0x4000_0000</code>입니다. GPIO_TRI Offset이 <code>0x0004</code>이면 실제 주소는 <code>0x4000_0004</code>가 됩니다.</p>
+</section><section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>AXI GPIO 실제 Register Map</h2>
+<figure class="tech-figure"><img src="../../images/fpga_soc_concept/06_memory_mapped_io/pg144_register_map_redraw.svg" alt="AXI GPIO Register Map"><figcaption>AMD PG144 Table 1 <em>Registers</em> 기반 교육용 재작성.</figcaption></figure>
+<p>PG144는 Channel 1 GPIO Data Register를 Offset <code>0x0000</code>, 3-state Control Register를 <code>0x0004</code>로 정의합니다. Channel 2는 각각 <code>0x0008</code>, <code>0x000C</code>입니다.</p>
+</section><section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>AXI Timer 실제 Register Map</h2>
+<p>PG079의 Register Overview에서 Timer 0은 TCSR0 <code>0x00</code>, TLR0 <code>0x04</code>, TCR0 <code>0x08</code>에 배치됩니다. Timer 1은 <code>0x10</code>, <code>0x14</code>, <code>0x18</code>입니다.</p>
+<p class="note">Register Map을 이해하면 기존 UART Register Map RTL 실습과 MicroBlaze AXI Peripheral의 사고방식이 하나로 연결됩니다.</p>
+</section><section class="step-card summary" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ul><li>LED와 Timer가 왜 CPU 주소를 갖는가?</li><li>Base Address + Register Offset으로 실제 주소를 만듭니다.</li><li>PG144·PG079의 Register Map을 기준으로 봅니다.</li></ul>
+</section><section class="step-card" id="sources">
+<span class="step">SOURCE</span>
+<h2>공식 기준 문서</h2>
+<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<ul><li><a href="https://docs.amd.com/r/en-US/pg144-axi-gpio/Register-Space" target="_blank" rel="noopener">AMD PG144 — AXI GPIO Register Space</a></li><li><a href="https://docs.amd.com/r/en-US/pg079-axi-timer/Register-Space" target="_blank" rel="noopener">AMD PG079 — AXI Timer Register Space</a></li></ul>
+</section>
+<nav class="chapter-nav"><a href="05_cpu_memory_peripheral.html">← 05. CPU · Memory · Peripheral 구조</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="07_axi_concept.html">07. AXI 개념 — AXI4 · AXI4-Lite · AXI4-Stream →</a></nav>
+</main></div>
+<footer class="site-footer">PE. JUNG · FPGA / SoC CONCEPT NOTES</footer>
+</body></html>
