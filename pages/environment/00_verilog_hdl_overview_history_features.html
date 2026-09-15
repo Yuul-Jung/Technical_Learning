@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Verilog HDL의 개요, 개발 배경, 역사, 특징과 HDL 기반 시스템 반도체 설계 흐름을 정리한 개념 챕터" name="description"/>
+<title>Verilog HDL 개요 · 역사 · 특징</title>
+<link href="../../css/style.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="breadcrumb">
+      <a href="../../index.html">홈</a><span class="sep">/</span>
+      <span>환경구축 및 하드웨어</span><span class="sep">/</span>
+      <span>개념</span><span class="sep">/</span>
+      <strong>Verilog HDL 개요 · 역사 · 특징</strong>
+    </div>
+    <div class="brand">PE. JUNG · TECHNICAL NOTES</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div aria-hidden="true" class="hero-grid"></div>
+  <div class="hero-inner">
+    <p class="hero-kicker">환경구축 및 하드웨어 / 개념 · 00</p>
+    <h1>Verilog HDL 개요 · 역사 · 특징</h1>
+    <p class="hero-desc">
+      Verilog HDL이 왜 등장했는지, 어떻게 표준화되었는지, 소프트웨어 언어와 무엇이 다른지 정리하고
+      RTL 설계에서 시뮬레이션·합성·배치·배선·FPGA 보드 검증으로 이어지는 전체 설계 흐름을 연결합니다.
+    </p>
+    <div class="hero-meta">
+      <span class="chip">Verilog HDL</span>
+      <span class="chip">RTL</span>
+      <span class="chip">FPGA</span>
+      <span class="chip">ASIC</span>
+      <span class="chip">EDA</span>
+      <span class="chip">SystemVerilog</span>
+    </div>
+
+    <div class="hero-brief">
+      <article>
+        <h2>핵심 관점</h2>
+        <p>Verilog 코드는 순차 프로그램이 아니라 동시에 동작하는 디지털 하드웨어의 구조와 시간적 동작을 기술합니다.</p>
+      </article>
+      <article>
+        <h2>설계 흐름</h2>
+        <p>설계사양 → RTL → Testbench → Simulation → Synthesis → Implementation → Timing → Board Test</p>
+      </article>
+      <article>
+        <h2>확장 방향</h2>
+        <p>Verilog 설계에서 SystemVerilog 기반 Assertion, Coverage, UVM 검증으로 확장할 수 있습니다.</p>
+      </article>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<aside aria-label="학습 진행 순서" class="flow-nav">
+  <p class="nav-title">CONCEPT FLOW</p>
+  <p class="nav-help">SECTION 01 → 10</p>
+
+  <p class="phase">A. Verilog HDL 이해</p>
+  <ol class="timeline">
+    <li><a href="#step01"><span class="n">01</span><span>Verilog HDL 개요</span></a></li>
+    <li><a href="#step02"><span class="n">02</span><span>HDL 개발 배경</span></a></li>
+    <li><a href="#step03"><span class="n">03</span><span>계층적 설계</span></a></li>
+  </ol>
+
+  <p class="phase">B. 역사와 특징</p>
+  <ol class="timeline">
+    <li><a href="#step04"><span class="n">04</span><span>Verilog의 역사</span></a></li>
+    <li><a href="#step05"><span class="n">05</span><span>Verilog의 특징</span></a></li>
+  </ol>
+
+  <p class="phase">C. 설계과정</p>
+  <ol class="timeline">
+    <li><a href="#step06"><span class="n">06</span><span>시스템 반도체 흐름</span></a></li>
+    <li><a href="#step07"><span class="n">07</span><span>RTL · Testbench</span></a></li>
+    <li><a href="#step08"><span class="n">08</span><span>합성 · Timing</span></a></li>
+    <li><a href="#step09"><span class="n">09</span><span>FPGA · Vivado 연결</span></a></li>
+    <li><a href="#step10"><span class="n">10</span><span>검증 메모</span></a></li>
+  </ol>
+</aside>
+
+<main>
+
+<div class="overview-card">
+  <h2>전체 연결</h2>
+  <div aria-label="Verilog HDL 전체 설계 흐름" class="stage-flow">
+    <span class="stage">Design Spec</span><span class="arrow">→</span>
+    <span class="stage">Verilog RTL</span><span class="arrow">→</span>
+    <span class="stage">Simulation</span><span class="arrow">→</span>
+    <span class="stage">Synthesis</span><span class="arrow">→</span>
+    <span class="stage">Implementation</span><span class="arrow">→</span>
+    <span class="stage">FPGA Board</span>
+  </div>
+  <p class="note">핵심은 “코드를 실행한다”가 아니라 “코드에서 회로를 추론하고 실제 하드웨어로 구현한다”는 관점입니다.</p>
+</div>
+
+<section class="step-card" id="step01">
+<span class="step">SECTION 01</span>
+<h2>1. Verilog HDL 개요</h2>
+<p>
+  Verilog HDL(Hardware Description Language, 하드웨어 기술 언어)은 디지털 하드웨어의 구조와 동작을 표현하고 검증하기 위한 언어입니다.
+  일반 프로그래밍 언어가 컴퓨터에서 순차적으로 실행되는 소프트웨어를 작성하는 데 사용된다면,
+  Verilog HDL은 여러 회로가 동시에 동작하는 하드웨어의 병렬성과 시간적 동작을 표현합니다.
+</p>
+<h3>주요 사용 목적</h3>
+<ul>
+  <li>디지털 회로의 구조 표현</li>
+  <li>신호의 논리 동작 표현</li>
+  <li>클럭에 따른 Register(레지스터, 저장회로)와 상태 변화 표현</li>
+  <li>Simulation(시뮬레이션, 회로 동작 모의실험)을 통한 기능 검증</li>
+  <li>Synthesis(합성, HDL을 논리회로로 변환하는 과정)를 통한 실제 논리회로 생성</li>
+  <li>FPGA(Field Programmable Gate Array, 사용자가 구성할 수 있는 디지털 회로 칩) 설계</li>
+  <li>ASIC(Application-Specific Integrated Circuit, 특정 용도 전용 집적회로) 설계</li>
+</ul>
+</section>
+
+<section class="step-card" id="step02">
+<span class="step">SECTION 02</span>
+<h2>2. HDL이 개발된 배경</h2>
+<p>
+  과거에는 회로 규모가 작아 논리 게이트와 배선을 직접 배치하여 회로도를 작성할 수 있었습니다.
+  그러나 IC(Integrated Circuit, 집적회로)의 복잡도가 높아지면서 회로도만으로 설계하고 검증하는 방법에는 한계가 생겼습니다.
+</p>
+<div class="table-wrap"><table>
+<thead><tr><th>회로도 기반 설계의 한계</th><th>HDL이 제공하는 방향</th></tr></thead>
+<tbody>
+<tr><td>회로 규모가 커질수록 회로도가 복잡해짐</td><td>구조와 기능을 언어로 계층화</td></tr>
+<tr><td>설계 변경과 오류 수정이 어려움</td><td>텍스트 기반 수정과 재검증</td></tr>
+<tr><td>반복 회로 표현이 비효율적</td><td>Module과 Parameter를 통한 재사용</td></tr>
+<tr><td>기능 검증에 많은 시간이 필요</td><td>Testbench와 Simulation 자동화</td></tr>
+<tr><td>설계 재사용과 자동화가 어려움</td><td>합성·배치·배선 EDA 흐름과 연결</td></tr>
+</tbody>
+</table></div>
+<div class="flow">회로 복잡도 증가 → 회로도 기반 설계의 한계 → 하드웨어를 언어로 표현 → Simulation + 자동 합성 → 설계·검증 생산성 향상</div>
+</section>
+
+<section class="step-card" id="step03">
+<span class="step">SECTION 03</span>
+<h2>3. Bottom-Up에서 계층적 설계로</h2>
+<p>
+  전통적인 회로 설계에서는 작은 게이트와 트랜지스터에서 시작해 상위 시스템을 구성하는 Bottom-Up(하위 회로부터 상위 시스템으로 조립하는 방식)이 널리 사용되었습니다.
+  회로 규모가 커지면서 상위 기능을 먼저 정의하고 하위 회로를 구체화하는 계층적 설계가 중요해졌습니다.
+</p>
+<div class="table-wrap"><table>
+<thead><tr><th>표현 수준</th><th>주요 내용</th></tr></thead>
+<tbody>
+<tr><td>System Level</td><td>전체 시스템의 기능과 구성</td></tr>
+<tr><td>Behavioral Level</td><td>입력에 따른 출력과 알고리즘적 동작</td></tr>
+<tr><td>RTL(Register Transfer Level, 레지스터 전송 수준)</td><td>레지스터 사이의 데이터 이동과 연산</td></tr>
+<tr><td>Gate Level</td><td>AND, OR, NOT, Flip-Flop 등의 연결</td></tr>
+<tr><td>Switch Level</td><td>MOS 트랜지스터의 연결과 스위칭 동작</td></tr>
+</tbody>
+</table></div>
+<p>Verilog HDL은 상위 수준의 동작 표현부터 RTL, Gate, Switch 수준까지 여러 추상화 계층을 표현할 수 있습니다.</p>
+</section>
+
+<section class="step-card" id="step04">
+<span class="step">SECTION 04</span>
+<h2>4. Verilog HDL의 역사</h2>
+<p>
+  Verilog는 1980년대 초반 Gateway Design Automation에서 Phil Moorby를 중심으로 개발되었습니다.
+  초기 목적은 하드웨어의 구조와 동작을 표현하고 Logic Simulation(논리 시뮬레이션)을 수행하는 것이었습니다.
+  문법은 C 언어와 유사하지만 목적은 소프트웨어가 아니라 하드웨어 모델링입니다.
+</p>
+<div class="table-wrap"><table>
+<thead><tr><th>시기</th><th>주요 흐름</th></tr></thead>
+<tbody>
+<tr><td>1983~1984</td><td>Gateway Design Automation에서 Phil Moorby가 초기 Verilog 언어와 시뮬레이터를 개발</td></tr>
+<tr><td>1985</td><td>Verilog 기반 시뮬레이터 제품이 시장에 등장</td></tr>
+<tr><td>1987</td><td>고속 Gate-Level Simulation을 목표로 한 Verilog-XL이 등장</td></tr>
+<tr><td>1989</td><td>Cadence Design Systems가 Gateway Design Automation을 인수</td></tr>
+<tr><td>1990~1991</td><td>Verilog 공개·표준화 활동과 OVI(Open Verilog International) 활동 전개</td></tr>
+<tr><td>1995</td><td>IEEE Std. 1364-1995로 표준화</td></tr>
+<tr><td>2001</td><td>IEEE Std. 1364-2001로 개정</td></tr>
+<tr><td>이후</td><td>Verilog를 확장한 SystemVerilog가 설계·검증 통합 언어로 발전</td></tr>
+</tbody>
+</table></div>
+<h3>Cadence · Synopsys · OVI</h3>
+<ul>
+  <li>Cadence Design Systems는 Gateway 인수 후 Verilog HDL과 Verilog-XL의 상용화를 이어갔습니다.</li>
+  <li>Synopsys는 Verilog RTL을 이용한 Top-Down 합성 설계 방법과 EDA(Electronic Design Automation, 전자설계자동화) 도구 발전에 기여했습니다.</li>
+  <li>OVI는 Verilog 언어 공개와 LRM(Language Reference Manual, 언어 문법과 동작을 정의한 표준 문서) 정비를 통해 표준화 확산에 기여했습니다.</li>
+</ul>
+<h3>컴파일형 시뮬레이터의 등장</h3>
+<p>Verilog가 공개된 뒤 여러 회사가 Verilog Simulator를 개발했습니다. VCS(Verilog Compiled Simulator, Verilog 컴파일 방식 시뮬레이터)처럼 코드를 컴파일하여 실행하는 방식은 대규모 디지털 회로의 검증 속도를 높이는 방향으로 발전했습니다.</p>
+
+<h3>SystemVerilog로의 확장</h3>
+<p>SystemVerilog는 기존 Verilog의 설계 및 검증 기능을 확장하여 다음 기능을 강화했습니다.</p>
+<ul>
+  <li>복잡한 RTL 설계 표현</li>
+  <li>Interface(신호 묶음과 연결 구조화)</li>
+  <li>Assertion(설계 규칙과 동작 조건 자동 확인)</li>
+  <li>Functional Coverage(검증된 기능 범위 측정)</li>
+  <li>객체지향 기반 Testbench</li>
+  <li>UVM(Universal Verification Methodology, 표준 검증 방법론) 기반 검증</li>
+</ul>
+</section>
+
+<section class="step-card" id="step05">
+<span class="step">SECTION 05</span>
+<h2>5. Verilog HDL의 특징</h2>
+<h3>5.1 표준화된 하드웨어 기술 언어</h3>
+<p>
+  Verilog HDL은 IEEE 표준으로 정의되었으며 특정 반도체 제조사나 특정 EDA 도구에만 종속되는 언어가 아닙니다.
+  다만 합성 결과와 지원 기능은 사용하는 FPGA·ASIC 도구, 버전, Target Device와 Constraint에 따라 달라질 수 있습니다.
+</p>
+
+<h3>5.2 C와 비슷한 문법이지만 결과는 회로</h3>
+<pre class="codeblock-pre"><code>assign y = a &amp; b;</code></pre>
+<p>위 코드는 소프트웨어 명령을 수행하는 것이 아니라 입력 <code>a</code>, <code>b</code>를 AND 연산하는 조합논리 회로를 표현합니다.</p>
+<pre class="codeblock-pre"><code>always @(posedge clk) begin
+    q &lt;= d;
+end</code></pre>
+<p>위 코드는 <code>clk</code>의 상승 에지에서 <code>d</code>를 저장하는 D Flip-Flop 동작을 표현합니다.</p>
+
+<h3>5.3 하드웨어의 병렬 동작</h3>
+<pre class="codeblock-pre"><code>assign y1 = a &amp; b;
+assign y2 = c | d;</code></pre>
+<p>
+  두 <code>assign</code>문은 앞 문장이 끝난 뒤 다음 문장이 실행되는 순차 프로그램이 아닙니다.
+  AND 회로와 OR 회로가 동시에 존재하며 각 입력 변화에 병렬로 반응합니다.
+</p>
+
+<h3>5.4 여러 추상화 수준과 RTL</h3>
+<pre class="codeblock-pre"><code>always @(posedge clk) begin
+    count &lt;= count + 1'b1;
+end</code></pre>
+<div class="flow">현재 count → +1 Adder(가산기) → Clock 상승 에지 → count Register에 저장</div>
+<p>System/Behavioral, RTL, Gate, Switch 수준을 표현할 수 있으며 FPGA 설계에서는 합성 가능한 RTL이 핵심이 됩니다.</p>
+
+<h3>5.5 Simulation과 Synthesis</h3>
+<div class="stage-flow" aria-label="Simulation과 Synthesis 흐름">
+  <span class="stage">Verilog RTL</span><span class="arrow">→</span>
+  <span class="stage">RTL Simulation</span><span class="arrow">/</span>
+  <span class="stage">Synthesis</span><span class="arrow">→</span>
+  <span class="stage">Netlist</span><span class="arrow">→</span>
+  <span class="stage">Implementation</span>
+</div>
+<p class="warn">RTL Simulation 성공은 논리 기능이 의도대로 동작한다는 뜻이며, 실제 FPGA의 Timing까지 만족한다는 뜻은 아닙니다.</p>
+
+<h3>5.6 Gate-Level Timing · Fanout · SDF</h3>
+<p>
+  Gate Level에서는 Fanout(하나의 출력이 구동하는 입력 수)에 따른 부하와 지연을 고려할 수 있습니다.
+  SDF(Standard Delay Format, 회로 지연시간을 기록하는 표준 형식)를 적용하면 배치·배선 후 계산된 지연정보를 Timing Simulation에 반영할 수 있습니다.
+</p>
+
+<h3>5.7 FPGA와 ASIC에 적용</h3>
+<p>동일한 RTL이라도 실제 회로 결과는 다음 조건에 따라 달라질 수 있습니다.</p>
+<ul>
+  <li>대상 FPGA 또는 ASIC 공정</li>
+  <li>합성 도구와 합성 옵션</li>
+  <li>Clock Constraint</li>
+  <li>FPGA의 LUT, FF, BRAM, DSP 자원 구조</li>
+  <li>배치·배선 결과</li>
+</ul>
+<p>따라서 Verilog RTL의 이식성은 높지만 자원 사용량과 Timing 결과까지 완전히 동일한 것은 아닙니다.</p>
+</section>
+
+<section class="step-card" id="step06">
+<span class="step">SECTION 06</span>
+<h2>6. HDL 기반 시스템 반도체 설계과정</h2>
+<p>
+  복잡한 SoC(System-on-Chip, 하나의 칩에 여러 시스템 기능을 통합한 반도체)를 효율적으로 설계하려면
+  HDL 기반 설계·검증·합성을 지원하는 EDA 도구가 필요합니다. 회로도를 직접 그리는 대신 설계사양을 HDL로 표현하고
+  Simulation과 Synthesis를 거쳐 실제 회로로 변환합니다.
+</p>
+<div class="table-wrap"><table>
+<thead><tr><th>영역</th><th>주요 단계</th></tr></thead>
+<tbody>
+<tr><td>Front-End Design</td><td>설계사양 → 상위수준 모델링 → RTL 설계 → 기능 검증 → 합성 → Gate-Level 검증</td></tr>
+<tr><td>Back-End Design</td><td>Floorplanning → Placement → CTS → Routing → Post-Layout Verification → 제조/구성 데이터 생성</td></tr>
+</tbody>
+</table></div>
+
+<h3>ASIC과 FPGA 구현 차이</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>구분</th><th>ASIC</th><th>FPGA</th></tr></thead>
+<tbody>
+<tr><td>구현 대상</td><td>Standard Cell과 실제 반도체 제조공정</td><td>제조가 완료된 재구성 가능한 FPGA 자원</td></tr>
+<tr><td>합성 후</td><td>레이아웃 → 마스크 → 웨이퍼 제조</td><td>배치·배선 → Bitstream 생성</td></tr>
+<tr><td>초기 개발비</td><td>높음</td><td>상대적으로 낮음</td></tr>
+<tr><td>설계 변경</td><td>제조 후 변경이 어려움</td><td>새 Bitstream으로 재구성 가능</td></tr>
+<tr><td>주요 용도</td><td>대량생산, 고성능·저전력 전용 칩</td><td>시제품, 교육, 검증, 소량 다품종</td></tr>
+</tbody>
+</table></div>
+
+<h3>설계사양이 출발점</h3>
+<p>설계사양은 RTL, Testbench, Constraint, Timing 검증이 공유하는 기준입니다.</p>
+<ul>
+  <li>회로 기능과 목표 성능</li>
+  <li>Clock 주파수와 Timing 조건</li>
+  <li>면적과 전력소모</li>
+  <li>입·출력 신호 이름과 Bit Width</li>
+  <li>데이터와 제어신호의 Timing 관계</li>
+  <li>Reset과 Clock 조건</li>
+  <li>알고리즘과 Architecture</li>
+  <li>신뢰성, 제조성, 테스트 조건</li>
+</ul>
+<p class="note">성능·면적·전력·개발기간은 서로 Trade-Off 관계를 가질 수 있습니다. 예를 들어 Pipeline을 추가하면 주파수를 높일 수 있지만 Register 수와 Latency가 증가할 수 있습니다.</p>
+<h3>상위수준 모델링</h3>
+<ul>
+  <li>설계사양에서 정의한 기능의 타당성 확인</li>
+  <li>입력·출력 Interface 동작과 적용 표준 확인</li>
+  <li>시스템 성능의 Bottleneck(전체 성능을 제한하는 병목 구간) 탐색</li>
+  <li>시스템 분할과 RTL Architecture 결정</li>
+</ul>
+<div class="flow">설계사양 → 상위수준 모델 → 기능·성능 검증 → Bottleneck 분석 → 시스템 분할 → RTL Architecture</div>
+</section>
+
+<section class="step-card" id="step07">
+<span class="step">SECTION 07</span>
+<h2>7. RTL 설계 · Testbench · 기능 검증</h2>
+<p>
+  상위수준 모델링을 통해 시스템 구조와 분할이 결정되면 합성 가능한 Verilog RTL로 Register, Datapath, 제어조건과 Clock별 상태 변화를 표현합니다.
+  동시에 DUT(Design Under Test, 검증 대상 회로)를 검증할 Testbench를 작성합니다.
+</p>
+<div class="flow">Stimulus → DUT → Response → Expected Result 비교</div>
+<h3>합성 가능한 RTL의 대표 표현</h3>
+<ul>
+  <li>Module 또는 Gate Primitive를 이용한 구조적 모델링</li>
+  <li><code>assign</code>을 이용한 조합논리와 데이터 흐름</li>
+  <li><code>always</code>를 이용한 조합논리 또는 순차논리</li>
+  <li><code>if</code>, <code>case</code>를 이용한 MUX와 제어논리</li>
+  <li>Clock Edge를 기준으로 값을 저장하는 Register</li>
+  <li>FSM(Finite State Machine, 유한상태머신)을 이용한 상태 기반 제어</li>
+</ul>
+<h3>RTL 설계 시 확인할 항목</h3>
+<ul>
+  <li>합성 도구가 지원하는 합성 가능 문법인지 확인</li>
+  <li>Clock 주파수, 면적, 전력소모를 함께 고려</li>
+  <li>조합논리와 순차논리를 명확히 구분</li>
+  <li>Bit Width, Signed·Unsigned, Overflow, Truncation 확인</li>
+  <li>Reset 방식과 Clock Domain 정의</li>
+  <li>RTL과 Testbench가 동일한 설계사양을 기준으로 하는지 확인</li>
+</ul>
+<h3>RTL Simulation 검증 항목</h3>
+<ul>
+  <li>Reset 후 초기값과 초기 상태</li>
+  <li>정상 입력, 경계값, 최대·최소값, 예외 입력</li>
+  <li>FSM 상태 전이</li>
+  <li>Counter와 Timer 범위</li>
+  <li><code>valid</code>/<code>ready</code> Handshake</li>
+  <li>Pipeline Latency</li>
+  <li>FIFO Full·Empty 조건</li>
+  <li>각 출력의 발생 Clock</li>
+</ul>
+</section>
+
+<section class="step-card" id="step08">
+<span class="step">SECTION 08</span>
+<h2>8. 회로 합성 · Timing · 레이아웃 검증</h2>
+<h3>8.1 Synthesis</h3>
+<p>
+  Synthesis는 RTL을 Gate-Level Netlist로 변환하는 과정입니다. 합성 도구는 HDL을 해석하여 Register, MUX, Adder, Comparator 등을 추론하고,
+  논리를 최적화한 뒤 Target Library 또는 FPGA 자원에 Mapping합니다.
+</p>
+<div class="stage-flow" aria-label="합성 내부 흐름">
+  <span class="stage">HDL 분석</span><span class="arrow">→</span>
+  <span class="stage">Elaboration</span><span class="arrow">→</span>
+  <span class="stage">논리 변환</span><span class="arrow">→</span>
+  <span class="stage">최적화</span><span class="arrow">→</span>
+  <span class="stage">Library Mapping</span><span class="arrow">→</span>
+  <span class="stage">Netlist</span>
+</div>
+<p>합성 결과는 도구·버전·Strategy·Target Device·Clock Constraint·속도/면적/전력 우선순위·Coding Style에 따라 달라질 수 있습니다.</p>
+
+<h3>8.2 합성 후 Timing 검증</h3>
+<p>
+  STA(Static Timing Analysis, 정적 타이밍 분석)는 입력 Stimulus 없이 주요 Timing 경로를 분석하여 Setup, Hold, Clock 주기 만족 여부 등을 확인합니다.
+  Timing Simulation은 Gate와 지연정보를 포함한 시간적 동작을 확인하는 데 사용될 수 있습니다.
+</p>
+
+<h3>8.3 Layout · Place & Route</h3>
+<div class="stage-flow" aria-label="레이아웃 흐름">
+  <span class="stage">Floorplanning</span><span class="arrow">→</span>
+  <span class="stage">Placement</span><span class="arrow">→</span>
+  <span class="stage">CTS</span><span class="arrow">→</span>
+  <span class="stage">Routing</span><span class="arrow">→</span>
+  <span class="stage">Optimization</span>
+</div>
+<ul>
+  <li>Floorplanning: 전체 물리 구조와 주요 Macro 위치 결정</li>
+  <li>Placement: Timing, 배선 길이, 혼잡도와 전력을 고려해 Cell 배치</li>
+  <li>CTS(Clock Tree Synthesis, 클럭 트리 합성): Clock Skew와 Clock 지연을 제어</li>
+  <li>Routing: 배치된 Cell 사이의 신호를 실제 배선으로 연결</li>
+</ul>
+
+<h3>8.4 Post-Layout Verification</h3>
+<p>배치·배선 후에는 실제 배선 지연과 기생 저항·기생 커패시턴스가 추가되므로 합성 단계에서 만족했던 Timing이 다시 위반될 수 있습니다.</p>
+<ul>
+  <li>Gate-Level Timing Simulation</li>
+  <li>Parasitic Effect를 반영한 STA</li>
+  <li>DRC(Design Rule Checking, 물리적 설계규칙 검사)</li>
+  <li>Setup·Hold Timing</li>
+  <li>Clock Tree와 Clock Skew</li>
+  <li>배선 혼잡과 전원·접지망 확인</li>
+</ul>
+</section>
+
+<section class="step-card" id="step09">
+<span class="step">SECTION 09</span>
+<h2>9. FPGA · Vivado 설계과정과 연결</h2>
+<p>ASIC 중심의 시스템 반도체 설계 흐름은 FPGA에서도 같은 개념으로 이어집니다. 다만 FPGA는 마스크와 웨이퍼 제조 대신 Bitstream을 생성하여 이미 제조된 FPGA 내부 자원을 재구성합니다.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>시스템 반도체 설계 단계</th><th>FPGA · Vivado 대응</th></tr></thead>
+<tbody>
+<tr><td>설계사양 결정</td><td>목표 기능 · Clock · I/O · 성능 정의</td></tr>
+<tr><td>RTL 설계</td><td>Verilog RTL 작성</td></tr>
+<tr><td>RTL 기능 검증</td><td>Vivado Simulator 또는 외부 Simulator</td></tr>
+<tr><td>회로 합성</td><td>Vivado Synthesis</td></tr>
+<tr><td>합성 후 Timing 검증</td><td>Timing Report · STA 확인</td></tr>
+<tr><td>레이아웃 설계</td><td>Implementation · Place &amp; Route</td></tr>
+<tr><td>레이아웃 후 검증</td><td>Implemented Design Timing · DRC</td></tr>
+<tr><td>제조 데이터 생성</td><td>Bitstream 생성 · FPGA 구성</td></tr>
+</tbody>
+</table></div>
+<div class="flow">설계사양 → Verilog RTL → Testbench → RTL Simulation → Synthesis → Implementation → Timing Report → Bitstream → Basys3 Board Test</div>
+<p class="note">각 단계는 일방향으로 끝나는 것이 아닙니다. Timing 위반이나 기능 오류가 발견되면 RTL 또는 Constraint 단계로 되돌아가 수정하고 다시 검증합니다.</p>
+</section>
+
+<section class="step-card" id="step10">
+<span class="step">SECTION 10</span>
+<h2>10. 검증 메모</h2>
+<div class="warn">
+  <strong>역사 연도 표현:</strong> 원본 자료는 1983년에 Verilog와 Verilog-XL이 함께 개발된 것처럼 읽힐 수 있습니다.
+  Computer History Museum과 HOPL 자료를 대조하면 초기 Verilog 언어는 1983년 말에 정의되었고, 첫 Verilog Simulator는 1984년에 개발되어 1985년경 시장에 등장했으며,
+  Verilog-XL은 이후 개발되어 1987년에 출시된 것으로 정리하는 것이 더 정확합니다.
+</div>
+<div class="warn">
+  <strong>OVI 연도:</strong> 원본 자료는 1991년 OVI 구성을 제시합니다. 공개 자료에는 1990년 또는 1990~1991년으로 기술된 경우가 있어,
+  이 페이지에서는 공개·표준화 활동의 전개 시기를 <strong>1990~1991</strong>로 표시했습니다.
+</div>
+<div class="note">
+  <strong>IEEE 표준의 현재 위치:</strong> 독립 Verilog 표준 IEEE 1364-2005는 이후 SystemVerilog IEEE 1800 계열로 통합되었습니다.
+  현재 SystemVerilog의 활성 표준은 IEEE 1800-2023입니다.
+</div>
+<div class="note">
+  <strong>검증 시간·속도 수치:</strong> 원본의 “전체 설계기간 중 RTL 모델링·검증 70~80%”, “RTL Simulation이 Gate-Level Simulation보다 수백~수천 배 빠를 수 있음”과 같은 수치는
+  프로젝트 규모, EDA 도구, Testbench와 모델 복잡도에 따라 크게 달라질 수 있으므로 고정된 산업 표준 수치가 아니라 검증 중요성을 설명하는 일반화된 예시로 봅니다.
+</div>
+<p><strong>검증 참고</strong></p>
+<ul>
+  <li><a href="https://computerhistory.org/profile/philip-moorby/" rel="noopener" target="_blank">Computer History Museum · Philip Moorby</a></li>
+  <li><a href="https://ieeexplore.ieee.org/document/1620780" rel="noopener" target="_blank">IEEE 1364-2005 · Verilog HDL</a></li>
+  <li><a href="https://standards.ieee.org/ieee/1800/7743/" rel="noopener" target="_blank">IEEE 1800-2023 · SystemVerilog</a></li>
+  <li><a href="https://hopl4.sigplan.org/details/hopl-4-papers/6/Verilog-HDL-and-its-ancestors-and-descendants" rel="noopener" target="_blank">HOPL · Verilog HDL and its ancestors and descendants</a></li>
+</ul>
+</section>
+
+<section class="step-card" id="summary">
+<span class="step">SUMMARY</span>
+<h2>핵심 정리</h2>
+<ol>
+  <li>Verilog HDL은 소프트웨어가 아니라 디지털 하드웨어의 구조와 동작을 표현하는 언어입니다.</li>
+  <li>회로 복잡도가 증가하면서 회로도 중심 설계만으로는 재사용·자동화·검증에 한계가 생겨 HDL 기반 설계가 발전했습니다.</li>
+  <li>Verilog는 1980년대 초반 개발되어 IEEE 1364 계열로 표준화되었고 이후 SystemVerilog로 확장되었습니다.</li>
+  <li>System, Behavioral, RTL, Gate, Switch 수준에서 하드웨어를 표현할 수 있습니다.</li>
+  <li>여러 Verilog 회로 블록은 순차 실행이 아니라 실제 하드웨어처럼 병렬로 동작합니다.</li>
+  <li>합성 가능한 RTL은 MUX, Adder, Comparator, Register 등의 실제 회로 구조로 변환됩니다.</li>
+  <li>RTL Simulation 성공과 실제 FPGA 동작 성공은 구분해야 하며 Timing과 Constraint 검증이 필요합니다.</li>
+  <li>FPGA에서는 Synthesis → Implementation → Timing → Bitstream → Board Test로 이어집니다.</li>
+</ol>
+</section>
+
+<div class="chapter-nav">
+  <span class="disabled">← 이전 개념 없음</span>
+  <a class="home" href="../../index.html">🏠 홈</a>
+  <a class="next" href="01_ubuntu_vivado_install.html">다음 · Vivado 설치 →</a>
+</div>
+
+</main>
+</div>
+
+<footer class="site-footer">PE. JUNG · TECHNICAL LEARNING NOTES</footer>
+</body>
+</html>

@@ -4,7 +4,13 @@ GitHub Pages 기반의 누적형 기술 학습 홈페이지입니다.
 
 ## 현재 공개 자료
 
-### 환경구축 및 하드웨어
+### 환경구축 및 하드웨어/개념
+
+#### 개념
+
+- Verilog HDL 개요 · 역사 · 특징
+
+#### 환경구축 및 하드웨어
 
 1. Ubuntu에서 AMD Vivado 2024.2 설치
 2. Basys3 회로도 읽기
@@ -68,6 +74,7 @@ Technical_Learning/
 ├── index.html
 ├── pages/
 │   ├── environment/
+│   │   ├── 00_verilog_hdl_overview_history_features.html
 │   │   ├── 01_ubuntu_vivado_install.html
 │   │   ├── 02_basys3_schematic.html
 │   │   ├── 03_basys3_hardware_manual.html
