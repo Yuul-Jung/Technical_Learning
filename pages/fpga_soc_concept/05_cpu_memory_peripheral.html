@@ -38,12 +38,12 @@
 <section class="step-card" id="step01">
 <span class="step">SECTION 01</span>
 <h2>MicroBlaze I/O 구조</h2>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/05_cpu_memory_peripheral/microblaze_io.svg" alt="MicroBlaze I/O 구조"><figcaption>AMD UG984 Figure 1 <em>MicroBlaze Core Block Diagram</em>의 인터페이스 구성을 교육용으로 단순화.</figcaption></figure>
+<div class="source-figure-ref"><p class="source-kicker">ORIGINAL FIGURE · AMD UG984</p><h3>Figure 1 · MicroBlaze Core Block Diagram</h3><p>원문 그림은 공식 문서에서 직접 확인합니다. 이 페이지에서는 기술 구조를 임의로 다시 그리지 않습니다.</p><a class="source-figure-link" href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref/MicroBlaze-I/O-Overview" target="_blank" rel="noopener">공식 원문에서 그림 보기 ↗</a></div>
 </section><section class="step-card" id="step02">
 <span class="step">SECTION 02</span>
 <h2>Harvard Architecture</h2>
 <p>UG984는 MicroBlaze를 Instruction Access와 Data Access의 Bus Interface Unit을 분리한 Harvard Architecture로 설명합니다. Program Instruction을 읽는 경로와 Data를 읽고 쓰는 경로를 분리할 수 있습니다.</p>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/05_cpu_memory_peripheral/harvard_paths.svg" alt="MicroBlaze Harvard 구조"><figcaption>UG984의 Instruction/Data Interface 분리 개념을 단순화한 교육용 구조도.</figcaption></figure>
+<div class="flow">Instruction Interface → 명령어 경로 · Data Interface → 데이터 경로 · 두 경로를 분리하는 Harvard Architecture</div>
 </section><section class="step-card" id="step03">
 <span class="step">SECTION 03</span>
 <h2>LMB와 AXI의 역할</h2>
@@ -65,7 +65,7 @@
 </section><section class="step-card" id="sources">
 <span class="step">SOURCE</span>
 <h2>공식 기준 문서</h2>
-<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<p>본문은 아래 공식 문서를 기준으로 검증했습니다. 기술 구조를 임의로 다시 그리지 않으며, 원문 Figure가 필요한 부분은 공식 원문 링크로 직접 연결합니다.</p>
 <ul><li><a href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref/MicroBlaze-I/O-Overview" target="_blank" rel="noopener">AMD UG984 — MicroBlaze I/O Overview</a></li><li><a href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref/Overview" target="_blank" rel="noopener">AMD UG984 — Overview</a></li></ul>
 </section>
 <nav class="chapter-nav"><a href="04_soc_overview.html">← 04. SoC 개요와 구성</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="06_memory_mapped_io.html">06. Memory-Mapped I/O와 Register Map →</a></nav>

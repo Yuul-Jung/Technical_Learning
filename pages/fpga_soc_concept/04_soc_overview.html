@@ -38,13 +38,13 @@
 <section class="step-card" id="step01">
 <span class="step">SECTION 01</span>
 <h2>SoC를 시스템으로 보기</h2>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/04_soc_overview/soc_minimum_structure.svg" alt="SoC 최소 구성"><figcaption>MicroBlaze FPGA SoC 학습을 위한 최소 구성도.</figcaption></figure>
+<div class="source-figure-ref"><p class="source-kicker">ORIGINAL FIGURE · AMD UG1579</p><h3>Figure 1 · Block Design of MicroBlaze Core</h3><p>원문 그림은 공식 문서에서 직접 확인합니다. 이 페이지에서는 기술 구조를 임의로 다시 그리지 않습니다.</p><a class="source-figure-link" href="https://docs.amd.com/r/en-US/ug1579-microblaze-embedded-design/Using-a-MicroBlaze-Processor-in-an-Embedded-Design" target="_blank" rel="noopener">공식 원문에서 그림 보기 ↗</a></div>
 <p>SoC(System-on-Chip, 하나의 칩에 여러 시스템 기능을 통합한 반도체)는 CPU만을 뜻하지 않습니다. Program/Data Memory, Bus, Peripheral, Interrupt, Debug, Clock/Reset, 필요하면 Hardware Accelerator까지 하나의 시스템으로 결합됩니다.</p>
 </section><section class="step-card" id="step02">
 <span class="step">SECTION 02</span>
 <h2>Control Path와 Data Path</h2>
 <p>CPU는 명령어를 실행하고 시스템 상태를 관리하는 Control 역할에 강합니다. FPGA Custom RTL은 병렬 Datapath를 직접 만들 수 있어 반복 연산이나 정해진 신호 처리에 유리합니다. SoC 설계에서는 이 두 영역을 적절히 나누는 것이 중요합니다.</p>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/04_soc_overview/control_acceleration.svg" alt="CPU Control과 Custom RTL Accelerator 역할 분담"><figcaption>CPU Control Path와 FPGA Datapath 역할 분담을 교육용으로 정리.</figcaption></figure>
+<div class="flow">CPU / Software → 설정·분기·상태 관리 · Custom RTL / Accelerator → 반복 연산·병렬 Datapath</div>
 </section><section class="step-card" id="step03">
 <span class="step">SECTION 03</span>
 <h2>FPGA SoC의 장점</h2>
@@ -60,7 +60,7 @@
 </section><section class="step-card" id="sources">
 <span class="step">SOURCE</span>
 <h2>공식 기준 문서</h2>
-<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<p>본문은 아래 공식 문서를 기준으로 검증했습니다. 기술 구조를 임의로 다시 그리지 않으며, 원문 Figure가 필요한 부분은 공식 원문 링크로 직접 연결합니다.</p>
 <ul><li><a href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref/Overview" target="_blank" rel="noopener">AMD UG984 — MicroBlaze Overview</a></li><li><a href="https://docs.amd.com/r/en-US/ug994-vivado-ip-subsystems" target="_blank" rel="noopener">AMD UG994 — IP Integrator</a></li></ul>
 </section>
 <nav class="chapter-nav"><a href="03_fpga_design_flow.html">← 03. RTL이 FPGA 회로가 되는 과정</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="05_cpu_memory_peripheral.html">05. CPU · Memory · Peripheral 구조 →</a></nav>

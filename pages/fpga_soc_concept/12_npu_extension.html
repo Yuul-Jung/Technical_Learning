@@ -38,7 +38,7 @@
 <section class="step-card" id="step01">
 <span class="step">SECTION 01</span>
 <h2>학습 모델에서 FPGA NPU까지</h2>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/12_npu_extension/npu_pipeline.svg" alt="PyTorch 모델에서 FPGA NPU까지"><figcaption>PyTorch → INT8 → BRAM → DSP48E1 MAC → Output의 전체 확장 흐름.</figcaption></figure>
+<div class="flow">PyTorch 학습 → Quantization(INT8) → Weight Export → BRAM → DSP48E1 MAC → Accumulator → Output</div>
 </section><section class="step-card" id="step02">
 <span class="step">SECTION 02</span>
 <h2>Quantization의 의미</h2>
@@ -49,7 +49,7 @@
 <h2>Weight · Activation · MAC</h2>
 <div class="flow">Input Activation → BRAM/Buffer → Weight Read → DSP48E1 Multiply → Accumulator → Activation/Output</div>
 <p>여러 MAC Unit을 병렬 배치하면 Throughput을 높일 수 있지만 DSP와 BRAM Port, Routing, Power, Timing 사용량이 증가합니다.</p>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/12_npu_extension/npu_resource_mapping.svg" alt="NPU 연산의 FPGA 자원 매핑"><figcaption>Weight·Activation·BRAM·DSP48E1 MAC의 자원 매핑 관계.</figcaption></figure>
+<div class="table-wrap"><table><thead><tr><th>NPU 요소</th><th>FPGA 자원 연결</th></tr></thead><tbody><tr><td>Weight / Activation Buffer</td><td>BRAM / Distributed RAM</td></tr><tr><td>Multiply / MAC</td><td>DSP48E1</td></tr><tr><td>Control / FSM</td><td>LUT + FF</td></tr><tr><td>Interconnect</td><td>Routing / AXI / Stream</td></tr></tbody></table></div>
 </section><section class="step-card" id="step04">
 <span class="step">SECTION 04</span>
 <h2>Basys3 NPU 평가 기준</h2>
@@ -68,7 +68,7 @@
 </section><section class="step-card" id="sources">
 <span class="step">SOURCE</span>
 <h2>공식 기준 문서</h2>
-<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<p>본문은 아래 공식 문서를 기준으로 검증했습니다. 기술 구조를 임의로 다시 그리지 않으며, 원문 Figure가 필요한 부분은 공식 원문 링크로 직접 연결합니다.</p>
 <ul><li><a href="https://docs.amd.com/v/u/en-US/ug479_7Series_DSP48E1" target="_blank" rel="noopener">AMD UG479 — DSP48E1</a></li><li><a href="https://docs.amd.com/api/khub/documents/9gZGbqBxtlKXxBfkBt~lAg/content" target="_blank" rel="noopener">AMD UG473 — 7 Series Memory Resources</a></li><li><a href="https://docs.amd.com/r/en-US/pg149-fir-compiler/Basic-Handshake" target="_blank" rel="noopener">AMD PG149 — AXI4-Stream Basic Handshake</a></li></ul>
 </section>
 <nav class="chapter-nav"><a href="11_hardware_accelerator.html">← 11. Hardware Accelerator 구조</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="../fpga/01_sw0_led.html">Digital / FPGA 실습으로 →</a></nav>

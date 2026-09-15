@@ -38,13 +38,13 @@
 <section class="step-card" id="step01">
 <span class="step">SECTION 01</span>
 <h2>Memory와 DSP의 역할</h2>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/10_fpga_memory_dsp/memory_dsp_datapath.svg" alt="FPGA Memory DSP Datapath"><figcaption>UG473·UG479·UG474 기반의 교육용 Datapath 구조.</figcaption></figure>
+<div class="source-figure-ref"><p class="source-kicker">ORIGINAL FIGURE · AMD UG479</p><h3>Figure 2-1 · 7 Series FPGA DSP48E1 Slice</h3><p>원문 그림은 공식 문서에서 직접 확인합니다. 이 페이지에서는 기술 구조를 임의로 다시 그리지 않습니다.</p><a class="source-figure-link" href="https://docs.amd.com/v/u/en-US/ug479_7Series_DSP48E1" target="_blank" rel="noopener">공식 원문에서 그림 보기 ↗</a></div>
 </section><section class="step-card" id="step02">
 <span class="step">SECTION 02</span>
 <h2>Distributed RAM과 BRAM</h2>
 <p>UG474의 SLICEM LUT는 작은 Distributed RAM이나 Shift Register로 구성할 수 있습니다. 반면 7 Series의 Block RAM은 더 큰 저장 공간을 제공하고 Dual-Port 구조와 다양한 Width/Depth 구성을 지원합니다.</p>
 <div class="table-wrap"><table><thead><tr><th>자원</th><th>적합한 용도</th></tr></thead><tbody><tr><td>Distributed RAM</td><td>작은 Table, Delay, 작은 Buffer</td></tr><tr><td>BRAM</td><td>Weight, Feature Buffer, FIFO, Program/Data Memory</td></tr></tbody></table></div>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/10_fpga_memory_dsp/dual_port_bram.svg" alt="Dual Port BRAM 개념"><figcaption>UG473의 Dual-Port Block RAM 개념을 교육용으로 단순화.</figcaption></figure>
+<div class="source-figure-ref"><p class="source-kicker">ORIGINAL FIGURE · AMD UG473</p><h3>True Dual-Port Block RAM Data Flow 원문</h3><p>원문 그림은 공식 문서에서 직접 확인합니다. 이 페이지에서는 기술 구조를 임의로 다시 그리지 않습니다.</p><a class="source-figure-link" href="https://docs.amd.com/v/u/en-US/ug473_7Series_Memory_Resources" target="_blank" rel="noopener">공식 원문에서 그림 보기 ↗</a></div>
 </section><section class="step-card" id="step03">
 <span class="step">SECTION 03</span>
 <h2>DSP48E1</h2>
@@ -61,7 +61,7 @@
 </section><section class="step-card" id="sources">
 <span class="step">SOURCE</span>
 <h2>공식 기준 문서</h2>
-<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<p>본문은 아래 공식 문서를 기준으로 검증했습니다. 기술 구조를 임의로 다시 그리지 않으며, 원문 Figure가 필요한 부분은 공식 원문 링크로 직접 연결합니다.</p>
 <ul><li><a href="https://docs.amd.com/api/khub/documents/9gZGbqBxtlKXxBfkBt~lAg/content" target="_blank" rel="noopener">AMD UG473 — 7 Series Memory Resources</a></li><li><a href="https://docs.amd.com/v/u/en-US/ug479_7Series_DSP48E1" target="_blank" rel="noopener">AMD UG479 — DSP48E1</a></li><li><a href="https://docs.amd.com/r/en-US/ug474_7Series_CLB/Carry-Logic-Applications" target="_blank" rel="noopener">AMD UG474 — Carry Logic Applications</a></li></ul>
 </section>
 <nav class="chapter-nav"><a href="09_microblaze_soc.html">← 09. MicroBlaze 기반 FPGA SoC</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="11_hardware_accelerator.html">11. Hardware Accelerator 구조 →</a></nav>

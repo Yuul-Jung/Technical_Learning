@@ -38,13 +38,13 @@
 <section class="step-card" id="step01">
 <span class="step">SECTION 01</span>
 <h2>네 플랫폼을 한 번에 비교하기</h2>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/02_fpga_asic_mcu_soc/platform_compare.svg" alt="MCU FPGA ASIC FPGA SoC 비교"><figcaption>플랫폼별 고정 구조·재구성 구조·Soft CPU 구조 비교.</figcaption></figure>
+<div class="table-wrap"><table><thead><tr><th>구분</th><th>MCU</th><th>FPGA</th><th>ASIC</th><th>FPGA + MicroBlaze</th></tr></thead><tbody><tr><td>기본 구조</td><td>CPU·Memory·Peripheral 고정</td><td>재구성 논리</td><td>제조 후 고정</td><td>Soft CPU + 재구성 논리</td></tr><tr><td>주요 변경 방법</td><td>Software</td><td>Hardware 구성</td><td>재제조</td><td>Hardware + Software</td></tr><tr><td>병렬 연산</td><td>제한적</td><td>강함</td><td>매우 강함</td><td>CPU 제어 + 병렬 RTL</td></tr></tbody></table></div>
 </section><section class="step-card" id="step02">
 <span class="step">SECTION 02</span>
 <h2>MCU와 FPGA의 가장 큰 차이</h2>
 <p>MCU(Microcontroller Unit, 마이크로컨트롤러)는 CPU, Memory, Timer, UART 같은 Peripheral이 이미 칩 내부에 고정되어 있고 소프트웨어가 그 하드웨어를 사용합니다. FPGA는 반대로 LUT, FF, BRAM, DSP, Routing을 이용해 사용자가 원하는 디지털 회로를 직접 구성합니다.</p>
 <div class="flow">MCU: 고정 하드웨어 위에서 Software 실행 / FPGA: HDL로 하드웨어 자체를 구성</div>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/02_fpga_asic_mcu_soc/software_vs_hardware.svg" alt="Software 실행과 FPGA 병렬 하드웨어 비교"><figcaption>순차 Instruction 실행과 병렬 Hardware 구조의 차이를 교육용으로 재작성.</figcaption></figure>
+<div class="flow">MCU: Instruction을 CPU가 순차 실행 · FPGA: 여러 RTL 회로 블록이 동시에 동작</div>
 </section><section class="step-card" id="step03">
 <span class="step">SECTION 03</span>
 <h2>ASIC과 FPGA</h2>
@@ -61,7 +61,7 @@
 </section><section class="step-card" id="sources">
 <span class="step">SOURCE</span>
 <h2>공식 기준 문서</h2>
-<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<p>본문은 아래 공식 문서를 기준으로 검증했습니다. 기술 구조를 임의로 다시 그리지 않으며, 원문 Figure가 필요한 부분은 공식 원문 링크로 직접 연결합니다.</p>
 <ul><li><a href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref/Overview" target="_blank" rel="noopener">AMD UG984 — Overview</a></li><li><a href="https://digilent.com/shop/basys-3-amd-artix-7-fpga-trainer-board-recommended-for-introductory-users/" target="_blank" rel="noopener">Digilent Basys3</a></li></ul>
 </section>
 <nav class="chapter-nav"><a href="01_fpga_architecture.html">← 01. FPGA 개요와 내부 구조</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="03_fpga_design_flow.html">03. RTL이 FPGA 회로가 되는 과정 →</a></nav>

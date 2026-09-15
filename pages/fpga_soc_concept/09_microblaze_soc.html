@@ -38,7 +38,7 @@
 <section class="step-card" id="step01">
 <span class="step">SECTION 01</span>
 <h2>목표 구조</h2>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/09_microblaze_soc/basys3_microblaze_soc.svg" alt="Basys3 MicroBlaze SoC 구조"><figcaption>UG984/UG994와 Basys3 실습 방향을 연결한 목표 구조.</figcaption></figure>
+<div class="source-figure-ref"><p class="source-kicker">ORIGINAL FIGURE · AMD UG1579</p><h3>MicroBlaze Processor Block Design 원문</h3><p>원문 그림은 공식 문서에서 직접 확인합니다. 이 페이지에서는 기술 구조를 임의로 다시 그리지 않습니다.</p><a class="source-figure-link" href="https://docs.amd.com/r/en-US/ug1579-microblaze-embedded-design/Using-a-MicroBlaze-Processor-in-an-Embedded-Design" target="_blank" rel="noopener">공식 원문에서 그림 보기 ↗</a></div>
 </section><section class="step-card" id="step02">
 <span class="step">SECTION 02</span>
 <h2>BRAM과 Software</h2>
@@ -52,7 +52,7 @@
 <h2>Hardware와 Software의 경계</h2>
 <p>Vivado에서 Hardware Platform을 만들고 Bitstream/XSA를 생성한 뒤 Software Toolchain에서 MicroBlaze Program을 작성합니다. FPGA Fabric의 회로 구조와 CPU Software는 분리되어 있지만 Register Map과 AXI로 연결됩니다.</p>
 <div class="flow">Vivado Hardware → XSA → Software Project → ELF → Program/Debug</div>
-<figure class="tech-figure"><img src="../../images/fpga_soc_concept/09_microblaze_soc/hw_sw_flow.svg" alt="MicroBlaze Hardware Software 개발 흐름"><figcaption>Vivado Hardware Platform과 Software 실행 파일의 연결 흐름.</figcaption></figure>
+<div class="flow">Vivado Hardware Design → Bitstream / Hardware Description → Vitis Software → ELF → MicroBlaze 실행</div>
 </section><section class="step-card summary" id="summary">
 <span class="step">SUMMARY</span>
 <h2>핵심 정리</h2>
@@ -60,7 +60,7 @@
 </section><section class="step-card" id="sources">
 <span class="step">SOURCE</span>
 <h2>공식 기준 문서</h2>
-<p>본문의 기술 내용과 교육용 재작성 그림은 아래 공식 문서를 기준으로 검증했습니다. 원문 전체를 복제하지 않고 핵심 구조를 학습용으로 재구성했습니다.</p>
+<p>본문은 아래 공식 문서를 기준으로 검증했습니다. 기술 구조를 임의로 다시 그리지 않으며, 원문 Figure가 필요한 부분은 공식 원문 링크로 직접 연결합니다.</p>
 <ul><li><a href="https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref" target="_blank" rel="noopener">AMD UG984 — MicroBlaze Processor Reference</a></li><li><a href="https://docs.amd.com/r/en-US/ug994-vivado-ip-subsystems" target="_blank" rel="noopener">AMD UG994 — IP Integrator</a></li><li><a href="https://docs.amd.com/r/en-US/pg144-axi-gpio" target="_blank" rel="noopener">AMD PG144 — AXI GPIO</a></li></ul>
 </section>
 <nav class="chapter-nav"><a href="08_ip_custom_ip.html">← 08. IP · Module Reference · Custom IP</a><a class="home" href="../../index.html">🏠 홈</a><a class="next" href="10_fpga_memory_dsp.html">10. FPGA Memory · BRAM · DSP 구조 →</a></nav>
